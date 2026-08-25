@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Header from './Header';
 import Sidebar from './Sidebar';
 
-export default function AdminLayout({ children }) {
+export default function AdminLayout({ children, currentPage, onNavigate }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -12,6 +12,11 @@ export default function AdminLayout({ children }) {
       <Sidebar
         mobileOpen={mobileOpen}
         onClose={() => setMobileOpen(false)}
+        currentPage={currentPage}
+        onNavigate={(id) => {
+          onNavigate?.(id);
+          setMobileOpen(false); // close mobile menu on navigate
+        }}
       />
 
       {/* ── Right side: header + scrollable content ── */}

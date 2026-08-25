@@ -26,24 +26,30 @@ const iconMap = {
   Settings,
 };
 
-function NavItem({ item, onClick }) {
+// Only these two ids map to real pages; others are future nav items
+const ROUTABLE_IDS = new Set(['dashboard', 'customers']);
+
+function NavItem({ item, isActive, onNavigate }) {
   const Icon = iconMap[item.icon] ?? LayoutDashboard;
+  const routable = ROUTABLE_IDS.has(item.id);
   return (
     <li>
       <button
-        onClick={() => onClick?.(item.id)}
-        aria-current={item.active ? 'page' : undefined}
+        onClick={() => routable && onNavigate?.(item.id)}
+        aria-current={isActive ? 'page' : undefined}
         className={`
           w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm
           transition-colors duration-150
-          ${item.active
+          ${isActive
             ? 'bg-[#FDF0F4] text-[#8E406F] font-semibold'
-            : 'text-[#555] font-normal hover:bg-[#FDF0F4] hover:text-[#8E406F]'}
+            : routable
+              ? 'text-[#555] font-normal hover:bg-[#FDF0F4] hover:text-[#8E406F]'
+              : 'text-[#bbb] font-normal cursor-not-allowed'}
         `}
       >
         <Icon
           size={16}
-          className={`shrink-0 ${item.active ? 'text-[#8E406F]' : 'text-[#999]'}`}
+          className={`shrink-0 ${isActive ? 'text-[#8E406F]' : routable ? 'text-[#999]' : 'text-[#ccc]'}`}
           aria-hidden="true"
         />
         <span className="text-left whitespace-nowrap">{item.label}</span>
@@ -52,7 +58,7 @@ function NavItem({ item, onClick }) {
   );
 }
 
-export default function Sidebar({ mobileOpen = false, onClose }) {
+export default function Sidebar({ mobileOpen = false, onClose, currentPage = 'dashboard', onNavigate }) {
   return (
     <>
       {/* Mobile backdrop */}
@@ -99,7 +105,12 @@ export default function Sidebar({ mobileOpen = false, onClose }) {
         <nav className="flex-1 px-3 py-4">
           <ul className="space-y-0.5">
             {sidebarNav.map((item) => (
-              <NavItem key={item.id} item={item} />
+              <NavItem
+                key={item.id}
+                item={item}
+                isActive={currentPage === item.id}
+                onNavigate={onNavigate}
+              />
             ))}
           </ul>
         </nav>
