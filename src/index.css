@@ -1,0 +1,37 @@
+/* ============================================================
+   index.css — Oleena Wedding Planner
+   Global styles + Google Fonts import
+   
+   To change the imported fonts:
+     Edit the @import URL below (Playfair Display + Plus Jakarta Sans)
+   To change the base body font:
+     Edit the font-family inside the body rule
+   ============================================================ */
+
+@import "tailwindcss";
+
+/* Google Fonts — Playfair Display (headlines) + Plus Jakarta Sans (body/UI) */
+/* To add or swap fonts: update the families parameter in the URL */
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
+
+/* Base resets */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Body defaults — Pure White bg, Plus Jakarta Sans, deep charcoal text */
+body {
+  margin: 0;
+  background-color: #ffffff;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: #2d2926;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
