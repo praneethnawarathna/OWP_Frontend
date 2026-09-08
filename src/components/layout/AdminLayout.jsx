@@ -2,7 +2,13 @@ import { useState } from 'react';
 import Header from './Header';
 import Sidebar from './Sidebar';
 
-export default function AdminLayout({ children, currentPage, onNavigate }) {
+export default function AdminLayout({
+  children,
+  currentPage,
+  onNavigate,
+  userRole,
+  onRoleToggle,
+}) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -15,13 +21,19 @@ export default function AdminLayout({ children, currentPage, onNavigate }) {
         currentPage={currentPage}
         onNavigate={(id) => {
           onNavigate?.(id);
-          setMobileOpen(false); // close mobile menu on navigate
+          setMobileOpen(false);
         }}
+        userRole={userRole}
       />
 
       {/* ── Right side: header + scrollable content ── */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <Header onMenuClick={() => setMobileOpen(true)} />
+        <Header
+          onMenuClick={() => setMobileOpen(true)}
+          userRole={userRole}
+          onRoleToggle={onRoleToggle}
+          onNavigate={onNavigate}
+        />
 
         <main
           id="main-content"
