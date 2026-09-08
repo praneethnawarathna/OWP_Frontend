@@ -29,7 +29,7 @@ import { useState, useRef, useEffect } from 'react';
 //   TIP: Keep images under 2 MB for fast load times.
 //   To remove the image: set the value back to null.
 // ============================================================
-const LEFT_PANEL_IMAGE = 'images\\image1.jpg' // ← Paste your image path here
+const LEFT_PANEL_IMAGE = 'images/image1.jpg' // ← Paste your image path here
 
 export default function LoginPage() {
   // --- State ---
