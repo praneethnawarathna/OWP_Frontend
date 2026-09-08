@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /* ============================================================
    index.css — Oleena Wedding Planner
    Global styles + Google Fonts import
@@ -15,23 +16,84 @@
 @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
 
 /* Base resets */
+=======
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── OWP Design Tokens ── */
+:root {
+  --color-primary:        #8E406F;
+  --color-primary-hover:  #73325A;
+  --color-primary-light:  #FDF0F4;
+  --color-primary-border: #F1E5EC;
+  --color-bg:             #F8FAFC;
+  --color-surface:        #FFFFFF;
+  --color-text:           #1E293B;
+  --color-muted:          #737373;
+}
+
+>>>>>>> origin/dev
 *,
 *::before,
 *::after {
   box-sizing: border-box;
 }
 
+<<<<<<< HEAD
 /* Body defaults — Pure White bg, Plus Jakarta Sans, deep charcoal text */
 body {
   margin: 0;
   background-color: #ffffff;
   font-family: 'Plus Jakarta Sans', sans-serif;
   color: #2d2926;
+=======
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: #F8FAFC;
+  color: #1E293B;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+>>>>>>> origin/dev
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+<<<<<<< HEAD
 /* Smooth scrolling */
 html {
   scroll-behavior: smooth;
 }
+=======
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #e8c4d8; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #8E406F; }
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid #8E406F;
+  outline-offset: 2px;
+}
+
+/* line-clamp */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+>>>>>>> origin/dev
