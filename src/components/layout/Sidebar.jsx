@@ -6,7 +6,6 @@ import {
   Flag,
   LayoutDashboard,
   Settings,
-  ShieldCheck,
   Store,
   Tag,
   Users,
@@ -27,8 +26,8 @@ const iconMap = {
   Settings,
 };
 
-// IDs that map to real pages
-const ROUTABLE_IDS = new Set(['dashboard', 'customers', 'listing-review', 'admin-management', 'settings']);
+// IDs that map to real pages; others are future nav items
+const ROUTABLE_IDS = new Set(['dashboard', 'customers', 'listing-review']);
 
 function NavItem({ item, isActive, onNavigate }) {
   const Icon = iconMap[item.icon] ?? LayoutDashboard;
@@ -59,15 +58,7 @@ function NavItem({ item, isActive, onNavigate }) {
   );
 }
 
-export default function Sidebar({
-  mobileOpen = false,
-  onClose,
-  currentPage = 'dashboard',
-  onNavigate,
-  userRole,
-}) {
-  const isSuperAdmin = userRole === 'SUPER_ADMIN';
-
+export default function Sidebar({ mobileOpen = false, onClose, currentPage = 'dashboard', onNavigate }) {
   return (
     <>
       {/* Mobile backdrop */}
@@ -124,36 +115,17 @@ export default function Sidebar({
           </ul>
         </nav>
 
-        {/* ── Admin Roles — Super Admin only ── */}
-        {isSuperAdmin && (
-          <div className="px-3 pb-1">
-            <button
-              id="sidebar-admin-roles-btn"
-              onClick={() => onNavigate?.('admin-management')}
-              aria-current={currentPage === 'admin-management' ? 'page' : undefined}
-              className={`
-                w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors duration-150
-                ${currentPage === 'admin-management'
-                  ? 'bg-[#FDF0F4] text-[#8E406F] font-semibold'
-                  : 'text-[#555] font-normal hover:bg-[#FDF0F4] hover:text-[#8E406F]'}
-              `}
-            >
-              <ShieldCheck
-                size={16}
-                className={`shrink-0 ${currentPage === 'admin-management' ? 'text-[#8E406F]' : 'text-[#999]'}`}
-                aria-hidden="true"
-              />
-              <span className="text-left whitespace-nowrap">Admin Roles</span>
-            </button>
+        {/* ── Admin Roles — view-only ── */}
+        <div className="px-3 pb-1">
+          <div className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[#bbb] cursor-not-allowed">
+            <Users size={16} className="text-[#ccc] shrink-0" aria-hidden="true" />
+            <span className="text-left whitespace-nowrap">Admin Roles</span>
           </div>
-        )}
+        </div>
 
         {/* ── Settings ── */}
         <div className="px-3 pb-2">
-          <button
-            onClick={() => onNavigate?.('settings')}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[#555] hover:bg-[#FDF0F4] hover:text-[#8E406F] transition-colors"
-          >
+          <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[#555] hover:bg-[#FDF0F4] hover:text-[#8E406F] transition-colors">
             <Settings size={16} className="text-[#999] shrink-0" aria-hidden="true" />
             <span className="text-left whitespace-nowrap">Settings</span>
           </button>
@@ -162,15 +134,11 @@ export default function Sidebar({
         {/* ── User Profile ── */}
         <div className="border-t border-[#F1E5EC] px-4 py-3 flex items-center gap-2.5">
           <div className="h-8 w-8 rounded-full bg-[#8E406F]/10 border border-[#e8c4d8] flex items-center justify-center shrink-0">
-            <span className="text-[#8E406F] text-xs font-bold">JD</span>
+            <span className="text-[#8E406F] text-xs font-bold">PN</span>
           </div>
           <div className="min-w-0">
-            <p className="text-[#333] text-xs font-semibold leading-tight truncate">Jane Doe</p>
-            <p className="text-[#999] text-[10px] leading-tight flex items-center gap-1">
-              {isSuperAdmin
-                ? <><ShieldCheck size={9} className="text-[#8E406F]" /> Super Admin</>
-                : 'Admin'}
-            </p>
+            <p className="text-[#333] text-xs font-semibold leading-tight truncate">Praneeth N</p>
+            <p className="text-[#999] text-[10px] leading-tight">Admin</p>
           </div>
         </div>
 
