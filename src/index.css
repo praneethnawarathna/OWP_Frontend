@@ -1,3 +1,22 @@
+<<<<<<< HEAD
+/* ============================================================
+   index.css — Oleena Wedding Planner
+   Global styles + Google Fonts import
+   
+   To change the imported fonts:
+     Edit the @import URL below (Playfair Display + Plus Jakarta Sans)
+   To change the base body font:
+     Edit the font-family inside the body rule
+   ============================================================ */
+
+@import "tailwindcss";
+
+/* Google Fonts — Playfair Display (headlines) + Plus Jakarta Sans (body/UI) */
+/* To add or swap fonts: update the families parameter in the URL */
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
+
+/* Base resets */
+=======
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
@@ -16,12 +35,21 @@
   --color-muted:          #737373;
 }
 
+>>>>>>> origin/dev
 *,
 *::before,
 *::after {
   box-sizing: border-box;
 }
 
+<<<<<<< HEAD
+/* Body defaults — Pure White bg, Plus Jakarta Sans, deep charcoal text */
+body {
+  margin: 0;
+  background-color: #ffffff;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: #2d2926;
+=======
 html, body, #root {
   height: 100%;
   margin: 0;
@@ -32,10 +60,17 @@ body {
   background-color: #F8FAFC;
   color: #1E293B;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+>>>>>>> origin/dev
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+<<<<<<< HEAD
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+=======
 #root {
   display: flex;
   flex-direction: column;
@@ -61,3 +96,4 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+>>>>>>> origin/dev
