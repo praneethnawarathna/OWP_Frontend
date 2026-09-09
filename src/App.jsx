@@ -1,55 +1,64 @@
-<<<<<<< HEAD
-// App.jsx — Oleena Wedding Planner
-// Root component — routes render here
-// TODO: When adding React Router, replace LoginPage with a <Routes> / <Route> structure
-
-import LoginPage from './pages/LoginPage';
-
-function App() {
-  return (
-    // Temporarily rendering LoginPage directly.
-    // TODO: Wrap with <BrowserRouter> and <Routes> when adding navigation.
-    <LoginPage />
-  );
-}
-
-export default App;
-=======
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './index.css';
 import AdminLayout from './components/layout/AdminLayout';
 import DashboardPage from './pages/DashboardPage';
 import CustomerManagementPage from './pages/CustomerManagementPage';
 import ListingReviewPage from './pages/ListingReviewPage';
 import AdminManagementPage from './pages/AdminManagementPage';
+import LoginPage from './pages/LoginPage';
+
+// Map browser URL paths to internal page state
+const pathToPage = (path) => {
+  if (path === '/login') return 'login';
+  if (path === '/customer-management' || path === '/customers') return 'customers';
+  if (path === '/listing-review' || path === '/listings') return 'listing-review';
+  if (path === '/admin-management' || path === '/admins') return 'admin-management';
+  return 'dashboard'; // Default route for '/' or '/dashboard'
+};
+
+// Map internal page state to clean URL paths
+const pageToPath = (page) => {
+  if (page === 'login') return '/login';
+  if (page === 'customers') return '/customer-management';
+  if (page === 'listing-review') return '/listing-review';
+  if (page === 'admin-management') return '/admin-management';
+  return '/';
+};
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState('dashboard');
-  const [userRole, setUserRole] = useState('ADMIN'); // 'ADMIN' | 'SUPER_ADMIN'
+  // Read initial page directly from the address bar
+  const [currentPage, setCurrentPage] = useState(() => pathToPage(window.location.pathname));
 
-  const toggleRole = () =>
-    setUserRole(r => (r === 'ADMIN' ? 'SUPER_ADMIN' : 'ADMIN'));
+  // Sync state if user clicks Browser Back/Forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPage(pathToPage(window.location.pathname));
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
-  // Guard: if we're on admin-management and role switches back to ADMIN, redirect home
-  const handleRoleToggle = () => {
-    if (userRole === 'SUPER_ADMIN' && currentPage === 'admin-management') {
-      setCurrentPage('dashboard');
+  // Update both React state AND the address bar when navigating
+  const handleNavigate = (page) => {
+    setCurrentPage(page);
+    const newPath = pageToPath(page);
+    if (window.location.pathname !== newPath) {
+      window.history.pushState({}, '', newPath);
     }
-    toggleRole();
   };
 
+  // 1. Standalone Login Page: Rendered full screen without Admin Sidebar/Header
+  if (currentPage === 'login') {
+    return <LoginPage onLogin={() => handleNavigate('dashboard')} />;
+  }
+
+  // 2. Admin Portal: Wrapped cleanly inside AdminLayout (Sidebar + Header intact)
   return (
-    <AdminLayout
-      currentPage={currentPage}
-      onNavigate={setCurrentPage}
-      userRole={userRole}
-      onRoleToggle={handleRoleToggle}
-    >
-      {currentPage === 'dashboard'          && <DashboardPage />}
-      {currentPage === 'customers'          && <CustomerManagementPage />}
-      {currentPage === 'listing-review'     && <ListingReviewPage />}
-      {currentPage === 'admin-management'   && userRole === 'SUPER_ADMIN' && <AdminManagementPage />}
+    <AdminLayout currentPage={currentPage} onNavigate={handleNavigate}>
+      {currentPage === 'dashboard'        && <DashboardPage />}
+      {currentPage === 'customers'        && <CustomerManagementPage />}
+      {currentPage === 'listing-review'   && <ListingReviewPage />}
+      {currentPage === 'admin-management' && <AdminManagementPage />}
     </AdminLayout>
   );
 }
->>>>>>> origin/dev
