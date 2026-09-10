@@ -1,6 +1,6 @@
-import { Bell, Menu, Plus, Search, ShieldCheck, UserCog } from 'lucide-react';
+import { Bell, LogOut, Menu, Plus, Search, ShieldCheck, UserCog } from 'lucide-react';
 
-export default function Header({ onMenuClick, userRole, onRoleToggle, onNavigate }) {
+export default function Header({ onMenuClick, userRole, onRoleToggle, onNavigate, onLogout }) {
   const isSuperAdmin = userRole === 'SUPER_ADMIN';
 
   return (
@@ -84,12 +84,38 @@ export default function Header({ onMenuClick, userRole, onRoleToggle, onNavigate
           <Bell size={16} />
         </button>
 
-        {/* Avatar */}
-        <button
-          aria-label="Profile"
-          className="h-8 w-8 rounded-full bg-[#8E406F]/10 border border-[#e8c4d8] flex items-center justify-center hover:bg-[#FDF0F4] transition-colors"
+        {/* User initials / avatar */}
+        <div
+          title="Logged In Profile"
+          className="h-8 w-8 rounded-full bg-[#8E406F]/10 border border-[#e8c4d8] flex items-center justify-center select-none"
         >
-          <span className="text-[#8E406F] text-xs font-bold">JD</span>
+          <span className="text-[#8E406F] text-xs font-bold">
+            {(() => {
+              try {
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                return (user.fullName || 'Admin')
+                  .split(' ')
+                  .map((n) => n[0])
+                  .join('')
+                  .substring(0, 2)
+                  .toUpperCase();
+              } catch {
+                return 'AD';
+              }
+            })()}
+          </span>
+        </div>
+
+        {/* Log Out Button */}
+        <button
+          id="header-logout-btn"
+          onClick={onLogout}
+          title="Sign Out"
+          aria-label="Sign Out"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-200 text-rose-600 bg-rose-50/60 hover:bg-rose-100 hover:text-rose-700 text-xs font-medium transition-all"
+        >
+          <LogOut size={13} />
+          Sign Out
         </button>
 
       </div>

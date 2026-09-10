@@ -5,6 +5,7 @@ import {
   ClipboardList,
   Flag,
   LayoutDashboard,
+  LogOut,
   Settings,
   ShieldCheck,
   Store,
@@ -65,8 +66,27 @@ export default function Sidebar({
   currentPage = 'dashboard',
   onNavigate,
   userRole,
+  onLogout,
 }) {
   const isSuperAdmin = userRole === 'SUPER_ADMIN';
+
+  // Retrieve authenticated user data from localStorage
+  const storedUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || '{}');
+    } catch {
+      return {};
+    }
+  })();
+
+  const displayName = storedUser.fullName || 'System Admin';
+  const displayRole = storedUser.role || (isSuperAdmin ? 'SUPER_ADMIN' : 'ADMIN');
+  const userInitials = displayName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase() || 'SA';
 
   return (
     <>
@@ -159,19 +179,41 @@ export default function Sidebar({
           </button>
         </div>
 
+        {/* ── Log Out Button ── */}
+        <div className="px-3 pb-2">
+          <button
+            id="sidebar-logout-btn"
+            onClick={onLogout}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-colors"
+          >
+            <LogOut size={16} className="shrink-0 text-rose-500" aria-hidden="true" />
+            <span className="text-left whitespace-nowrap">Sign Out</span>
+          </button>
+        </div>
+
         {/* ── User Profile ── */}
-        <div className="border-t border-[#F1E5EC] px-4 py-3 flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-full bg-[#8E406F]/10 border border-[#e8c4d8] flex items-center justify-center shrink-0">
-            <span className="text-[#8E406F] text-xs font-bold">JD</span>
+        <div className="border-t border-[#F1E5EC] px-4 py-3 flex items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="h-8 w-8 rounded-full bg-[#8E406F]/10 border border-[#e8c4d8] flex items-center justify-center shrink-0">
+              <span className="text-[#8E406F] text-xs font-bold">{userInitials}</span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-[#333] text-xs font-semibold leading-tight truncate">{displayName}</p>
+              <p className="text-[#999] text-[10px] leading-tight flex items-center gap-1">
+                {displayRole.includes('SUPER')
+                  ? <><ShieldCheck size={9} className="text-[#8E406F]" /> Super Admin</>
+                  : 'Admin'}
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="text-[#333] text-xs font-semibold leading-tight truncate">Jane Doe</p>
-            <p className="text-[#999] text-[10px] leading-tight flex items-center gap-1">
-              {isSuperAdmin
-                ? <><ShieldCheck size={9} className="text-[#8E406F]" /> Super Admin</>
-                : 'Admin'}
-            </p>
-          </div>
+          <button
+            onClick={onLogout}
+            title="Log Out"
+            aria-label="Log Out"
+            className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+          >
+            <LogOut size={15} />
+          </button>
         </div>
 
       </aside>
