@@ -31,7 +31,7 @@ import { useState, useRef, useEffect } from 'react';
 // ============================================================
 const LEFT_PANEL_IMAGE = 'images/image1.jpg' // ← Paste your image path here
 
-export default function LoginPage() {
+export default function LoginPage({ onLoginSuccess }) {
   // --- State ---
   // isAdmin: controls whether the Admin toggle is ON
   const [isAdmin, setIsAdmin] = useState(false);
@@ -50,6 +50,9 @@ export default function LoginPage() {
 
   // isLoading: button loading state during sign-in
   const [isLoading, setIsLoading] = useState(false);
+
+  // loginError: displays backend / network error messages to the user
+  const [loginError, setLoginError] = useState('');
 
   // pinRefs: refs for each PIN input cell for auto-focus management
   const pinRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
@@ -111,9 +114,9 @@ export default function LoginPage() {
   };
 
   // Handle Sign In form submission
-  // NOTE: Replace the mock logic below with your real API call to OWP_Backend
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoginError('');
 
     // Validate: if admin mode, PIN must be fully filled
     if (isAdmin) {
@@ -127,15 +130,42 @@ export default function LoginPage() {
 
     setIsLoading(true);
 
-    // --- MOCK: Simulate API delay ---
-    // TODO: Replace with actual fetch/axios call to your .NET 8 backend:
-    // POST /api/auth/login  { email, password, isAdmin, pin? }
-    // Expect JWT in response store in localStorage/context
-    await new Promise((res) => setTimeout(res, 1500));
+    try {
+      const response = await fetch('http://localhost:5131/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          isAdmin: isAdmin,
+          pin: isAdmin ? pin.join('') : undefined,
+        }),
+      });
 
-    setIsLoading(false);
-    // TODO: on success navigate to dashboard via React Router
-    alert(`Mock sign-in successful!\nEmail: ${formData.email}\nAdmin: ${isAdmin}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Show backend error message (ProblemDetails.detail or title)
+        setLoginError(data?.detail || data?.title || 'Login failed. Please try again.');
+        return;
+      }
+
+      // Store JWT token and user profile for subsequent authenticated requests
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify({
+        userId: data.userId,
+        email: data.email,
+        fullName: data.fullName,
+        role: data.role,
+      }));
+
+      // Navigate to the dashboard
+      onLoginSuccess();
+    } catch (err) {
+      setLoginError('Unable to connect to the server. Please ensure the backend is running.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Auto-focus first PIN cell when admin mode is activated
@@ -462,6 +492,19 @@ export default function LoginPage() {
                 )}
               </div>
             </div>
+
+            {/* ===================================================
+                ERROR BANNER
+                Displays backend / network error messages
+                =================================================== */}
+            {loginError && (
+              <div
+                role="alert"
+                className="mb-3 p-3 rounded border border-red-300 bg-red-50 text-red-700 text-sm text-center"
+              >
+                {loginError}
+              </div>
+            )}
 
             {/* ===================================================
                 SIGN IN BUTTON
