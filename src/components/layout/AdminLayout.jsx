@@ -8,6 +8,7 @@ export default function AdminLayout({
   onNavigate,
   userRole,
   onRoleToggle,
+  onLogout,
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -24,6 +25,7 @@ export default function AdminLayout({
           setMobileOpen(false);
         }}
         userRole={userRole}
+        onLogout={onLogout}
       />
 
       {/* ── Right side: header + scrollable content ── */}
@@ -33,6 +35,7 @@ export default function AdminLayout({
           userRole={userRole}
           onRoleToggle={onRoleToggle}
           onNavigate={onNavigate}
+          onLogout={onLogout}
         />
 
         <main
