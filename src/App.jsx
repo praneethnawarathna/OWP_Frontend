@@ -5,6 +5,7 @@ import DashboardPage from './pages/DashboardPage';
 import CustomerManagementPage from './pages/CustomerManagementPage';
 import ListingReviewPage from './pages/ListingReviewPage';
 import AdminManagementPage from './pages/AdminManagementPage';
+import AdminSettingsPage from './pages/AdminSettingsPage';
 import LoginPage from './pages/LoginPage';
 
 // Returns true only if a non-expired JWT token is stored in localStorage.
@@ -51,6 +52,7 @@ const pathToPage = (path) => {
   if (path === '/customer-management' || path === '/customers') return 'customers';
   if (path === '/listing-review' || path === '/listings') return 'listing-review';
   if (path === '/admin-management' || path === '/admins') return 'admin-management';
+  if (path === '/settings') return 'settings';
   return 'dashboard'; // Default route for '/' or '/dashboard'
 };
 
@@ -60,6 +62,7 @@ const pageToPath = (page) => {
   if (page === 'customers') return '/customer-management';
   if (page === 'listing-review') return '/listing-review';
   if (page === 'admin-management') return '/admin-management';
+  if (page === 'settings') return '/settings';
   return '/';
 };
 
@@ -117,6 +120,7 @@ export default function App() {
       {currentPage === 'customers'        && <CustomerManagementPage />}
       {currentPage === 'listing-review'   && <ListingReviewPage />}
       {currentPage === 'admin-management' && <AdminManagementPage />}
+      {currentPage === 'settings'         && <AdminSettingsPage />}
     </AdminLayout>
   );
 }
