@@ -4,7 +4,7 @@ import MetricCards from '../components/dashboard/MetricCards';
 import PendingListingsTable from '../components/dashboard/PendingListingsTable';
 import RecentInquiries from '../components/dashboard/RecentInquiries';
 
-export default function DashboardPage() {
+export default function DashboardPage({ onNavigate }) {
   return (
     <div className="max-w-[1400px] w-full mx-auto space-y-6">
 
@@ -51,7 +51,7 @@ export default function DashboardPage() {
         </div>
         {/* Admin Team */}
         <div className="bg-white rounded-2xl border border-[#F1E5EC] shadow-sm overflow-hidden">
-          <AdminTeamWidget />
+          <AdminTeamWidget onNavigate={onNavigate} />
         </div>
       </div>
 

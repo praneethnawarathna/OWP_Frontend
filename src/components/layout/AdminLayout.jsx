@@ -7,7 +7,6 @@ export default function AdminLayout({
   currentPage,
   onNavigate,
   userRole,
-  onRoleToggle,
   onLogout,
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -33,7 +32,6 @@ export default function AdminLayout({
         <Header
           onMenuClick={() => setMobileOpen(true)}
           userRole={userRole}
-          onRoleToggle={onRoleToggle}
           onNavigate={onNavigate}
           onLogout={onLogout}
         />
@@ -50,3 +48,4 @@ export default function AdminLayout({
     </div>
   );
 }
+

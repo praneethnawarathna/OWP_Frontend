@@ -30,6 +30,16 @@ const isAuthenticated = () => {
   }
 };
 
+// Read the logged-in user's role from localStorage
+const getUserRole = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    return user.role || 'ADMIN';
+  } catch {
+    return 'ADMIN';
+  }
+};
+
 // Map browser URL paths to internal page state.
 // Protected routes fall back to 'login' if no token is present.
 const pathToPage = (path) => {
@@ -57,6 +67,9 @@ export default function App() {
   // Derive initial page from URL + auth state
   const [currentPage, setCurrentPage] = useState(() => pathToPage(window.location.pathname));
 
+  // Track the authenticated user's role (SUPER_ADMIN, ADMIN, etc.)
+  const [userRole, setUserRole] = useState(() => getUserRole());
+
   // Sync state if user clicks Browser Back/Forward buttons
   useEffect(() => {
     const handlePopState = () => {
@@ -77,6 +90,8 @@ export default function App() {
 
   // Called by LoginPage on successful authentication
   const handleLoginSuccess = () => {
+    // Re-read the user role from localStorage (just set by LoginPage)
+    setUserRole(getUserRole());
     handleNavigate('dashboard');
   };
 
@@ -84,6 +99,7 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    setUserRole('ADMIN');
     handleNavigate('login');
   };
 
@@ -92,13 +108,15 @@ export default function App() {
     return <LoginPage onLoginSuccess={handleLoginSuccess} />;
   }
 
-  // 2. Admin Portal: Wrapped cleanly inside AdminLayout (Sidebar + Header intact)
+  // 2. Admin Portal: Wrapped inside AdminLayout
+  //    - userRole determines what the Sidebar and Header show
+  //    - SUPER_ADMIN sees Admin Management; regular ADMIN does not
   return (
-    <AdminLayout currentPage={currentPage} onNavigate={handleNavigate} onLogout={handleLogout}>
-      {currentPage === 'dashboard'        && <DashboardPage />}
+    <AdminLayout currentPage={currentPage} onNavigate={handleNavigate} onLogout={handleLogout} userRole={userRole}>
+      {currentPage === 'dashboard'        && <DashboardPage onNavigate={handleNavigate} />}
       {currentPage === 'customers'        && <CustomerManagementPage />}
       {currentPage === 'listing-review'   && <ListingReviewPage />}
       {currentPage === 'admin-management' && <AdminManagementPage />}
     </AdminLayout>
   );
-}
+}
