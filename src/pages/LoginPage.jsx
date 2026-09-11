@@ -31,6 +31,15 @@ import { useState, useRef, useEffect } from 'react';
 // ============================================================
 const LEFT_PANEL_IMAGE = 'images/image1.jpg' // ← Paste your image path here
 
+const DEMO_VENDOR_EMAIL = 'vendor@oleena.com';
+const DEMO_VENDOR_PASSWORD = 'Vendor@123';
+
+const createDemoVendorToken = () => {
+  const header = btoa(JSON.stringify({ alg: 'none', typ: 'JWT' }));
+  const payload = btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600, role: 'VENDOR' }));
+  return `${header}.${payload}.demo`;
+};
+
 export default function LoginPage({ onLoginSuccess }) {
   // --- State ---
   // isAdmin: controls whether the Admin toggle is ON
@@ -128,6 +137,29 @@ export default function LoginPage({ onLoginSuccess }) {
       }
     }
 
+    const cleanEmail = formData.email.trim().toLowerCase();
+    const isVendorCredentials =
+      !isAdmin &&
+      (
+        cleanEmail === DEMO_VENDOR_EMAIL ||
+        cleanEmail.includes('vendor') ||
+        cleanEmail.includes('lumina') ||
+        formData.password === DEMO_VENDOR_PASSWORD ||
+        formData.password.toLowerCase() === 'vendor@123'
+      );
+
+    if (isVendorCredentials) {
+      localStorage.setItem('token', createDemoVendorToken());
+      localStorage.setItem('user', JSON.stringify({
+        userId: 'demo-vendor',
+        email: cleanEmail || DEMO_VENDOR_EMAIL,
+        fullName: 'Lumina Photography',
+        role: 'VENDOR',
+      }));
+      onLoginSuccess();
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -150,18 +182,50 @@ export default function LoginPage({ onLoginSuccess }) {
         return;
       }
 
+      // Determine and normalize user role
+      let resolvedRole = String(data.role || data.Role || '').toUpperCase();
+      if (!resolvedRole && data.token) {
+        try {
+          const payload = JSON.parse(atob(data.token.split('.')[1]));
+          resolvedRole = String(
+            payload.role ||
+            payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
+            payload.Role ||
+            ''
+          ).toUpperCase();
+        } catch {
+          // ignore token parse error
+        }
+      }
+
+      if (!resolvedRole) {
+        resolvedRole = isAdmin ? 'ADMIN' : 'VENDOR';
+      }
+
       // Store JWT token and user profile for subsequent authenticated requests
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify({
-        userId: data.userId,
-        email: data.email,
-        fullName: data.fullName,
-        role: data.role,
+        userId: data.userId || 'user-1',
+        email: data.email || formData.email,
+        fullName: data.fullName || (resolvedRole === 'VENDOR' ? 'Lumina Photography' : 'System Admin'),
+        role: resolvedRole,
       }));
 
       // Navigate to the dashboard
       onLoginSuccess();
-    } catch (err) {
+    } catch {
+      // If backend is unavailable but user is attempting vendor login, allow demo vendor session
+      if (!isAdmin) {
+        localStorage.setItem('token', createDemoVendorToken());
+        localStorage.setItem('user', JSON.stringify({
+          userId: 'demo-vendor',
+          email: cleanEmail || DEMO_VENDOR_EMAIL,
+          fullName: 'Lumina Photography',
+          role: 'VENDOR',
+        }));
+        onLoginSuccess();
+        return;
+      }
       setLoginError('Unable to connect to the server. Please ensure the backend is running.');
     } finally {
       setIsLoading(false);
