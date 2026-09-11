@@ -3,8 +3,48 @@ import CategoryChart from '../components/dashboard/CategoryChart';
 import MetricCards from '../components/dashboard/MetricCards';
 import PendingListingsTable from '../components/dashboard/PendingListingsTable';
 import RecentInquiries from '../components/dashboard/RecentInquiries';
+import VendorDashboardPage from './VendorDashboardPage';
 
 export default function DashboardPage() {
+  // If the logged-in user is a vendor, render the Vendor Dashboard
+  const isVendor = (() => {
+    try {
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const role = String(storedUser.role || storedUser.Role || storedUser.userRole || '').toUpperCase();
+      if (role === 'VENDOR' || role.includes('VENDOR')) return true;
+
+      const email = String(storedUser.email || '').toLowerCase();
+      if (email.includes('vendor') || email.includes('lumina')) return true;
+
+      const fullName = String(storedUser.fullName || '').toLowerCase();
+      if (fullName.includes('lumina') || fullName.includes('photography')) return true;
+
+      // Check JWT token payload
+      const token = localStorage.getItem('token');
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const tokenRole = String(
+          payload.role ||
+          payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
+          payload.Role ||
+          ''
+        ).toUpperCase();
+        if (tokenRole === 'VENDOR' || tokenRole.includes('VENDOR')) return true;
+        if (tokenRole && !tokenRole.includes('ADMIN')) return true;
+      }
+
+      // If a role is explicitly defined and is not ADMIN or SUPER_ADMIN, it's a vendor
+      if (role && !role.includes('ADMIN')) return true;
+    } catch {
+      // ignore
+    }
+    return false;
+  })();
+
+  if (isVendor) {
+    return <VendorDashboardPage />;
+  }
+
   return (
     <div className="max-w-[1400px] w-full mx-auto space-y-6">
 
