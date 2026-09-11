@@ -5,7 +5,7 @@ import PendingListingsTable from '../components/dashboard/PendingListingsTable';
 import RecentInquiries from '../components/dashboard/RecentInquiries';
 import VendorDashboardPage from './VendorDashboardPage';
 
-export default function DashboardPage() {
+export default function DashboardPage({ onNavigate }) {
   // If the logged-in user is a vendor, render the Vendor Dashboard
   const isVendor = (() => {
     try {
@@ -45,7 +45,6 @@ export default function DashboardPage() {
     return <VendorDashboardPage />;
   }
 
-export default function DashboardPage({ onNavigate }) {
   return (
     <div className="max-w-[1400px] w-full mx-auto space-y-6">
 
