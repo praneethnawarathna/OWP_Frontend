@@ -1,417 +1,589 @@
-import { useState } from 'react';
-import {
-  Plus,
-  Pencil,
-  Trash2,
-  X,
-  ShieldCheck,
-  Users,
-  UserCog,
-  Eye,
-  EyeOff,
-} from 'lucide-react';
-import { admins as initialAdmins, adminMetrics, adminRoles, adminPermissions } from '../mock/adminData';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { UserPlus, Shield, Mail, Lock, User, Eye, EyeOff, RefreshCw, X, Check, AlertCircle, Copy, CheckCheck } from 'lucide-react';
 
-// ── Role Badge ───────────────────────────────────────────────────────────────
-const roleBadgeStyles = {
-  'Super Admin': 'bg-[#8E406F]/12 text-[#8E406F] border border-[#8E406F]/25',
-  'Moderator':   'bg-emerald-50 text-emerald-700 border border-emerald-200',
-  'Editor':      'bg-gray-100 text-gray-600 border border-gray-200',
-};
+// ============================================================
+// AdminManagementPage.jsx — Oleena Wedding Planner
+// Super Admin-only page to:
+//   1. View all registered admins (fetched from database)
+//   2. Register new admins with auto-generated secure PIN
+//   3. Slot machine PIN reveal animation on successful creation
+// ============================================================
 
-function RoleBadge({ role }) {
+const API_BASE = 'http://localhost:5131/api/admin-management';
+
+// Helper to get JWT token for authenticated requests
+const getAuthHeaders = () => ({
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+});
+
+// ─── Slot Machine Digit Component ────────────────────────────────────────
+// Each digit "spins" through random numbers before landing on the final value
+function SlotDigit({ finalDigit, delay, spinning }) {
+  const [display, setDisplay] = useState('0');
+  const intervalRef = useRef(null);
+
+  useEffect(() => {
+    if (!spinning) {
+      setDisplay(finalDigit);
+      return;
+    }
+
+    // Start spinning immediately
+    intervalRef.current = setInterval(() => {
+      setDisplay(String(Math.floor(Math.random() * 10)));
+    }, 60);
+
+    // After the delay, stop and show the real digit
+    const timeout = setTimeout(() => {
+      clearInterval(intervalRef.current);
+      setDisplay(finalDigit);
+    }, delay);
+
+    return () => {
+      clearInterval(intervalRef.current);
+      clearTimeout(timeout);
+    };
+  }, [finalDigit, delay, spinning]);
+
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${roleBadgeStyles[role] ?? 'bg-gray-100 text-gray-500'}`}>
-      {role}
-    </span>
-  );
-}
-
-// ── Metric Card ──────────────────────────────────────────────────────────────
-function MetricCard({ icon: Icon, label, value, iconColor }) {
-  return (
-    <div className="flex-1 min-w-[160px] bg-[#FDF0F4] rounded-2xl px-6 py-5 flex items-center gap-4 shadow-sm border border-[#F1E5EC]">
-      <div className={`h-11 w-11 rounded-xl flex items-center justify-center shrink-0 bg-white shadow-sm`}>
-        <Icon size={20} className={iconColor} />
-      </div>
-      <div>
-        <p className="text-2xl font-bold text-[#8E406F]">{value}</p>
-        <p className="text-xs text-[#737373] mt-0.5 font-medium leading-tight">{label}</p>
-      </div>
+    <div className="relative w-16 h-20 bg-gradient-to-b from-[#1a0a12] to-[#2d1520] rounded-xl border-2 border-[#8E406F]/40 flex items-center justify-center overflow-hidden shadow-lg">
+      {/* Glossy overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent rounded-xl pointer-events-none" />
+      <span
+        className="text-3xl font-bold tabular-nums transition-all duration-150"
+        style={{
+          color: spinning ? '#C5A3B8' : '#F0C0D8',
+          textShadow: spinning ? 'none' : '0 0 20px rgba(240,192,216,0.6)',
+          transform: spinning ? 'scaleY(0.95)' : 'scaleY(1)',
+        }}
+      >
+        {display}
+      </span>
     </div>
   );
 }
 
-// ── Delete Confirm Dialog ────────────────────────────────────────────────────
-function DeleteConfirmDialog({ admin, onConfirm, onCancel }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-10">
-        <div className="flex items-center justify-center h-14 w-14 rounded-full bg-red-50 border border-red-100 mx-auto mb-4">
-          <Trash2 size={24} className="text-red-500" />
-        </div>
-        <h3 className="text-center text-[#1a1a2e] font-bold text-lg mb-1">Remove Administrator</h3>
-        <p className="text-center text-[#737373] text-sm mb-6">
-          Are you sure you want to remove <span className="font-semibold text-[#333]">{admin.name}</span>?
-          This action cannot be undone.
-        </p>
-        <div className="flex gap-3">
-          <button
-            onClick={onCancel}
-            className="flex-1 px-4 py-2.5 rounded-lg border border-[#e8c4d8] text-[#8E406F] text-sm font-medium hover:bg-[#FDF0F4] transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            className="flex-1 px-4 py-2.5 rounded-lg bg-red-500 text-white text-sm font-semibold hover:bg-red-600 active:scale-95 transition-all"
-          >
-            Remove
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+// ─── Slot Machine PIN Reveal Modal ───────────────────────────────────────
+function PinRevealModal({ pin, adminName, onClose }) {
+  const [spinning, setSpinning] = useState(true);
+  const [copied, setCopied] = useState(false);
+  const pinStr = String(pin || '');
+  const digits = pinStr.split('');
 
-// ── Add / Edit Modal ─────────────────────────────────────────────────────────
-const EMPTY_FORM = { name: '', email: '', role: 'Moderator', pin: '' };
+  useEffect(() => {
+    // After all digits have landed (last digit delay + buffer), mark as done
+    const totalDuration = 800 + digits.length * 400 + 300;
+    const timer = setTimeout(() => setSpinning(false), totalDuration);
+    return () => clearTimeout(timer);
+  }, [digits.length]);
 
-function AdminModal({ editAdmin, onSave, onClose }) {
-  const [form, setForm] = useState(
-    editAdmin
-      ? { name: editAdmin.name, email: editAdmin.email, role: editAdmin.role, pin: '' }
-      : EMPTY_FORM
-  );
-  const [showPin, setShowPin] = useState(false);
-  const [errors, setErrors] = useState({});
-
-  const validate = () => {
-    const e = {};
-    if (!form.name.trim())  e.name  = 'Full name is required.';
-    if (!form.email.trim()) e.email = 'Email is required.';
-    else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = 'Enter a valid email.';
-    if (!editAdmin && !form.pin.trim()) e.pin = 'PIN / Temporary password is required.';
-    return e;
+  const handleCopy = () => {
+    if (pinStr) {
+      navigator.clipboard.writeText(pinStr);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const e2 = validate();
-    if (Object.keys(e2).length) { setErrors(e2); return; }
-
-    const initials = form.name.trim().split(' ').slice(0, 2).map(w => w[0]?.toUpperCase()).join('');
-    onSave({ name: form.name.trim(), email: form.email.trim(), role: form.role, initials });
-  };
-
-  const field = (key, value) => setForm(f => ({ ...f, [key]: value }));
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md z-10 overflow-hidden">
-
-        {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-[#F1E5EC]">
-          <div>
-            <h2 className="text-[#1a1a2e] font-bold text-lg">
-              {editAdmin ? 'Edit Administrator' : 'Create New Admin'}
-            </h2>
-            <p className="text-[#737373] text-xs mt-0.5">
-              {editAdmin ? 'Update account details and role.' : 'Set up a new administrator account.'}
-            </p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#8E406F] to-[#6B2F54] px-6 py-5 text-center">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-white/20 mb-3">
+            <Shield size={28} className="text-white" />
           </div>
+          <h3 className="text-white text-lg font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>
+            Admin Created Successfully
+          </h3>
+          <p className="text-white/70 text-sm mt-1">{adminName}</p>
+        </div>
+
+        {/* Slot Machine */}
+        <div className="px-6 py-8">
+          <p className="text-center text-xs text-[#737373] mb-4 font-semibold tracking-wider uppercase">
+            Auto-Generated Secure Admin PIN
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            {digits.map((digit, i) => (
+              <SlotDigit
+                key={i}
+                finalDigit={digit}
+                delay={800 + i * 400}
+                spinning={spinning}
+              />
+            ))}
+          </div>
+
+          <p className="text-center text-xs text-[#999] mt-4">
+            {spinning
+              ? 'Generating secure PIN with slot machine...'
+              : '✓ Secure PIN generated — please save or share this with the admin'}
+          </p>
+
+          {!spinning && (
+            <div className="flex items-center justify-center gap-3 mt-4">
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#F1E5EC] bg-[#FDF0F4] text-xs font-semibold text-[#8E406F] hover:bg-[#8E406F] hover:text-white transition-all shadow-sm"
+              >
+                {copied ? <CheckCheck size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                {copied ? 'Copied to Clipboard!' : 'Copy PIN'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Action */}
+        <div className="px-6 pb-6 flex justify-center">
           <button
             onClick={onClose}
-            aria-label="Close modal"
-            className="h-8 w-8 rounded-full flex items-center justify-center text-[#999] hover:bg-[#FDF0F4] hover:text-[#8E406F] transition-colors"
+            disabled={spinning}
+            className={`
+              flex items-center gap-2 px-8 py-2.5 rounded-lg text-sm font-semibold transition-all
+              ${spinning
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-[#8E406F] text-white hover:bg-[#73325A] active:scale-95 shadow-md'}
+            `}
           >
-            <X size={16} />
+            <Check size={16} />
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Register Admin Modal ────────────────────────────────────────────────
+function RegisterAdminModal({ onClose, onCreated }) {
+  const [form, setForm] = useState({ fullName: '', email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    setError('');
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (!form.fullName.trim() || !form.email.trim() || !form.password.trim()) {
+      setError('All fields are required.');
+      return;
+    }
+    if (form.password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(API_BASE, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          fullName: form.fullName.trim(),
+          email: form.email.trim(),
+          password: form.password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data?.detail || data?.title || 'Failed to create admin.');
+        return;
+      }
+
+      // Success — pass the created admin back (includes PIN)
+      onCreated(data);
+    } catch {
+      setError('Unable to connect to the server.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#F1E5EC]">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-[#8E406F]/10 flex items-center justify-center">
+              <UserPlus size={20} className="text-[#8E406F]" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-[#333]">Register New Admin</h3>
+              <p className="text-xs text-[#999]">A secure PIN will be auto-generated</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-[#999] hover:text-[#333] transition-colors">
+            <X size={20} />
           </button>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-
           {/* Full Name */}
           <div>
-            <label className="block text-xs font-semibold text-[#555] mb-1.5">Full Name</label>
-            <input
-              type="text"
-              value={form.name}
-              onChange={e => field('name', e.target.value)}
-              placeholder="e.g. Alex Chen"
-              className={`w-full px-3.5 py-2.5 text-sm rounded-xl border ${errors.name ? 'border-red-400 focus:ring-red-300' : 'border-[#e8c4d8] focus:ring-[#8E406F]/20 focus:border-[#8E406F]'} text-[#333] placeholder:text-[#bbb] focus:outline-none focus:ring-2 transition-all`}
-            />
-            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+            <label className="block text-xs font-semibold text-[#555] mb-1.5 uppercase tracking-wider">
+              Full Name
+            </label>
+            <div className="relative">
+              <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#aaa]" />
+              <input
+                name="fullName"
+                type="text"
+                value={form.fullName}
+                onChange={handleChange}
+                placeholder="e.g. John Smith"
+                className="w-full pl-10 pr-4 py-2.5 text-sm border border-[#e2e8f0] rounded-lg bg-[#F8FAFC] text-[#333] placeholder:text-[#bbb] focus:outline-none focus:ring-2 focus:ring-[#8E406F]/20 focus:border-[#8E406F] transition-all"
+              />
+            </div>
           </div>
 
           {/* Email */}
           <div>
-            <label className="block text-xs font-semibold text-[#555] mb-1.5">Email Address</label>
-            <input
-              type="email"
-              value={form.email}
-              onChange={e => field('email', e.target.value)}
-              placeholder="e.g. alex@owp.admin"
-              className={`w-full px-3.5 py-2.5 text-sm rounded-xl border ${errors.email ? 'border-red-400 focus:ring-red-300' : 'border-[#e8c4d8] focus:ring-[#8E406F]/20 focus:border-[#8E406F]'} text-[#333] placeholder:text-[#bbb] focus:outline-none focus:ring-2 transition-all`}
-            />
-            {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
-          </div>
-
-          {/* Role */}
-          <div>
-            <label className="block text-xs font-semibold text-[#555] mb-1.5">Role</label>
-            <select
-              value={form.role}
-              onChange={e => field('role', e.target.value)}
-              className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-[#e8c4d8] text-[#333] bg-white focus:outline-none focus:ring-2 focus:ring-[#8E406F]/20 focus:border-[#8E406F] transition-all"
-            >
-              {adminRoles.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
-            <p className="text-[#aaa] text-[11px] mt-1">
-              Auto-assigned permission: <span className="text-[#8E406F] font-medium">{adminPermissions[form.role]}</span>
-            </p>
-          </div>
-
-          {/* PIN / Temp Password */}
-          <div>
-            <label className="block text-xs font-semibold text-[#555] mb-1.5">
-              {editAdmin ? 'New PIN / Password (leave blank to keep current)' : 'PIN / Temporary Password'}
+            <label className="block text-xs font-semibold text-[#555] mb-1.5 uppercase tracking-wider">
+              Email Address
             </label>
             <div className="relative">
+              <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#aaa]" />
               <input
-                type={showPin ? 'text' : 'password'}
-                value={form.pin}
-                onChange={e => field('pin', e.target.value)}
-                placeholder={editAdmin ? '••••••••' : 'Set temporary access PIN'}
-                className={`w-full px-3.5 py-2.5 pr-10 text-sm rounded-xl border ${errors.pin ? 'border-red-400 focus:ring-red-300' : 'border-[#e8c4d8] focus:ring-[#8E406F]/20 focus:border-[#8E406F]'} text-[#333] placeholder:text-[#bbb] focus:outline-none focus:ring-2 transition-all`}
+                name="email"
+                type="email"
+                value={form.email}
+                onChange={handleChange}
+                placeholder="e.g. admin@oleena.com"
+                className="w-full pl-10 pr-4 py-2.5 text-sm border border-[#e2e8f0] rounded-lg bg-[#F8FAFC] text-[#333] placeholder:text-[#bbb] focus:outline-none focus:ring-2 focus:ring-[#8E406F]/20 focus:border-[#8E406F] transition-all"
+              />
+            </div>
+          </div>
+
+          {/* Password */}
+          <div>
+            <label className="block text-xs font-semibold text-[#555] mb-1.5 uppercase tracking-wider">
+              Password
+            </label>
+            <div className="relative">
+              <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#aaa]" />
+              <input
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                value={form.password}
+                onChange={handleChange}
+                placeholder="Minimum 6 characters"
+                className="w-full pl-10 pr-10 py-2.5 text-sm border border-[#e2e8f0] rounded-lg bg-[#F8FAFC] text-[#333] placeholder:text-[#bbb] focus:outline-none focus:ring-2 focus:ring-[#8E406F]/20 focus:border-[#8E406F] transition-all"
               />
               <button
                 type="button"
-                onClick={() => setShowPin(s => !s)}
+                onClick={() => setShowPassword((v) => !v)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[#aaa] hover:text-[#8E406F]"
-                aria-label={showPin ? 'Hide PIN' : 'Show PIN'}
               >
-                {showPin ? <EyeOff size={15} /> : <Eye size={15} />}
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            {errors.pin && <p className="text-red-500 text-xs mt-1">{errors.pin}</p>}
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2.5 rounded-xl border border-[#e8c4d8] text-[#8E406F] text-sm font-medium hover:bg-[#FDF0F4] transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-2.5 rounded-xl bg-[#8E406F] text-white text-sm font-semibold hover:bg-[#73325A] active:scale-95 transition-all shadow-sm"
-            >
-              {editAdmin ? 'Save Changes' : 'Create Admin'}
-            </button>
-          </div>
+          {/* Error */}
+          {error && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">
+              <AlertCircle size={16} className="shrink-0" />
+              {error}
+            </div>
+          )}
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className={`
+              w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all
+              ${isSubmitting
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-[#8E406F] text-white hover:bg-[#73325A] active:scale-[0.98] shadow-md'}
+            `}
+          >
+            {isSubmitting ? (
+              <>
+                <RefreshCw size={16} className="animate-spin" />
+                Creating Admin...
+              </>
+            ) : (
+              <>
+                <UserPlus size={16} />
+                Register Admin
+              </>
+            )}
+          </button>
         </form>
       </div>
     </div>
   );
 }
 
-// ── Avatar Background Pool ───────────────────────────────────────────────────
-const avatarBgPool = ['#8E406F','#4A7C6B','#C07D3A','#5A6FA8','#7A5C8E','#3B7A8E'];
-let nextBgIdx = 0;
-const pickBg = () => { const bg = avatarBgPool[nextBgIdx % avatarBgPool.length]; nextBgIdx++; return bg; };
-
-// ── Main Page ────────────────────────────────────────────────────────────────
+// ─── Main Page ───────────────────────────────────────────────────────────
 export default function AdminManagementPage() {
-  const [adminList, setAdminList] = useState(initialAdmins);
-  const [showModal, setShowModal]   = useState(false);
-  const [editTarget, setEditTarget] = useState(null);   // null = Add mode
-  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [admins, setAdmins] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [createdAdmin, setCreatedAdmin] = useState(null);
+  const [copiedPinId, setCopiedPinId] = useState(null);
 
-  // Derived metrics
-  const totalAdmins   = adminList.length;
-  const superAdmins   = adminList.filter(a => a.role === 'Super Admin' && a.status === 'Active').length;
-  const modEditors    = adminList.filter(a => a.role !== 'Super Admin').length;
-
-  // ── CRUD handlers ──
-  const handleOpenAdd  = ()        => { setEditTarget(null); setShowModal(true); };
-  const handleOpenEdit = (admin)   => { setEditTarget(admin); setShowModal(true); };
-  const handleClose    = ()        => { setShowModal(false); setEditTarget(null); };
-
-  const handleSave = ({ name, email, role, initials }) => {
-    if (editTarget) {
-      setAdminList(list =>
-        list.map(a => a.id === editTarget.id
-          ? { ...a, name, email, role, initials, permission: adminPermissions[role] }
-          : a)
-      );
-    } else {
-      const newAdmin = {
-        id: Date.now(),
-        name, email, role, initials,
-        permission: adminPermissions[role],
-        lastActive: 'Just now',
-        status: 'Active',
-        avatarBg: pickBg(),
-      };
-      setAdminList(list => [newAdmin, ...list]);
+  // Fetch admins from the backend
+  const fetchAdmins = useCallback(async () => {
+    setLoading(true);
+    setFetchError('');
+    try {
+      const res = await fetch(API_BASE, { headers: getAuthHeaders() });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setFetchError(data?.detail || 'Failed to load admins.');
+        return;
+      }
+      const data = await res.json();
+      setAdmins(data);
+    } catch {
+      setFetchError('Unable to connect to the server.');
+    } finally {
+      setLoading(false);
     }
-    handleClose();
+  }, []);
+
+  useEffect(() => {
+    fetchAdmins();
+  }, [fetchAdmins]);
+
+  // Called when a new admin is successfully created
+  const handleAdminCreated = (admin) => {
+    setShowRegisterModal(false);
+    setCreatedAdmin(admin);
+    setShowPinModal(true);
+    // Refresh admin list in the background
+    fetchAdmins();
   };
 
-  const handleConfirmDelete = () => {
-    if (deleteTarget) setAdminList(list => list.filter(a => a.id !== deleteTarget.id));
-    setDeleteTarget(null);
+  const handlePinModalClose = () => {
+    setShowPinModal(false);
+    setCreatedAdmin(null);
   };
+
+  // Format date for display
+  const formatDate = (dateStr) => {
+    try {
+      return new Date(dateStr).toLocaleDateString('en-US', {
+        year: 'numeric', month: 'short', day: 'numeric',
+      });
+    } catch {
+      return '—';
+    }
+  };
+
+  // Get initials from a name
+  const getInitials = (name) =>
+    name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase();
 
   return (
     <div className="space-y-6">
-
       {/* ── Page Header ── */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#1a1a2e] tracking-tight">
-            Administrator Management
+          <h1
+            className="text-2xl font-bold text-[#333]"
+            style={{ fontFamily: "'Playfair Display', serif" }}
+          >
+            Admin Management
           </h1>
-          <p className="text-[#737373] text-sm mt-1">
-            Create, update, view permissions, and remove administrator accounts.
+          <p className="text-sm text-[#737373] mt-1">
+            Manage administrator accounts and access credentials.
           </p>
         </div>
         <button
-          id="create-admin-btn"
-          onClick={handleOpenAdd}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#8E406F] text-white text-sm font-semibold hover:bg-[#73325A] active:scale-95 transition-all shadow-sm"
+          onClick={() => setShowRegisterModal(true)}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#8E406F] text-white text-sm font-semibold hover:bg-[#73325A] active:scale-95 transition-all shadow-md"
         >
-          <Plus size={15} />
-          Create New Admin
+          <UserPlus size={16} />
+          Register Admin
         </button>
       </div>
 
-      {/* ── Metric Cards ── */}
-      <div className="flex flex-wrap gap-4">
-        <MetricCard icon={Users}     label="Total Administrators"       value={totalAdmins} iconColor="text-[#8E406F]" />
-        <MetricCard icon={ShieldCheck} label="Active Super Admins"      value={superAdmins} iconColor="text-emerald-600" />
-        <MetricCard icon={UserCog}   label="Moderator / Reviewer Roles" value={modEditors}  iconColor="text-[#5A6FA8]" />
+      {/* ── Stats Cards ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white rounded-xl border border-[#F1E5EC] p-5">
+          <p className="text-xs text-[#999] font-semibold uppercase tracking-wider">Total Admins</p>
+          <p className="text-2xl font-bold text-[#333] mt-1">{admins.length}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-[#F1E5EC] p-5">
+          <p className="text-xs text-[#999] font-semibold uppercase tracking-wider">Active</p>
+          <p className="text-2xl font-bold text-emerald-600 mt-1">
+            {admins.filter((a) => a.isActive).length}
+          </p>
+        </div>
+        <div className="bg-white rounded-xl border border-[#F1E5EC] p-5">
+          <p className="text-xs text-[#999] font-semibold uppercase tracking-wider">Super Admins</p>
+          <p className="text-2xl font-bold text-[#8E406F] mt-1">
+            {admins.filter((a) => a.accessLevel === 'SuperAdmin').length}
+          </p>
+        </div>
       </div>
 
       {/* ── Admin Table ── */}
-      <div className="bg-[#FDF0F4] rounded-2xl border border-[#F1E5EC] overflow-hidden shadow-sm">
-
+      <div className="bg-white rounded-xl border border-[#F1E5EC] overflow-hidden">
         {/* Table Header */}
         <div className="px-6 py-4 border-b border-[#F1E5EC] flex items-center justify-between">
-          <h2 className="text-sm font-bold text-[#8E406F]">
-            All Administrators <span className="text-[#aaa] font-normal">({totalAdmins})</span>
-          </h2>
+          <h2 className="text-base font-bold text-[#333]">All Administrators</h2>
+          <button
+            onClick={fetchAdmins}
+            className="flex items-center gap-1.5 text-xs text-[#8E406F] hover:text-[#73325A] font-medium transition-colors"
+          >
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+            Refresh
+          </button>
         </div>
 
-        {/* Scrollable table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[#F1E5EC] bg-[#FDF0F4]">
-                {['ADMIN NAME', 'ROLE', 'ASSIGNED PERMISSION', 'LAST ACTIVE', 'ACTIONS'].map(col => (
-                  <th
-                    key={col}
-                    className="px-6 py-3 text-left text-[10px] font-bold text-[#8E406F] tracking-widest uppercase whitespace-nowrap"
-                  >
-                    {col}
-                  </th>
+        {/* Loading / Error / Empty / Table */}
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <RefreshCw size={24} className="animate-spin text-[#8E406F]" />
+            <span className="ml-3 text-sm text-[#999]">Loading admins...</span>
+          </div>
+        ) : fetchError ? (
+          <div className="flex items-center justify-center py-16 px-6">
+            <div className="text-center">
+              <AlertCircle size={32} className="mx-auto text-red-400 mb-2" />
+              <p className="text-sm text-red-500">{fetchError}</p>
+              <button
+                onClick={fetchAdmins}
+                className="mt-3 text-xs text-[#8E406F] font-medium hover:underline"
+              >
+                Try again
+              </button>
+            </div>
+          </div>
+        ) : admins.length === 0 ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="text-center">
+              <Shield size={32} className="mx-auto text-[#ddd] mb-2" />
+              <p className="text-sm text-[#999]">No administrators found.</p>
+              <button
+                onClick={() => setShowRegisterModal(true)}
+                className="mt-3 text-xs text-[#8E406F] font-medium hover:underline"
+              >
+                Register the first admin
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-[#FAFBFC] text-[#999] text-xs uppercase tracking-wider">
+                  <th className="text-left px-6 py-3 font-semibold">Admin</th>
+                  <th className="text-left px-6 py-3 font-semibold">Email</th>
+                  <th className="text-left px-6 py-3 font-semibold">Access Level</th>
+                  <th className="text-left px-6 py-3 font-semibold">Secure PIN</th>
+                  <th className="text-left px-6 py-3 font-semibold">Status</th>
+                  <th className="text-left px-6 py-3 font-semibold">Created</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#F1E5EC]">
+                {admins.map((admin) => (
+                  <tr key={admin.adminId} className="hover:bg-[#FDF0F4]/50 transition-colors">
+                    {/* Name + Avatar */}
+                    <td className="px-6 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-full bg-[#8E406F]/10 border border-[#e8c4d8] flex items-center justify-center shrink-0">
+                          <span className="text-[#8E406F] text-xs font-bold">
+                            {getInitials(admin.fullName)}
+                          </span>
+                        </div>
+                        <span className="font-medium text-[#333]">{admin.fullName}</span>
+                      </div>
+                    </td>
+                    {/* Email */}
+                    <td className="px-6 py-3 text-[#555]">{admin.email}</td>
+                    {/* Access Level */}
+                    <td className="px-6 py-3">
+                      <span
+                        className={`
+                          inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold
+                          ${admin.accessLevel === 'SuperAdmin'
+                            ? 'bg-[#8E406F]/10 text-[#8E406F]'
+                            : 'bg-blue-50 text-blue-600'}
+                        `}
+                      >
+                        <Shield size={11} />
+                        {admin.accessLevel}
+                      </span>
+                    </td>
+                    {/* PIN */}
+                    <td className="px-6 py-3">
+                      <div className="inline-flex items-center gap-1.5">
+                        <span className="font-mono text-[#8E406F] bg-[#FDF0F4] px-2 py-0.5 rounded text-xs font-bold tracking-widest">
+                          {admin.securePin}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(admin.securePin);
+                            setCopiedPinId(admin.adminId);
+                            setTimeout(() => setCopiedPinId(null), 1800);
+                          }}
+                          title={copiedPinId === admin.adminId ? 'Copied!' : 'Copy PIN'}
+                          className="p-1 text-[#aaa] hover:text-[#8E406F] rounded transition-colors"
+                        >
+                          {copiedPinId === admin.adminId ? (
+                            <CheckCheck size={13} className="text-emerald-500" />
+                          ) : (
+                            <Copy size={13} />
+                          )}
+                        </button>
+                      </div>
+                    </td>
+                    {/* Status */}
+                    <td className="px-6 py-3">
+                      <span
+                        className={`
+                          inline-flex items-center gap-1 text-xs font-medium
+                          ${admin.isActive ? 'text-emerald-600' : 'text-red-400'}
+                        `}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${admin.isActive ? 'bg-emerald-500' : 'bg-red-400'}`} />
+                        {admin.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    {/* Created */}
+                    <td className="px-6 py-3 text-[#999] text-xs">{formatDate(admin.createdAt)}</td>
+                  </tr>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {adminList.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-[#aaa] text-sm">
-                    No administrators found. Click "Create New Admin" to get started.
-                  </td>
-                </tr>
-              )}
-              {adminList.map((admin, idx) => (
-                <tr
-                  key={admin.id}
-                  className={`border-b border-[#F1E5EC] hover:bg-white/60 transition-colors ${idx % 2 === 0 ? 'bg-white/30' : 'bg-transparent'}`}
-                >
-                  {/* Admin Name */}
-                  <td className="px-6 py-3.5">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="h-9 w-9 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-bold shadow-sm"
-                        style={{ backgroundColor: admin.avatarBg }}
-                      >
-                        {admin.initials}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-[#1a1a2e] text-sm leading-tight">{admin.name}</p>
-                        <p className="text-[#999] text-xs leading-tight">{admin.email}</p>
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Role Badge */}
-                  <td className="px-6 py-3.5">
-                    <RoleBadge role={admin.role} />
-                  </td>
-
-                  {/* Permission */}
-                  <td className="px-6 py-3.5 text-[#555] text-xs whitespace-nowrap">
-                    {admin.permission}
-                  </td>
-
-                  {/* Last Active */}
-                  <td className="px-6 py-3.5 text-[#737373] text-xs whitespace-nowrap">
-                    {admin.lastActive}
-                  </td>
-
-                  {/* Actions */}
-                  <td className="px-6 py-3.5">
-                    <div className="flex items-center gap-2">
-                      <button
-                        id={`edit-admin-${admin.id}`}
-                        onClick={() => handleOpenEdit(admin)}
-                        aria-label={`Edit ${admin.name}`}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#e8c4d8] text-[#8E406F] text-xs font-medium hover:bg-[#8E406F] hover:text-white hover:border-[#8E406F] transition-all"
-                      >
-                        <Pencil size={12} />
-                        Edit
-                      </button>
-                      <button
-                        id={`delete-admin-${admin.id}`}
-                        onClick={() => setDeleteTarget(admin)}
-                        aria-label={`Remove ${admin.name}`}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 text-red-500 text-xs font-medium hover:bg-red-500 hover:text-white hover:border-red-500 transition-all"
-                      >
-                        <Trash2 size={12} />
-                        Revoke
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* ── Modals ── */}
-      {showModal && (
-        <AdminModal
-          editAdmin={editTarget}
-          onSave={handleSave}
-          onClose={handleClose}
+      {showRegisterModal && (
+        <RegisterAdminModal
+          onClose={() => setShowRegisterModal(false)}
+          onCreated={handleAdminCreated}
         />
       )}
-      {deleteTarget && (
-        <DeleteConfirmDialog
-          admin={deleteTarget}
-          onConfirm={handleConfirmDelete}
-          onCancel={() => setDeleteTarget(null)}
+      {showPinModal && createdAdmin && (
+        <PinRevealModal
+          pin={createdAdmin.securePin}
+          adminName={createdAdmin.fullName}
+          onClose={handlePinModalClose}
         />
       )}
     </div>

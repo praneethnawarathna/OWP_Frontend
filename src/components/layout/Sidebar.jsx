@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import {
   Activity,
   BarChart3,
@@ -26,6 +27,7 @@ const iconMap = {
   Activity,
   Tag,
   Settings,
+  ShieldCheck,
 };
 
 // IDs that map to real pages
@@ -119,7 +121,7 @@ export default function Sidebar({
           >
             Wedding Directory
           </p>
-          <p className="text-[#aaa] text-xs mt-0.5">Admin Dashboard</p>
+          <p className="text-[#aaa] text-xs mt-0.5">{isSuperAdmin ? 'Super Admin Dashboard' : 'Admin Dashboard'}</p>
           {/* Mobile close */}
           <button
             onClick={onClose}
@@ -134,39 +136,23 @@ export default function Sidebar({
         <nav className="flex-1 px-3 py-4">
           <ul className="space-y-0.5">
             {sidebarNav.map((item) => (
-              <NavItem
-                key={item.id}
-                item={item}
-                isActive={currentPage === item.id}
-                onNavigate={onNavigate}
-              />
+              <Fragment key={item.id}>
+                <NavItem
+                  item={item}
+                  isActive={currentPage === item.id}
+                  onNavigate={onNavigate}
+                />
+                {item.id === 'all-vendors' && isSuperAdmin && (
+                  <NavItem
+                    item={{ id: 'admin-management', label: 'Admin Management', icon: 'ShieldCheck' }}
+                    isActive={currentPage === 'admin-management'}
+                    onNavigate={onNavigate}
+                  />
+                )}
+              </Fragment>
             ))}
           </ul>
         </nav>
-
-        {/* ── Admin Roles — Super Admin only ── */}
-        {isSuperAdmin && (
-          <div className="px-3 pb-1">
-            <button
-              id="sidebar-admin-roles-btn"
-              onClick={() => onNavigate?.('admin-management')}
-              aria-current={currentPage === 'admin-management' ? 'page' : undefined}
-              className={`
-                w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors duration-150
-                ${currentPage === 'admin-management'
-                  ? 'bg-[#FDF0F4] text-[#8E406F] font-semibold'
-                  : 'text-[#555] font-normal hover:bg-[#FDF0F4] hover:text-[#8E406F]'}
-              `}
-            >
-              <ShieldCheck
-                size={16}
-                className={`shrink-0 ${currentPage === 'admin-management' ? 'text-[#8E406F]' : 'text-[#999]'}`}
-                aria-hidden="true"
-              />
-              <span className="text-left whitespace-nowrap">Admin Roles</span>
-            </button>
-          </div>
-        )}
 
         {/* ── Settings ── */}
         <div className="px-3 pb-2">
@@ -192,7 +178,7 @@ export default function Sidebar({
         </div>
 
         {/* ── User Profile ── */}
-        <div className="border-t border-[#F1E5EC] px-4 py-3 flex items-center justify-between gap-2.5">
+        <div className="border-t border-[#F1E5EC] px-4 py-3 flex items-center gap-2.5">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="h-8 w-8 rounded-full bg-[#8E406F]/10 border border-[#e8c4d8] flex items-center justify-center shrink-0">
               <span className="text-[#8E406F] text-xs font-bold">{userInitials}</span>
@@ -206,14 +192,6 @@ export default function Sidebar({
               </p>
             </div>
           </div>
-          <button
-            onClick={onLogout}
-            title="Log Out"
-            aria-label="Log Out"
-            className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-          >
-            <LogOut size={15} />
-          </button>
         </div>
 
       </aside>
