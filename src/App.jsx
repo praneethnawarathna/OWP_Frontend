@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage';
 import CustomerManagementPage from './pages/CustomerManagementPage';
 import ListingReviewPage from './pages/ListingReviewPage';
 import AdminManagementPage from './pages/AdminManagementPage';
+import AdminSettingsPage from './pages/AdminSettingsPage';
 import LoginPage from './pages/LoginPage';
 import VendorDashboardPage from './pages/VendorDashboardPage';
 
@@ -38,6 +39,18 @@ const isAuthenticated = () => {
   }
 };
 
+// Read the logged-in user's role from localStorage
+const getUserRole = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    return user.role || 'ADMIN';
+  } catch {
+    return 'ADMIN';
+  }
+};
+
+// Map browser URL paths to internal page state.
+// Protected routes fall back to 'login' if no token is present.
 const pathToPage = (path) => {
   if (path === '/login') return 'login';
   if (!isAuthenticated()) return 'login';
@@ -55,6 +68,8 @@ const pathToPage = (path) => {
   if (path === '/listing-review' || path === '/listings') return 'listing-review';
   if (path === '/admin-management' || path === '/admins') return 'admin-management';
   return 'dashboard';
+  if (path === '/settings') return 'settings';
+  return 'dashboard'; // Default route for '/' or '/dashboard'
 };
 
 const pageToPath = (page) => {
@@ -67,6 +82,7 @@ const pageToPath = (page) => {
   if (page === 'customers') return '/customer-management';
   if (page === 'listing-review') return '/listing-review';
   if (page === 'admin-management') return '/admin-management';
+  if (page === 'settings') return '/settings';
   return '/';
 };
 
@@ -74,6 +90,10 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState(() => pathToPage(window.location.pathname));
   const [userRole, setUserRole] = useState(() => getStoredUser().role || 'ADMIN');
 
+  // Track the authenticated user's role (SUPER_ADMIN, ADMIN, etc.)
+  const [userRole, setUserRole] = useState(() => getUserRole());
+
+  // Sync state if user clicks Browser Back/Forward buttons
   useEffect(() => {
     const handlePopState = () => {
       setCurrentPage(pathToPage(window.location.pathname));
@@ -95,6 +115,9 @@ export default function App() {
     const role = getStoredUser().role || 'ADMIN';
     setUserRole(role);
     handleNavigate(isVendor(role) ? 'vendor-dashboard' : 'dashboard');
+    // Re-read the user role from localStorage (just set by LoginPage)
+    setUserRole(getUserRole());
+    handleNavigate('dashboard');
   };
 
   const handleLogout = () => {
@@ -136,7 +159,17 @@ export default function App() {
       {currentPage === 'dashboard' && <DashboardPage />}
       {currentPage === 'customers' && <CustomerManagementPage />}
       {currentPage === 'listing-review' && <ListingReviewPage />}
+  // 2. Admin Portal: Wrapped inside AdminLayout
+  //    - userRole determines what the Sidebar and Header show
+  //    - SUPER_ADMIN sees Admin Management; regular ADMIN does not
+  return (
+    <AdminLayout currentPage={currentPage} onNavigate={handleNavigate} onLogout={handleLogout} userRole={userRole}>
+      {currentPage === 'dashboard'        && <DashboardPage onNavigate={handleNavigate} />}
+      {currentPage === 'customers'        && <CustomerManagementPage />}
+      {currentPage === 'listing-review'   && <ListingReviewPage />}
       {currentPage === 'admin-management' && <AdminManagementPage />}
+      {currentPage === 'settings'         && <AdminSettingsPage />}
     </AdminLayout>
   );
+}
 }

@@ -1,6 +1,6 @@
-import { Bell, LogOut, Menu, Plus, Search, ShieldCheck, UserCog } from 'lucide-react';
+import { Bell, Menu, Plus, Search, ShieldCheck, UserCog } from 'lucide-react';
 
-export default function Header({ onMenuClick, userRole, onRoleToggle, onNavigate, onLogout }) {
+export default function Header({ onMenuClick, userRole, onNavigate, onLogout }) {
   const isSuperAdmin = userRole === 'SUPER_ADMIN';
 
   return (
@@ -30,12 +30,12 @@ export default function Header({ onMenuClick, userRole, onRoleToggle, onNavigate
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* ── Role Switcher Pill ── */}
+      {/* ── Role Switcher Pill — redirects to login page for role switch ── */}
       <button
         id="role-switcher-pill"
-        onClick={onRoleToggle}
-        aria-label={isSuperAdmin ? 'Switch to Admin mode' : 'Switch to Super Admin mode'}
-        title={isSuperAdmin ? 'Switch to Admin' : 'Switch to Super Admin'}
+        onClick={onLogout}
+        aria-label={isSuperAdmin ? 'Switch to Admin login' : 'Switch to Super Admin login'}
+        title={isSuperAdmin ? 'Switch to Admin login' : 'Switch to Super Admin login'}
         className={`
           relative flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-semibold
           transition-all duration-200 select-none
@@ -63,18 +63,6 @@ export default function Header({ onMenuClick, userRole, onRoleToggle, onNavigate
           Add New Vendor
         </button>
 
-        {/* Manage Administrator Access — Super Admin only */}
-        {isSuperAdmin && (
-          <button
-            id="manage-admin-access-btn"
-            onClick={() => onNavigate?.('admin-management')}
-            aria-label="Manage administrator access"
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[#8E406F] text-white text-sm font-medium hover:bg-[#73325A] active:scale-95 transition-all shadow-sm whitespace-nowrap"
-          >
-            <ShieldCheck size={14} />
-            Manage Administrator Access
-          </button>
-        )}
 
         {/* Bell */}
         <button
@@ -84,41 +72,8 @@ export default function Header({ onMenuClick, userRole, onRoleToggle, onNavigate
           <Bell size={16} />
         </button>
 
-        {/* User initials / avatar */}
-        <div
-          title="Logged In Profile"
-          className="h-8 w-8 rounded-full bg-[#8E406F]/10 border border-[#e8c4d8] flex items-center justify-center select-none"
-        >
-          <span className="text-[#8E406F] text-xs font-bold">
-            {(() => {
-              try {
-                const user = JSON.parse(localStorage.getItem('user') || '{}');
-                return (user.fullName || 'Admin')
-                  .split(' ')
-                  .map((n) => n[0])
-                  .join('')
-                  .substring(0, 2)
-                  .toUpperCase();
-              } catch {
-                return 'AD';
-              }
-            })()}
-          </span>
-        </div>
-
-        {/* Log Out Button */}
-        <button
-          id="header-logout-btn"
-          onClick={onLogout}
-          title="Sign Out"
-          aria-label="Sign Out"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-200 text-rose-600 bg-rose-50/60 hover:bg-rose-100 hover:text-rose-700 text-xs font-medium transition-all"
-        >
-          <LogOut size={13} />
-          Sign Out
-        </button>
-
       </div>
     </header>
   );
 }
+
