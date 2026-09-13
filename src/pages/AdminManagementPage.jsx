@@ -3,7 +3,6 @@ import {
   UserPlus,
   Shield,
   Mail,
-  Lock,
   User,
   Eye,
   EyeOff,
@@ -23,6 +22,7 @@ import {
   Filter,
   KeyRound,
   Phone,
+  Lock,
 } from 'lucide-react';
 
 // ============================================================
@@ -31,9 +31,9 @@ import {
 //   1. Consolidated Admins table (No plaintext PIN stored or exposed)
 //   2. Register new admin with separate First/Last name & auto-generated PIN
 //   3. Slot machine / One-Time PIN reveal modal with security warning
-//   4. Secure PIN column with encrypted badge (••••)
-//   5. Dedicated Regenerate PIN action calling /regenerate-pin
-//   6. View Details, Edit Admin, and Deactivate Admin
+//   4. Strict 10-digit phone number enforcement
+//   5. Dedicated Regenerate PIN confirmation modal calling /regenerate-pin
+//   6. View Details, Edit Admin, and Deactivate/Delete Admin
 //   7. Self-deletion prevention for active Super Admin
 //   8. Dynamic Stat Cards bound to /api/admin/metrics
 // ============================================================
@@ -120,8 +120,8 @@ function OneTimePinModal({ pin, adminName, isRegeneration = false, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full relative border border-gray-100 max-h-[90vh] overflow-y-auto overflow-hidden animate-in zoom-in-95 duration-200">
         <div className="bg-gradient-to-r from-[#8E406F] to-[#6B2F54] px-6 py-5 text-center">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-white/20 mb-3">
             <KeyRound size={28} className="text-white" />
@@ -154,7 +154,7 @@ function OneTimePinModal({ pin, adminName, isRegeneration = false, onClose }) {
             <div>
               <span className="font-bold block">One-Time Display Security Notice</span>
               <span>
-                This PIN will <strong>never be shown again</strong>. Please record it safely.
+                This PIN will never be displayed again. Please securely deliver it to the administrator.
               </span>
             </div>
           </div>
@@ -214,6 +214,13 @@ function RegisterAdminModal({ onClose, onCreated }) {
     setError('');
   };
 
+  const handlePhoneChange = (e) => {
+    // Strictly accept only numeric digits, max 10 characters
+    const numericOnly = e.target.value.replace(/\D/g, '').slice(0, 10);
+    setForm((prev) => ({ ...prev, phoneNumber: numericOnly }));
+    setError('');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -222,6 +229,12 @@ function RegisterAdminModal({ onClose, onCreated }) {
       setError('First name, last name, email, and password are required.');
       return;
     }
+
+    if (!form.phoneNumber || !/^[0-9]{10}$/.test(form.phoneNumber)) {
+      setError('Phone number must be exactly 10 digits with no spaces or symbols.');
+      return;
+    }
+
     if (form.password.length < 8) {
       setError('Password must be at least 8 characters long.');
       return;
@@ -236,7 +249,7 @@ function RegisterAdminModal({ onClose, onCreated }) {
           firstName: form.firstName.trim(),
           lastName: form.lastName.trim(),
           email: form.email.trim(),
-          phoneNumber: form.phoneNumber.trim() || null,
+          phoneNumber: form.phoneNumber.trim(),
           password: form.password,
           role: form.role,
           department: form.department.trim() || 'Administration',
@@ -259,10 +272,10 @@ function RegisterAdminModal({ onClose, onCreated }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full relative border border-gray-100 max-h-[90vh] overflow-y-auto overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#F1E5EC] bg-white">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#F1E5EC] bg-white sticky top-0 z-10">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-[#8E406F]/10 flex items-center justify-center">
               <UserPlus size={20} className="text-[#8E406F]" />
@@ -278,7 +291,7 @@ function RegisterAdminModal({ onClose, onCreated }) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4 max-h-[80vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           {/* Split Name: First Name & Last Name */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -336,22 +349,25 @@ function RegisterAdminModal({ onClose, onCreated }) {
             </div>
           </div>
 
-          {/* Phone Number */}
+          {/* Phone Number (Strict 10 Digits) */}
           <div>
             <label className="block text-xs font-semibold text-[#555] mb-1.5 uppercase tracking-wider">
-              Phone Number
+              Phone Number (10 Digits) <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
               <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#aaa]" />
               <input
                 name="phoneNumber"
                 type="tel"
+                required
+                maxLength={10}
                 value={form.phoneNumber}
-                onChange={handleChange}
-                placeholder="e.g. +94 77 123 4567"
-                className="w-full pl-10 pr-4 py-2.5 text-sm border border-[#e2e8f0] rounded-lg bg-[#F8FAFC] text-[#333] placeholder:text-[#bbb] focus:outline-none focus:ring-2 focus:ring-[#8E406F]/20 focus:border-[#8E406F] transition-all"
+                onChange={handlePhoneChange}
+                placeholder="0771234567"
+                className="w-full pl-10 pr-4 py-2.5 text-sm border border-[#e2e8f0] rounded-lg bg-[#F8FAFC] text-[#333] placeholder:text-[#bbb] focus:outline-none focus:ring-2 focus:ring-[#8E406F]/20 focus:border-[#8E406F] transition-all font-mono"
               />
             </div>
+            <p className="text-[11px] text-[#888] mt-1">Accepts exactly 10 digits (e.g. 0771234567). No spaces or symbols.</p>
           </div>
 
           {/* Password */}
@@ -467,16 +483,24 @@ function ViewAdminModal({ admin, onClose }) {
   if (!admin) return null;
 
   const formatDate = (dateStr) => {
+    if (!dateStr) return '—';
     try {
       return new Date(dateStr).toLocaleDateString('en-US', {
         year: 'numeric',
-        month: 'long',
+        month: 'short',
         day: 'numeric',
       });
     } catch {
       return '—';
     }
   };
+
+  const fullName = admin.fullName || `${admin.firstName || ''} ${admin.lastName || ''}`.trim() || 'Administrator';
+  const email = admin.email || '—';
+  const phone = admin.phoneNumber && admin.phoneNumber.trim() ? admin.phoneNumber : 'Not Provided';
+  const department = admin.department || 'Administration';
+  const accessLevel = admin.accessLevel || 'Admin';
+  const isActive = Boolean(admin.isActive);
 
   const getInitials = (name) =>
     (name || 'Admin')
@@ -487,8 +511,8 @@ function ViewAdminModal({ admin, onClose }) {
       .toUpperCase();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full relative border border-gray-100 max-h-[90vh] overflow-y-auto overflow-hidden animate-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#F1E5EC]">
           <h3 className="text-base font-bold text-[#333]">Administrator Details</h3>
           <button onClick={onClose} className="text-[#999] hover:text-[#333] transition-colors p-1 rounded-lg">
@@ -500,29 +524,29 @@ function ViewAdminModal({ admin, onClose }) {
           {/* Avatar & Name */}
           <div className="flex items-center gap-4">
             <div className="h-16 w-16 rounded-full bg-[#8E406F]/10 border-2 border-[#8E406F]/20 flex items-center justify-center text-[#8E406F] text-xl font-bold">
-              {getInitials(admin.fullName)}
+              {getInitials(fullName)}
             </div>
             <div>
-              <h4 className="text-lg font-bold text-[#333]">{admin.fullName}</h4>
-              <p className="text-xs text-[#737373]">{admin.email}</p>
+              <h4 className="text-lg font-bold text-[#333]">{fullName}</h4>
+              <p className="text-xs text-[#737373]">{email}</p>
               <div className="flex items-center gap-2 mt-2">
                 <span
                   className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                    admin.accessLevel === 'SuperAdmin'
+                    accessLevel === 'SuperAdmin'
                       ? 'bg-[#8E406F]/10 text-[#8E406F]'
                       : 'bg-blue-50 text-blue-600'
                   }`}
                 >
                   <Shield size={12} />
-                  {admin.accessLevel}
+                  {accessLevel}
                 </span>
                 <span
                   className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                    admin.isActive ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
+                    isActive ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
                   }`}
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full ${admin.isActive ? 'bg-emerald-500' : 'bg-red-400'}`} />
-                  {admin.isActive ? 'Active' : 'Inactive'}
+                  <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-red-400'}`} />
+                  {isActive ? 'Active' : 'Inactive'}
                 </span>
               </div>
             </div>
@@ -533,14 +557,14 @@ function ViewAdminModal({ admin, onClose }) {
               <span className="flex items-center gap-2 text-xs text-[#888]">
                 <Phone size={14} /> Phone Number
               </span>
-              <span className="font-medium text-[#333]">{admin.phoneNumber || '—'}</span>
+              <span className="font-medium text-[#333] font-mono text-xs">{phone}</span>
             </div>
 
             <div className="flex items-center justify-between text-[#555]">
               <span className="flex items-center gap-2 text-xs text-[#888]">
                 <Building size={14} /> Department
               </span>
-              <span className="font-medium text-[#333]">{admin.department || 'Administration'}</span>
+              <span className="font-medium text-[#333]">{department}</span>
             </div>
 
             <div className="flex items-center justify-between text-[#555]">
@@ -555,9 +579,9 @@ function ViewAdminModal({ admin, onClose }) {
 
             <div className="flex items-center justify-between text-[#555]">
               <span className="flex items-center gap-2 text-xs text-[#888]">
-                <Calendar size={14} /> Joined Date
+                <Calendar size={14} /> Created Date
               </span>
-              <span className="font-medium text-[#333]">{formatDate(admin.createdAt)}</span>
+              <span className="font-medium text-[#333]">{formatDate(admin?.createdAt)}</span>
             </div>
           </div>
         </div>
@@ -578,12 +602,12 @@ function ViewAdminModal({ admin, onClose }) {
 // ─── Edit Admin Modal ────────────────────────────────────────────────────
 function EditAdminModal({ admin, onClose, onUpdated, onRegeneratePinClick }) {
   const [form, setForm] = useState({
-    firstName: admin.firstName || '',
-    lastName: admin.lastName || '',
-    phoneNumber: admin.phoneNumber || '',
-    accessLevel: admin.accessLevel || 'Admin',
-    isActive: admin.isActive ?? true,
-    department: admin.department || 'Administration',
+    firstName: admin?.firstName || '',
+    lastName: admin?.lastName || '',
+    phoneNumber: admin?.phoneNumber || '',
+    accessLevel: admin?.accessLevel || 'Admin',
+    isActive: admin?.isActive ?? true,
+    department: admin?.department || 'Administration',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -591,6 +615,13 @@ function EditAdminModal({ admin, onClose, onUpdated, onRegeneratePinClick }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+    setError('');
+  };
+
+  const handlePhoneChange = (e) => {
+    // Strictly accept only numeric digits, max 10 characters
+    const numericOnly = e.target.value.replace(/\D/g, '').slice(0, 10);
+    setForm((prev) => ({ ...prev, phoneNumber: numericOnly }));
     setError('');
   };
 
@@ -603,6 +634,11 @@ function EditAdminModal({ admin, onClose, onUpdated, onRegeneratePinClick }) {
       return;
     }
 
+    if (!form.phoneNumber || !/^[0-9]{10}$/.test(form.phoneNumber)) {
+      setError('Phone number must be exactly 10 digits with no spaces or symbols.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const res = await fetch(`${API_BASE}/administrators/${admin.adminId}`, {
@@ -611,7 +647,7 @@ function EditAdminModal({ admin, onClose, onUpdated, onRegeneratePinClick }) {
         body: JSON.stringify({
           firstName: form.firstName.trim(),
           lastName: form.lastName.trim(),
-          phoneNumber: form.phoneNumber.trim() || null,
+          phoneNumber: form.phoneNumber.trim(),
           accessLevel: form.accessLevel,
           isActive: form.isActive,
           department: form.department.trim() || 'Administration',
@@ -635,9 +671,9 @@ function EditAdminModal({ admin, onClose, onUpdated, onRegeneratePinClick }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#F1E5EC]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full relative border border-gray-100 max-h-[90vh] overflow-y-auto overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#F1E5EC] sticky top-0 bg-white z-10">
           <div className="flex items-center gap-2">
             <Pencil size={18} className="text-[#8E406F]" />
             <h3 className="text-base font-bold text-[#333]">Edit Administrator</h3>
@@ -679,19 +715,22 @@ function EditAdminModal({ admin, onClose, onUpdated, onRegeneratePinClick }) {
 
           <div>
             <label className="block text-xs font-semibold text-[#555] mb-1.5 uppercase tracking-wider">
-              Phone Number
+              Phone Number (10 Digits) <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
               <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#aaa]" />
               <input
                 name="phoneNumber"
                 type="tel"
+                required
+                maxLength={10}
                 value={form.phoneNumber}
-                onChange={handleChange}
-                placeholder="e.g. +94 77 123 4567"
-                className="w-full pl-10 pr-3 py-2.5 text-sm border border-[#e2e8f0] rounded-lg bg-[#F8FAFC] text-[#333] focus:outline-none focus:ring-2 focus:ring-[#8E406F]/20 focus:border-[#8E406F] transition-all"
+                onChange={handlePhoneChange}
+                placeholder="0771234567"
+                className="w-full pl-10 pr-3 py-2.5 text-sm border border-[#e2e8f0] rounded-lg bg-[#F8FAFC] text-[#333] focus:outline-none focus:ring-2 focus:ring-[#8E406F]/20 focus:border-[#8E406F] transition-all font-mono"
               />
             </div>
+            <p className="text-[11px] text-[#888] mt-1">Accepts exactly 10 digits (e.g. 0771234567). No spaces or symbols.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -793,12 +832,82 @@ function EditAdminModal({ admin, onClose, onUpdated, onRegeneratePinClick }) {
   );
 }
 
+// ─── Regenerate PIN Confirmation Modal ──────────────────────────────────
+function RegeneratePinConfirmModal({ admin, onClose, onConfirm }) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  if (!admin) return null;
+
+  const adminName = admin.fullName || `${admin.firstName || ''} ${admin.lastName || ''}`.trim() || 'Administrator';
+
+  const handleConfirm = async () => {
+    setIsSubmitting(true);
+    await onConfirm(admin);
+    setIsSubmitting(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative border border-gray-100 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+        <div className="text-center">
+          <div className="w-14 h-14 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4 border border-amber-200">
+            <KeyRound size={28} />
+          </div>
+          <h3 className="text-lg font-bold text-[#333]" style={{ fontFamily: "'Playfair Display', serif" }}>
+            Regenerate Secure PIN?
+          </h3>
+          <p className="text-sm text-[#666] mt-2">
+            Are you sure you want to regenerate the secure PIN for <strong className="text-[#333]">{adminName}</strong>?
+          </p>
+          <div className="mt-4 p-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-lg text-left flex items-start gap-2">
+            <AlertTriangle size={16} className="shrink-0 mt-0.5 text-amber-600" />
+            <span>
+              The administrator's existing PIN will be immediately invalidated and replaced with a newly generated 4-digit code.
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-6 pt-4 border-t border-[#F1E5EC] flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="px-4 py-2 text-sm font-medium text-[#666] hover:bg-gray-100 rounded-lg transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={isSubmitting}
+            className="px-5 py-2 text-sm font-semibold text-white bg-[#8E406F] hover:bg-[#73325A] active:scale-95 rounded-lg shadow-md transition-all flex items-center gap-2"
+          >
+            {isSubmitting ? (
+              <>
+                <RefreshCw size={15} className="animate-spin" /> Regenerating...
+              </>
+            ) : (
+              <>
+                <KeyRound size={15} /> Regenerate PIN
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Delete Confirmation Modal ───────────────────────────────────────────
-function DeleteAdminModal({ admin, onClose, onDeleted }) {
+function DeleteAdminModal({ admin, isSelf, onClose, onDeleted }) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState('');
 
+  if (!admin) return null;
+
+  const adminName = admin.fullName || `${admin.firstName || ''} ${admin.lastName || ''}`.trim() || 'Administrator';
+
   const handleDelete = async () => {
+    if (isSelf) return;
     setIsDeleting(true);
     setError('');
     try {
@@ -822,9 +931,9 @@ function DeleteAdminModal({ admin, onClose, onDeleted }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="p-6 text-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative border border-gray-100 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+        <div className="p-2 text-center">
           <div className="w-14 h-14 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-4 border border-red-200">
             <AlertTriangle size={28} />
           </div>
@@ -832,9 +941,16 @@ function DeleteAdminModal({ admin, onClose, onDeleted }) {
             Permanently Delete Administrator?
           </h3>
           <p className="text-sm text-[#666] mt-2">
-            Are you sure you want to permanently delete <strong className="text-[#333]">{admin.fullName}</strong>?
+            Are you sure you want to permanently delete <strong className="text-[#333]">{adminName}</strong>?
             This action will permanently remove both their administrator profile and user account from PostgreSQL.
           </p>
+
+          {isSelf && (
+            <div className="mt-4 p-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-lg flex items-center gap-2 text-left">
+              <AlertCircle size={16} className="shrink-0 text-amber-600" />
+              <span>You cannot delete your own account.</span>
+            </div>
+          )}
 
           {error && (
             <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg text-left">
@@ -843,7 +959,7 @@ function DeleteAdminModal({ admin, onClose, onDeleted }) {
           )}
         </div>
 
-        <div className="px-6 py-4 bg-gray-50 border-t border-[#F1E5EC] flex items-center justify-end gap-3">
+        <div className="mt-6 pt-4 border-t border-[#F1E5EC] flex items-center justify-end gap-3">
           <button
             type="button"
             onClick={onClose}
@@ -855,8 +971,12 @@ function DeleteAdminModal({ admin, onClose, onDeleted }) {
           <button
             type="button"
             onClick={handleDelete}
-            disabled={isDeleting}
-            className="px-5 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 active:scale-95 rounded-lg shadow-md transition-all flex items-center gap-2"
+            disabled={isDeleting || isSelf}
+            className={`px-5 py-2 text-sm font-semibold rounded-lg shadow-md transition-all flex items-center gap-2 ${
+              isSelf
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'text-white bg-red-600 hover:bg-red-700 active:scale-95'
+            }`}
           >
             {isDeleting ? (
               <>
@@ -913,6 +1033,7 @@ export default function AdminManagementPage() {
   const [oneTimePinData, setOneTimePinData] = useState(null);
   const [viewAdminTarget, setViewAdminTarget] = useState(null);
   const [editAdminTarget, setEditAdminTarget] = useState(null);
+  const [regenPinTarget, setRegenPinTarget] = useState(null);
   const [deleteAdminTarget, setDeleteAdminTarget] = useState(null);
 
   // Notifications
@@ -988,7 +1109,13 @@ export default function AdminManagementPage() {
     fetchMetrics();
   };
 
-  // Handler: trigger PIN regeneration via endpoint
+  // Handler: trigger PIN regeneration confirmation
+  const handleOpenRegenModal = (admin) => {
+    if (editAdminTarget) setEditAdminTarget(null);
+    setRegenPinTarget(admin);
+  };
+
+  // Handler: execute PIN regeneration API call
   const handleRegeneratePin = async (admin) => {
     try {
       const res = await fetch(`${API_BASE}/administrators/${admin.adminId}/regenerate-pin`, {
@@ -1003,13 +1130,11 @@ export default function AdminManagementPage() {
       }
 
       const data = await res.json();
-      if (editAdminTarget) {
-        setEditAdminTarget(null);
-      }
+      setRegenPinTarget(null);
 
       setOneTimePinData({
         pin: data.newGeneratedPin,
-        name: data.fullName,
+        name: data.fullName || `${admin.firstName || ''} ${admin.lastName || ''}`.trim(),
         isRegeneration: true,
       });
 
@@ -1030,7 +1155,7 @@ export default function AdminManagementPage() {
 
   // Check if a row represents the currently logged in Super Admin
   const isCurrentLoggedInUser = (admin) => {
-    if (!currentUser) return false;
+    if (!currentUser || !admin) return false;
     if (
       currentUser.userId &&
       (String(currentUser.userId) === String(admin.adminId) ||
@@ -1049,6 +1174,7 @@ export default function AdminManagementPage() {
   };
 
   const formatDate = (dateStr) => {
+    if (!dateStr) return '—';
     try {
       return new Date(dateStr).toLocaleDateString('en-US', {
         year: 'numeric',
@@ -1230,7 +1356,6 @@ export default function AdminManagementPage() {
                   <th className="text-left px-6 py-3.5 font-semibold">Email</th>
                   <th className="text-left px-6 py-3.5 font-semibold">Phone Number</th>
                   <th className="text-left px-6 py-3.5 font-semibold">Access Level</th>
-                  <th className="text-left px-6 py-3.5 font-semibold">Secure PIN</th>
                   <th className="text-left px-6 py-3.5 font-semibold">Status</th>
                   <th className="text-left px-6 py-3.5 font-semibold">Created Date</th>
                   <th className="text-right px-6 py-3.5 font-semibold">Actions</th>
@@ -1239,6 +1364,8 @@ export default function AdminManagementPage() {
               <tbody className="divide-y divide-[#F1E5EC]">
                 {admins.map((admin) => {
                   const isSelf = isCurrentLoggedInUser(admin);
+                  const fullName = admin.fullName || `${admin.firstName || ''} ${admin.lastName || ''}`.trim() || 'Administrator';
+
                   return (
                     <tr key={admin.adminId} className="hover:bg-[#FDF0F4]/40 transition-colors">
                       {/* Name + Avatar */}
@@ -1246,12 +1373,12 @@ export default function AdminManagementPage() {
                         <div className="flex items-center gap-3">
                           <div className="h-9 w-9 rounded-full bg-[#8E406F]/10 border border-[#e8c4d8] flex items-center justify-center shrink-0">
                             <span className="text-[#8E406F] text-xs font-bold">
-                              {getInitials(admin.fullName)}
+                              {getInitials(fullName)}
                             </span>
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="font-semibold text-[#333]">{admin.fullName}</span>
+                              <span className="font-semibold text-[#333]">{fullName}</span>
                               {isSelf && (
                                 <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-[#8E406F]/10 text-[#8E406F]">
                                   YOU
@@ -1288,20 +1415,6 @@ export default function AdminManagementPage() {
                           <Shield size={11} />
                           {admin.accessLevel}
                         </span>
-                      </td>
-
-                      {/* Secure PIN Column: Protected Badge (No plaintext PIN exposed) */}
-                      <td className="px-6 py-3.5">
-                        <div className="inline-flex items-center gap-1.5">
-                          <span
-                            title="Hashed in Database (BCrypt)"
-                            className="inline-flex items-center gap-1.5 font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full text-xs font-bold tracking-wider"
-                          >
-                            <Lock size={12} className="text-emerald-600 shrink-0" />
-                            <span>••••</span>
-                            <span className="text-[10px] uppercase font-semibold text-emerald-600">Active</span>
-                          </span>
-                        </div>
                       </td>
 
                       {/* Status */}
@@ -1346,7 +1459,7 @@ export default function AdminManagementPage() {
                           {/* Regenerate PIN */}
                           <button
                             type="button"
-                            onClick={() => handleRegeneratePin(admin)}
+                            onClick={() => handleOpenRegenModal(admin)}
                             title="Regenerate 4-Digit Secure PIN"
                             className="p-1.5 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
                           >
@@ -1358,7 +1471,7 @@ export default function AdminManagementPage() {
                             type="button"
                             disabled={isSelf}
                             onClick={() => setDeleteAdminTarget(admin)}
-                            title={isSelf ? 'Cannot delete your active account' : 'Deactivate Administrator'}
+                            title={isSelf ? 'Cannot delete your active account' : 'Deactivate / Delete Administrator'}
                             className={`
                               p-1.5 rounded-lg transition-colors
                               ${isSelf
@@ -1408,13 +1521,22 @@ export default function AdminManagementPage() {
           admin={editAdminTarget}
           onClose={() => setEditAdminTarget(null)}
           onUpdated={handleAdminUpdated}
-          onRegeneratePinClick={handleRegeneratePin}
+          onRegeneratePinClick={handleOpenRegenModal}
+        />
+      )}
+
+      {regenPinTarget && (
+        <RegeneratePinConfirmModal
+          admin={regenPinTarget}
+          onClose={() => setRegenPinTarget(null)}
+          onConfirm={handleRegeneratePin}
         />
       )}
 
       {deleteAdminTarget && (
         <DeleteAdminModal
           admin={deleteAdminTarget}
+          isSelf={isCurrentLoggedInUser(deleteAdminTarget)}
           onClose={() => setDeleteAdminTarget(null)}
           onDeleted={handleAdminDeleted}
         />
