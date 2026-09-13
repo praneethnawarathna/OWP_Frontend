@@ -9,6 +9,7 @@ import AdminManagementPage from './pages/AdminManagementPage';
 import AdminSettingsPage from './pages/AdminSettingsPage';
 import LoginPage from './pages/LoginPage';
 import VendorDashboardPage from './pages/VendorDashboardPage';
+import VendorContentPage from './pages/VendorContentPage';
 
 const getStoredUser = () => {
   try {
@@ -59,7 +60,6 @@ const pathToPage = (path) => {
     if (path === '/vendor-performance') return 'vendor-performance';
     if (path === '/vendor-notifications') return 'vendor-notifications';
     if (path === '/vendor-profile') return 'vendor-profile';
-    if (path === '/vendor-ratings') return 'vendor-ratings';
     return 'vendor-dashboard';
   }
 
@@ -76,7 +76,6 @@ const pageToPath = (page) => {
   if (page === 'vendor-performance') return '/vendor-performance';
   if (page === 'vendor-notifications') return '/vendor-notifications';
   if (page === 'vendor-profile') return '/vendor-profile';
-  if (page === 'vendor-ratings') return '/vendor-ratings';
   if (page === 'customers') return '/customer-management';
   if (page === 'listing-review') return '/listing-review';
   if (page === 'admin-management') return '/admin-management';
@@ -132,10 +131,9 @@ export default function App() {
         onLogout={handleLogout}
       >
         {currentPage === 'vendor-dashboard' && <VendorDashboardPage />}
-        {currentPage === 'vendor-performance' && <div className="p-8 text-[#737373]">Vendor Performance — coming soon.</div>}
-        {currentPage === 'vendor-notifications' && <div className="p-8 text-[#737373]">Notifications — coming soon.</div>}
-        {currentPage === 'vendor-profile' && <div className="p-8 text-[#737373]">Business Profile — coming soon.</div>}
-        {currentPage === 'vendor-ratings' && <div className="p-8 text-[#737373]">Add Ratings — coming soon.</div>}
+        {currentPage === 'vendor-performance' && <VendorContentPage type="performance" />}
+        {currentPage === 'vendor-notifications' && <VendorContentPage type="notifications" />}
+        {currentPage === 'vendor-profile' && <VendorContentPage type="services" />}
       </VendorLayout>
     );
   }

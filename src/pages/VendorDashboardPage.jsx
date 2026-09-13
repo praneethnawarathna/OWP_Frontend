@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -17,44 +17,6 @@ import {
   Plus,
   Star,
 } from 'lucide-react';
-
-// ============================================================
-// SAMPLE DATA — Lumina Photography
-// ============================================================
-const SUMMARY_STATS = [
-  {
-    id: 'views',
-    label: 'Profile Views',
-    value: '1,248',
-    subtext: '+12% this month',
-    trendPositive: true,
-    icon: Eye,
-  },
-  {
-    id: 'inquiries',
-    label: 'New Inquiries',
-    value: '24',
-    subtext: '+5 this week',
-    trendPositive: true,
-    icon: MessageCircle,
-  },
-  {
-    id: 'bookings',
-    label: 'Upcoming Bookings',
-    value: '8',
-    subtext: '3 this week',
-    trendPositive: false,
-    icon: CalendarDays,
-  },
-  {
-    id: 'rating',
-    label: 'Average Rating',
-    value: '4.8 ★',
-    subtext: '126 Reviews',
-    isRating: true,
-    icon: Star,
-  },
-];
 
 const RECENT_INQUIRIES = [
   {
@@ -132,11 +94,20 @@ const QUICK_ACTIONS = [
   { label: 'View Calendar', icon: Calendar, desc: 'Check upcoming dates' },
 ];
 
-// ============================================================
-// SUBCOMPONENTS
-// ============================================================
+const FALLBACK_DASHBOARD = {
+  businessName: 'Lumina Photography',
+  businessType: 'Photography & Videography',
+  location: 'New York, NY',
+  profileViews: 1248,
+  newInquiries: 24,
+  upcomingBookings: 8,
+  averageRating: 4.8,
+  reviewCount: 126,
+  recentInquiries: RECENT_INQUIRIES,
+  upcomingBookingList: UPCOMING_BOOKINGS,
+  notifications: [],
+};
 
-// Header for card containers
 function SectionHeader({ title, actionText, onAction }) {
   return (
     <div className="flex items-center justify-between border-b border-[#F1E5EC] px-6 py-4">
@@ -164,7 +135,6 @@ function SectionHeader({ title, actionText, onAction }) {
   );
 }
 
-// Top Metric Cards
 function StatCard({ stat }) {
   const Icon = stat.icon;
 
@@ -203,52 +173,33 @@ function StatCard({ stat }) {
         )}
       </div>
 
-      {/* Subtle bottom decorative bar */}
       <div className="mt-3 h-[2px] w-10 rounded-full bg-[#8E406F]/30 transition-all group-hover:w-16" />
     </article>
   );
 }
 
-// Inquiries list card
-function InquiriesWidget() {
-  const filteredInquiries = RECENT_INQUIRIES;
+function InquiriesWidget({ data = RECENT_INQUIRIES }) {
+  const filteredInquiries = data;
 
   return (
-    <section
-      aria-label="Recent customer inquiries"
-      className="flex flex-col h-full rounded-2xl border border-[#F1E5EC] bg-white shadow-sm overflow-hidden"
-    >
-      <SectionHeader
-        title="Recent Customer Inquiries"
-        actionText="View All Inquiries →"
-        onAction={() => {}}
-      />
+    <section aria-label="Recent customer inquiries" className="flex flex-col h-full rounded-2xl border border-[#F1E5EC] bg-white shadow-sm overflow-hidden">
+      <SectionHeader title="Recent Customer Inquiries" actionText="View All Inquiries →" onAction={() => {}} />
 
-      {/* Inquiry rows */}
       <div className="flex-1 divide-y divide-[#F9F0F5]">
         {filteredInquiries.map((inq) => (
-          <div
-            key={inq.id}
-            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 transition-colors hover:bg-[#FDF0F4]/40"
-          >
-            {/* Left: Avatar + Details */}
+          <div key={inq.id || inq.inquiryId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 transition-colors hover:bg-[#FDF0F4]/40">
             <div className="flex items-start sm:items-center gap-3 min-w-0">
-              <div
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold shadow-sm ${inq.avatarBg} ${inq.avatarText}`}
-                aria-hidden="true"
-              >
-                {inq.initials}
+              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold shadow-sm ${inq.avatarBg || 'bg-[#8E406F]'} ${inq.avatarText || 'text-white'}`} aria-hidden="true">
+                {inq.initials || 'NA'}
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-[#1E293B] truncate">{inq.customer}</p>
-                  <span
-                    className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${inq.statusStyle}`}
-                  >
-                    {inq.status}
+                  <p className="text-sm font-semibold text-[#1E293B] truncate">{inq.customer || inq.customerName}</p>
+                  <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${inq.statusStyle || 'bg-[#FDF0F4] text-[#8E406F] border-[#E8C4D8]'}`}>
+                    {inq.status || 'New'}
                   </span>
                 </div>
-                <p className="text-xs text-[#737373] mt-0.5">{inq.service}</p>
+                <p className="text-xs text-[#737373] mt-0.5">{inq.service || inq.serviceName}</p>
                 <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] text-[#999]">
                   <span className="flex items-center gap-1">
                     <CalendarDays size={12} className="text-[#8E406F]" aria-hidden="true" />
@@ -262,18 +213,11 @@ function InquiriesWidget() {
               </div>
             </div>
 
-            {/* Right: Actions */}
             <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-              <button
-                type="button"
-                className="rounded-lg border border-[#F1E5EC] bg-white px-3 py-1.5 text-xs font-medium text-[#555] transition-all hover:border-[#8E406F] hover:text-[#8E406F] active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#8E406F]/20"
-              >
+              <button type="button" className="rounded-lg border border-[#F1E5EC] bg-white px-3 py-1.5 text-xs font-medium text-[#555] transition-all hover:border-[#8E406F] hover:text-[#8E406F] active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#8E406F]/20">
                 View
               </button>
-              <button
-                type="button"
-                className="flex items-center gap-1 rounded-lg bg-[#8E406F] px-3.5 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-[#73325A] active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#8E406F]/40"
-              >
+              <button type="button" className="flex items-center gap-1 rounded-lg bg-[#8E406F] px-3.5 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-[#73325A] active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#8E406F]/40">
                 <MessageCircle size={12} aria-hidden="true" />
                 Reply
               </button>
@@ -282,15 +226,9 @@ function InquiriesWidget() {
         ))}
       </div>
 
-      {/* Card footer */}
       <div className="border-t border-[#F1E5EC] px-6 py-3 bg-[#FCFCFD] flex items-center justify-between">
-        <span className="text-xs text-[#999]">
-          Showing {filteredInquiries.length} of 24 inquiries
-        </span>
-        <button
-          type="button"
-          className="flex items-center gap-1 text-xs font-medium text-[#8E406F] hover:text-[#73325A] transition-colors"
-        >
+        <span className="text-xs text-[#999]">Showing {filteredInquiries.length} inquiries</span>
+        <button type="button" className="flex items-center gap-1 text-xs font-medium text-[#8E406F] hover:text-[#73325A] transition-colors">
           View All Inquiries <ArrowRight size={12} aria-hidden="true" />
         </button>
       </div>
@@ -298,49 +236,32 @@ function InquiriesWidget() {
   );
 }
 
-// Bookings list card
-function BookingsWidget() {
+function BookingsWidget({ data = UPCOMING_BOOKINGS }) {
   return (
-    <section
-      aria-label="Upcoming bookings"
-      className="flex flex-col h-full rounded-2xl border border-[#F1E5EC] bg-white shadow-sm overflow-hidden"
-    >
-      <SectionHeader
-        title="Upcoming Bookings"
-        actionText="View All Bookings →"
-        onAction={() => {}}
-      />
+    <section aria-label="Upcoming bookings" className="flex flex-col h-full rounded-2xl border border-[#F1E5EC] bg-white shadow-sm overflow-hidden">
+      <SectionHeader title="Upcoming Bookings" actionText="View All Bookings →" onAction={() => {}} />
 
       <div className="flex-1 divide-y divide-[#F9F0F5]">
-        {UPCOMING_BOOKINGS.map((b) => {
-          const isConfirmed = b.status === 'Confirmed';
+        {data.map((b) => {
+          const bookingStatus = b.status || 'Confirmed';
+          const isConfirmed = bookingStatus === 'Confirmed';
+          const coupleName = b.couple || b.coupleName;
+          const serviceName = b.service || b.serviceName;
           return (
-            <div
-              key={b.id}
-              className="p-5 transition-colors hover:bg-[#FDF0F4]/40 flex flex-col justify-between gap-3"
-            >
+            <div key={b.id || b.bookingId} className="p-5 transition-colors hover:bg-[#FDF0F4]/40 flex flex-col justify-between gap-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FDF0F4] text-xs font-bold text-[#8E406F] border border-[#F1E5EC]"
-                    aria-hidden="true"
-                  >
-                    {b.initials}
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FDF0F4] text-xs font-bold text-[#8E406F] border border-[#F1E5EC]" aria-hidden="true">
+                    {b.initials || 'AB'}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-[#1E293B] leading-tight">{b.couple}</p>
-                    <p className="text-xs text-[#737373] mt-0.5">{b.service}</p>
+                    <p className="text-sm font-semibold text-[#1E293B] leading-tight">{coupleName}</p>
+                    <p className="text-xs text-[#737373] mt-0.5">{serviceName}</p>
                   </div>
                 </div>
 
-                <span
-                  className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${
-                    isConfirmed
-                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                      : 'border-amber-200 bg-amber-50 text-amber-700'
-                  }`}
-                >
-                  {b.status}
+                <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${isConfirmed ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
+                  {bookingStatus}
                 </span>
               </div>
 
@@ -356,12 +277,7 @@ function BookingsWidget() {
               </div>
 
               <div className="pt-2 border-t border-[#F9F0F5] flex justify-end">
-                <button
-                  type="button"
-                  className="text-xs font-semibold text-[#8E406F] hover:text-[#73325A] hover:underline focus:outline-none"
-                >
-                  View Details
-                </button>
+                <button type="button" className="text-xs font-semibold text-[#8E406F] hover:text-[#73325A] hover:underline focus:outline-none">View Details</button>
               </div>
             </div>
           );
@@ -369,11 +285,8 @@ function BookingsWidget() {
       </div>
 
       <div className="border-t border-[#F1E5EC] px-6 py-3 bg-[#FCFCFD] flex items-center justify-between">
-        <span className="text-xs text-[#999]">8 confirmed this season</span>
-        <button
-          type="button"
-          className="flex items-center gap-1 text-xs font-medium text-[#8E406F] hover:text-[#73325A] transition-colors"
-        >
+        <span className="text-xs text-[#999]">{data.length} upcoming this season</span>
+        <button type="button" className="flex items-center gap-1 text-xs font-medium text-[#8E406F] hover:text-[#73325A] transition-colors">
           View All Bookings <ArrowRight size={12} aria-hidden="true" />
         </button>
       </div>
@@ -381,34 +294,22 @@ function BookingsWidget() {
   );
 }
 
-// Business Performance Chart
 function PerformanceWidget() {
   const [hoveredIdx, setHoveredIdx] = useState(null);
-
-  // Maximum view count for relative scaling
   const maxViews = 450;
   const maxInquiries = 40;
   const maxBookings = 12;
 
   return (
-    <section
-      aria-label="Business performance analytics"
-      className="flex flex-col h-full rounded-2xl border border-[#F1E5EC] bg-white shadow-sm overflow-hidden"
-    >
+    <section aria-label="Business performance analytics" className="flex flex-col h-full rounded-2xl border border-[#F1E5EC] bg-white shadow-sm overflow-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#F1E5EC] px-6 py-4 gap-2">
         <div>
-          <h2
-            className="text-base font-semibold text-[#1E293B]"
-            style={{ fontFamily: "'Playfair Display', serif" }}
-          >
+          <h2 className="text-base font-semibold text-[#1E293B]" style={{ fontFamily: "'Playfair Display', serif" }}>
             Business Performance
           </h2>
-          <p className="text-xs text-[#737373] mt-0.5">
-            Profile views, inquiries & confirmed bookings trend
-          </p>
+          <p className="text-xs text-[#737373] mt-0.5">Profile views, inquiries & confirmed bookings trend</p>
         </div>
 
-        {/* Legend */}
         <div className="flex items-center gap-4 text-xs">
           <span className="flex items-center gap-1.5 text-[#555]">
             <span className="h-2.5 w-2.5 rounded-sm bg-[#8E406F]" aria-hidden="true" />
@@ -425,11 +326,8 @@ function PerformanceWidget() {
         </div>
       </div>
 
-      {/* Chart Canvas */}
       <div className="p-6 flex-1 flex flex-col justify-end">
-        {/* Bars Container */}
         <div className="relative h-56 w-full flex items-end justify-between gap-3 sm:gap-6 pt-6 border-b border-[#F1E5EC]">
-          {/* Subtle Background Guide Lines */}
           <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-40">
             <div className="border-b border-dashed border-[#F1E5EC] w-full" />
             <div className="border-b border-dashed border-[#F1E5EC] w-full" />
@@ -443,13 +341,7 @@ function PerformanceWidget() {
             const isHovered = hoveredIdx === idx;
 
             return (
-              <div
-                key={item.month}
-                onMouseEnter={() => setHoveredIdx(idx)}
-                onMouseLeave={() => setHoveredIdx(null)}
-                className="group relative flex-1 flex flex-col items-center justify-end h-full z-10 cursor-pointer"
-              >
-                {/* Floating tooltip on hover */}
+              <div key={item.month} onMouseEnter={() => setHoveredIdx(idx)} onMouseLeave={() => setHoveredIdx(null)} className="group relative flex-1 flex flex-col items-center justify-end h-full z-10 cursor-pointer">
                 {isHovered && (
                   <div className="absolute -top-14 bg-[#1E293B] text-white text-[11px] rounded-lg px-2.5 py-1.5 shadow-lg whitespace-nowrap z-20 pointer-events-none animate-in fade-in">
                     <p className="font-semibold text-center mb-0.5">{item.month} 2026</p>
@@ -461,34 +353,13 @@ function PerformanceWidget() {
                   </div>
                 )}
 
-                {/* Bars group */}
                 <div className="w-full flex items-end justify-center gap-1 h-full pb-1">
-                  {/* Views bar */}
-                  <div
-                    className="w-1/3 max-w-[14px] rounded-t bg-[#8E406F] transition-all duration-300 group-hover:brightness-110"
-                    style={{ height: `${viewsHeight}%` }}
-                    title={`${item.views} views`}
-                  />
-                  {/* Inquiries bar */}
-                  <div
-                    className="w-1/3 max-w-[14px] rounded-t bg-[#C5A3B8] transition-all duration-300 group-hover:brightness-110"
-                    style={{ height: `${inqHeight}%` }}
-                    title={`${item.inquiries} inquiries`}
-                  />
-                  {/* Bookings bar */}
-                  <div
-                    className="w-1/3 max-w-[14px] rounded-t bg-[#E8C4D8] transition-all duration-300 group-hover:brightness-110"
-                    style={{ height: `${bookHeight}%` }}
-                    title={`${item.bookings} bookings`}
-                  />
+                  <div className="w-1/3 max-w-[14px] rounded-t bg-[#8E406F] transition-all duration-300 group-hover:brightness-110" style={{ height: `${viewsHeight}%` }} title={`${item.views} views`} />
+                  <div className="w-1/3 max-w-[14px] rounded-t bg-[#C5A3B8] transition-all duration-300 group-hover:brightness-110" style={{ height: `${inqHeight}%` }} title={`${item.inquiries} inquiries`} />
+                  <div className="w-1/3 max-w-[14px] rounded-t bg-[#E8C4D8] transition-all duration-300 group-hover:brightness-110" style={{ height: `${bookHeight}%` }} title={`${item.bookings} bookings`} />
                 </div>
 
-                {/* X-axis Label */}
-                <span
-                  className={`text-xs mt-2 transition-colors ${
-                    isHovered ? 'font-bold text-[#8E406F]' : 'text-[#737373]'
-                  }`}
-                >
+                <span className={`text-xs mt-2 transition-colors ${isHovered ? 'font-bold text-[#8E406F]' : 'text-[#737373]'}`}>
                   {item.month}
                 </span>
               </div>
@@ -500,13 +371,9 @@ function PerformanceWidget() {
   );
 }
 
-// Profile Status Section
-function ProfileStatusWidget() {
+function ProfileStatusWidget({ businessName = 'Lumina Photography', businessType = 'Photography & Videography', location = 'New York, NY', averageRating = '4.8', reviewCount = 126 }) {
   return (
-    <section
-      aria-label="Vendor profile status"
-      className="flex flex-col justify-between h-full rounded-2xl border border-[#F1E5EC] bg-white p-6 shadow-sm"
-    >
+    <section aria-label="Vendor profile status" className="flex flex-col justify-between h-full rounded-2xl border border-[#F1E5EC] bg-white p-6 shadow-sm">
       <div>
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -514,13 +381,10 @@ function ProfileStatusWidget() {
               <Camera size={22} />
             </div>
             <div>
-              <h2
-                className="text-base font-bold text-[#1E293B]"
-                style={{ fontFamily: "'Playfair Display', serif" }}
-              >
-                Lumina Photography
+              <h2 className="text-base font-bold text-[#1E293B]" style={{ fontFamily: "'Playfair Display', serif" }}>
+                {businessName}
               </h2>
-              <p className="text-xs text-[#737373]">Photography & Videography</p>
+              <p className="text-xs text-[#737373]">{businessType}</p>
             </div>
           </div>
 
@@ -535,14 +399,14 @@ function ProfileStatusWidget() {
             <span className="text-[#737373] flex items-center gap-1.5">
               <MapPin size={13} className="text-[#8E406F]" /> Location:
             </span>
-            <span className="font-medium text-[#1E293B]">New York, NY</span>
+            <span className="font-medium text-[#1E293B]">{location}</span>
           </div>
 
           <div className="flex items-center justify-between">
             <span className="text-[#737373] flex items-center gap-1.5">
               <Star size={13} className="text-[#8E406F] fill-[#8E406F]" /> Reputation:
             </span>
-            <span className="font-semibold text-[#1E293B]">4.8 ★ (126 Reviews)</span>
+            <span className="font-semibold text-[#1E293B]">{averageRating} ★ ({reviewCount} Reviews)</span>
           </div>
 
           <div className="flex items-center justify-between">
@@ -555,54 +419,34 @@ function ProfileStatusWidget() {
       </div>
 
       <div className="mt-5">
-        <button
-          type="button"
-          className="group flex w-full items-center justify-center gap-2 rounded-xl border border-[#8E406F] bg-white py-2.5 text-xs font-semibold text-[#8E406F] shadow-sm transition-all hover:bg-[#8E406F] hover:text-white active:scale-98 focus:outline-none focus:ring-2 focus:ring-[#8E406F]/30"
-        >
+        <button type="button" className="group flex w-full items-center justify-center gap-2 rounded-xl border border-[#8E406F] bg-white py-2.5 text-xs font-semibold text-[#8E406F] shadow-sm transition-all hover:bg-[#8E406F] hover:text-white active:scale-98 focus:outline-none focus:ring-2 focus:ring-[#8E406F]/30">
           <span>View Public Listing</span>
-          <ExternalLink
-            size={13}
-            className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-          />
+          <ExternalLink size={13} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
         </button>
       </div>
     </section>
   );
 }
 
-// Quick Actions Section
 function QuickActionsSection() {
   return (
     <section aria-label="Quick actions" className="pt-2">
-      <h2
-        className="text-base font-semibold text-[#1E293B] mb-3"
-        style={{ fontFamily: "'Playfair Display', serif" }}
-      >
+      <h2 className="text-base font-semibold text-[#1E293B] mb-3" style={{ fontFamily: "'Playfair Display', serif" }}>
         Quick Actions
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {QUICK_ACTIONS.map(({ label, icon: Icon, desc }) => (
-          <button
-            key={label}
-            type="button"
-            className="group flex items-center justify-between rounded-2xl border border-[#F1E5EC] bg-white p-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#8E406F]/40 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#8E406F]/20"
-          >
+          <button key={label} type="button" className="group flex items-center justify-between rounded-2xl border border-[#F1E5EC] bg-white p-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#8E406F]/40 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#8E406F]/20">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FDF0F4] text-[#8E406F] transition-transform group-hover:scale-105">
                 <Icon size={18} strokeWidth={2} />
               </div>
               <div>
-                <p className="text-xs font-semibold text-[#1E293B] group-hover:text-[#8E406F] transition-colors">
-                  {label}
-                </p>
+                <p className="text-xs font-semibold text-[#1E293B] group-hover:text-[#8E406F] transition-colors">{label}</p>
                 <p className="text-[10px] text-[#999]">{desc}</p>
               </div>
             </div>
-            <ArrowRight
-              size={14}
-              className="text-[#bbb] transition-transform group-hover:translate-x-1 group-hover:text-[#8E406F]"
-              aria-hidden="true"
-            />
+            <ArrowRight size={14} className="text-[#bbb] transition-transform group-hover:translate-x-1 group-hover:text-[#8E406F]" aria-hidden="true" />
           </button>
         ))}
       </div>
@@ -610,58 +454,145 @@ function QuickActionsSection() {
   );
 }
 
-// ============================================================
-// MAIN PAGE COMPONENT
-// ============================================================
 export default function VendorDashboardPage() {
+  const [dashboard, setDashboard] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const userId = Number(storedUser.userId);
+
+        if (!storedUser || !userId || !Number.isFinite(userId)) {
+          setDashboard(FALLBACK_DASHBOARD);
+          setLoading(false);
+          return;
+        }
+
+        const token = localStorage.getItem('token');
+        const response = await fetch(`http://localhost:5131/api/vendor-dashboard?userId=${userId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to load dashboard: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setDashboard({
+          ...FALLBACK_DASHBOARD,
+          ...data,
+          recentInquiries: data.recentInquiries?.length ? data.recentInquiries : FALLBACK_DASHBOARD.recentInquiries,
+          upcomingBookingList: data.upcomingBookingList?.length ? data.upcomingBookingList : FALLBACK_DASHBOARD.upcomingBookingList,
+        });
+      } catch (error) {
+        console.error('Vendor dashboard fetch failed:', error);
+        setDashboard(FALLBACK_DASHBOARD);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboard();
+  }, []);
+
+  const summaryStats = useMemo(() => {
+    const source = dashboard || FALLBACK_DASHBOARD;
+
+    return [
+      {
+        id: 'views',
+        label: 'Profile Views',
+        value: source.profileViews?.toLocaleString() ?? '0',
+        subtext: '+12% this month',
+        trendPositive: true,
+        icon: Eye,
+      },
+      {
+        id: 'inquiries',
+        label: 'New Inquiries',
+        value: String(source.newInquiries ?? 0),
+        subtext: '+5 this week',
+        trendPositive: true,
+        icon: MessageCircle,
+      },
+      {
+        id: 'bookings',
+        label: 'Upcoming Bookings',
+        value: String(source.upcomingBookings ?? 0),
+        subtext: '3 this week',
+        trendPositive: false,
+        icon: CalendarDays,
+      },
+      {
+        id: 'rating',
+        label: 'Average Rating',
+        value: `${Number(source.averageRating ?? 0).toFixed(1)} ★`,
+        subtext: `${source.reviewCount ?? 0} Reviews`,
+        isRating: true,
+        icon: Star,
+      },
+    ];
+  }, [dashboard]);
+
+  const recentInquiries = dashboard?.recentInquiries?.length ? dashboard.recentInquiries : RECENT_INQUIRIES;
+  const upcomingBookings = dashboard?.upcomingBookingList?.length ? dashboard.upcomingBookingList : UPCOMING_BOOKINGS;
+  const businessName = dashboard?.businessName || 'Lumina Photography';
+  const businessType = dashboard?.businessType || 'Photography & Videography';
+  const location = dashboard?.location || 'New York, NY';
+  const averageRating = Number(dashboard?.averageRating ?? 4.8).toFixed(1);
+  const reviewCount = dashboard?.reviewCount ?? 126;
+
   return (
     <div className="mx-auto w-full max-w-[1400px] space-y-6">
-      {/* ── Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div>
-          <h1
-            className="text-2xl font-bold text-[#1E293B]"
-            style={{ fontFamily: "'Playfair Display', serif" }}
-          >
+          <h1 className="text-2xl font-bold text-[#1E293B]" style={{ fontFamily: "'Playfair Display', serif" }}>
             Dashboard Overview
           </h1>
-          <p className="text-sm text-[#8E406F] mt-0.5">
-            Manage your business, bookings, and customer inquiries.
-          </p>
+          <p className="text-sm text-[#8E406F] mt-0.5">Manage your business, bookings, and customer inquiries.</p>
         </div>
 
-        {/* Date Filter */}
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="flex items-center gap-1.5 rounded-lg border border-[#F1E5EC] bg-white px-3.5 py-1.5 text-xs font-medium text-[#737373] shadow-sm transition-all hover:border-[#8E406F]/30 hover:text-[#8E406F] focus:outline-none focus:ring-2 focus:ring-[#8E406F]/20"
-          >
+          <button type="button" className="flex items-center gap-1.5 rounded-lg border border-[#F1E5EC] bg-white px-3.5 py-1.5 text-xs font-medium text-[#737373] shadow-sm transition-all hover:border-[#8E406F]/30 hover:text-[#8E406F] focus:outline-none focus:ring-2 focus:ring-[#8E406F]/20">
             <CalendarRange size={13} className="text-[#8E406F]" aria-hidden="true" />
             Last 30 Days
           </button>
         </div>
       </div>
 
-      {/* ── Section 1: Summary Metric Cards (4 cards) ── */}
+      {loading && (
+        <div className="rounded-2xl border border-[#F1E5EC] bg-white px-6 py-4 text-sm text-[#737373]">
+          Loading dashboard metrics from the backend...
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {SUMMARY_STATS.map((stat) => (
+        {summaryStats.map((stat) => (
           <StatCard key={stat.id} stat={stat} />
         ))}
       </div>
 
-      {/* ── Row 2: Inquiries (65%) + Bookings (35%) ── */}
       <div className="grid grid-cols-1 lg:grid-cols-[65fr_35fr] gap-6 items-stretch">
-        <InquiriesWidget />
-        <BookingsWidget />
+        <InquiriesWidget data={recentInquiries} />
+        <BookingsWidget data={upcomingBookings} />
       </div>
 
-      {/* ── Row 3: Business Performance (65%) + Profile Status (35%) ── */}
       <div className="grid grid-cols-1 lg:grid-cols-[65fr_35fr] gap-6 items-stretch">
         <PerformanceWidget />
-        <ProfileStatusWidget />
+        <ProfileStatusWidget
+          businessName={businessName}
+          businessType={businessType}
+          location={location}
+          averageRating={averageRating}
+          reviewCount={reviewCount}
+        />
       </div>
 
-      {/* ── Row 4: Quick Actions ── */}
       <QuickActionsSection />
     </div>
   );
