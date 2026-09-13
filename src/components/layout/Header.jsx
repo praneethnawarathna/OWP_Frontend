@@ -1,8 +1,6 @@
-import { Bell, Menu, Plus, Search, ShieldCheck, UserCog } from 'lucide-react';
+import { Bell, Menu, Plus, Search } from 'lucide-react';
 
 export default function Header({ onMenuClick, userRole, onNavigate, onLogout }) {
-  const isSuperAdmin = userRole === 'SUPER_ADMIN';
-
   return (
     <header className="h-14 shrink-0 w-full bg-white border-b border-[#F1E5EC] flex items-center px-6 gap-4">
 
@@ -29,26 +27,6 @@ export default function Header({ onMenuClick, userRole, onNavigate, onLogout }) 
 
       {/* Spacer */}
       <div className="flex-1" />
-
-      {/* ── Role Switcher Pill — redirects to login page for role switch ── */}
-      <button
-        id="role-switcher-pill"
-        onClick={onLogout}
-        aria-label={isSuperAdmin ? 'Switch to Admin login' : 'Switch to Super Admin login'}
-        title={isSuperAdmin ? 'Switch to Admin login' : 'Switch to Super Admin login'}
-        className={`
-          relative flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-semibold
-          transition-all duration-200 select-none
-          ${isSuperAdmin
-            ? 'bg-[#8E406F]/10 border-[#8E406F]/30 text-[#8E406F] hover:bg-[#8E406F]/15'
-            : 'bg-[#F8FAFC] border-[#e2e8f0] text-[#737373] hover:border-[#8E406F]/40 hover:text-[#8E406F]'}
-        `}
-      >
-        {isSuperAdmin
-          ? <><ShieldCheck size={13} className="shrink-0" /> Super Admin &nbsp;<span className="text-[#aaa] font-normal">→ Switch to Admin</span></>
-          : <><UserCog    size={13} className="shrink-0" /> Admin &nbsp;<span className="text-[#aaa] font-normal">→ Switch to Super Admin</span></>
-        }
-      </button>
 
       {/* ── Actions ── */}
       <div className="flex items-center gap-3">

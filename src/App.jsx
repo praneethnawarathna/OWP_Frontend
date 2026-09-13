@@ -84,6 +84,27 @@ const pageToPath = (page) => {
   return '/';
 };
 
+// Placeholder for vendor sub-pages not yet built
+function ComingSoon({ title, desc }) {
+  return (
+    <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center px-6">
+      <div className="h-16 w-16 rounded-2xl bg-[#FDF0F4] border border-[#F1E5EC] flex items-center justify-center mb-4">
+        <span className="text-3xl">🚀</span>
+      </div>
+      <h2
+        className="text-xl font-bold text-[#1E293B] mb-1"
+        style={{ fontFamily: "'Playfair Display', serif" }}
+      >
+        {title}
+      </h2>
+      <p className="text-sm text-[#737373] max-w-xs">{desc}</p>
+      <span className="mt-4 inline-flex items-center px-3 py-1 rounded-full border border-[#F1E5EC] bg-[#FDF0F4] text-xs font-medium text-[#8E406F]">
+        Coming soon
+      </span>
+    </div>
+  );
+}
+
 export default function App() {
   const [currentPage, setCurrentPage] = useState(() => pathToPage(window.location.pathname));
   const [userRole, setUserRole] = useState(() => getUserRole());
@@ -131,11 +152,11 @@ export default function App() {
         onNavigate={handleNavigate}
         onLogout={handleLogout}
       >
-        {currentPage === 'vendor-dashboard' && <VendorDashboardPage />}
-        {currentPage === 'vendor-performance' && <div className="p-8 text-[#737373]">Vendor Performance — coming soon.</div>}
-        {currentPage === 'vendor-notifications' && <div className="p-8 text-[#737373]">Notifications — coming soon.</div>}
-        {currentPage === 'vendor-profile' && <div className="p-8 text-[#737373]">Business Profile — coming soon.</div>}
-        {currentPage === 'vendor-ratings' && <div className="p-8 text-[#737373]">Add Ratings — coming soon.</div>}
+        {currentPage === 'vendor-dashboard' && <VendorDashboardPage onNavigate={handleNavigate} />}
+        {currentPage === 'vendor-performance' && <ComingSoon title="Vendor Performance" desc="Analytics and performance metrics will appear here." />}
+        {currentPage === 'vendor-notifications' && <ComingSoon title="Notifications" desc="Your booking and inquiry notifications will appear here." />}
+        {currentPage === 'vendor-profile' && <ComingSoon title="Business Profile" desc="Edit your listing details, photos, and packages here." />}
+        {currentPage === 'vendor-ratings' && <ComingSoon title="Ratings & Reviews" desc="Manage customer ratings and add your responses here." />}
       </VendorLayout>
     );
   }

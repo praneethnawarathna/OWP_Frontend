@@ -16,7 +16,326 @@ import {
   Pencil,
   Plus,
   Star,
+  X,
+  Users,
+  Send,
+  Paperclip,
+  DollarSign,
+  Package,
 } from 'lucide-react';
+
+// ============================================================
+// MODAL BACKDROP + CONTAINER
+// ============================================================
+function Modal({ onClose, children, maxWidth = 'max-w-lg' }) {
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      {/* Panel */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        className={`fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none`}
+      >
+        <div
+          className={`relative w-full ${maxWidth} bg-white rounded-2xl shadow-2xl border border-[#F1E5EC] pointer-events-auto max-h-[90vh] overflow-y-auto`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {children}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function ModalHeader({ title, subtitle, onClose }) {
+  return (
+    <div className="flex items-start justify-between px-6 py-5 border-b border-[#F1E5EC]">
+      <div>
+        <h2
+          className="text-base font-bold text-[#1E293B]"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
+          {title}
+        </h2>
+        {subtitle && <p className="text-xs text-[#737373] mt-0.5">{subtitle}</p>}
+      </div>
+      <button
+        type="button"
+        onClick={onClose}
+        className="p-1.5 rounded-lg text-[#999] hover:bg-[#FDF0F4] hover:text-[#8E406F] transition-colors"
+        aria-label="Close"
+      >
+        <X size={16} />
+      </button>
+    </div>
+  );
+}
+
+// ============================================================
+// VIEW INQUIRY MODAL
+// ============================================================
+function ViewInquiryModal({ inquiry, onClose, onReply }) {
+  if (!inquiry) return null;
+  return (
+    <Modal onClose={onClose}>
+      <ModalHeader
+        title="Inquiry Details"
+        subtitle={`From ${inquiry.customer}`}
+        onClose={onClose}
+      />
+      <div className="px-6 py-5 space-y-5">
+        {/* Customer */}
+        <div className="flex items-center gap-3">
+          <div
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-sm font-bold shadow-sm ${inquiry.avatarBg} ${inquiry.avatarText}`}
+          >
+            {inquiry.initials}
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-[#1E293B]">{inquiry.customer}</p>
+            <span
+              className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${inquiry.statusStyle}`}
+            >
+              {inquiry.status}
+            </span>
+          </div>
+        </div>
+
+        {/* Details grid */}
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { label: 'Service Requested', value: inquiry.service,   icon: Package      },
+            { label: 'Event Date',        value: inquiry.eventDate, icon: CalendarDays },
+            { label: 'Received',          value: inquiry.received,  icon: Clock3       },
+            { label: 'Guests (est.)',     value: inquiry.guests ?? 'Not specified', icon: Users },
+          ].map(({ label, value, icon: Icon }) => (
+            <div key={label} className="bg-[#F8FAFC] rounded-xl p-3 border border-[#F1E5EC]">
+              <div className="flex items-center gap-1.5 text-[#999] text-[10px] font-semibold uppercase tracking-wide mb-1">
+                <Icon size={11} />
+                {label}
+              </div>
+              <p className="text-[#1E293B] text-xs font-medium">{value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Message */}
+        <div>
+          <p className="text-xs font-semibold text-[#8E406F] uppercase tracking-wider mb-2">
+            Inquiry Message
+          </p>
+          <div className="bg-[#FDF0F4]/50 border border-[#F1E5EC] rounded-xl p-4 text-sm text-[#475569] leading-relaxed">
+            {inquiry.message ??
+              `Hi! We are ${inquiry.customer} and we're interested in booking ${inquiry.service} for our wedding on ${inquiry.eventDate}. Could you please share your packages and availability? Looking forward to hearing from you!`}
+          </div>
+        </div>
+      </div>
+      <div className="px-6 py-4 border-t border-[#F1E5EC] flex justify-end gap-3">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-4 py-2 rounded-xl border border-[#F1E5EC] text-[#555] text-sm font-medium hover:border-[#8E406F]/30 transition-colors"
+        >
+          Close
+        </button>
+        <button
+          type="button"
+          onClick={() => { onClose(); onReply(inquiry); }}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#8E406F] text-white text-sm font-semibold hover:bg-[#73325A] active:scale-95 transition-all shadow-sm"
+        >
+          <MessageCircle size={14} />
+          Reply
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+// ============================================================
+// REPLY MODAL
+// ============================================================
+function ReplyModal({ inquiry, onClose, onSend }) {
+  const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
+
+  if (!inquiry) return null;
+
+  const handleSend = () => {
+    if (!message.trim()) return;
+    setSending(true);
+    // Simulate async send
+    setTimeout(() => {
+      onSend(inquiry.id);
+      setSending(false);
+      onClose();
+    }, 600);
+  };
+
+  return (
+    <Modal onClose={onClose} maxWidth="max-w-lg">
+      <ModalHeader
+        title="Reply to Inquiry"
+        subtitle={`Replying to ${inquiry.customer} · ${inquiry.service}`}
+        onClose={onClose}
+      />
+      <div className="px-6 py-5 space-y-4">
+        {/* To: */}
+        <div className="flex items-center gap-3 bg-[#F8FAFC] border border-[#F1E5EC] rounded-xl px-4 py-2.5">
+          <span className="text-xs text-[#999] font-semibold shrink-0">To:</span>
+          <div className="flex items-center gap-2">
+            <div
+              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[10px] font-bold ${inquiry.avatarBg} ${inquiry.avatarText}`}
+            >
+              {inquiry.initials}
+            </div>
+            <span className="text-xs font-medium text-[#1E293B]">{inquiry.customer}</span>
+          </div>
+        </div>
+
+        {/* Subject */}
+        <div className="flex items-center gap-3 bg-[#F8FAFC] border border-[#F1E5EC] rounded-xl px-4 py-2.5">
+          <span className="text-xs text-[#999] font-semibold shrink-0">Re:</span>
+          <span className="text-xs text-[#1E293B]">{inquiry.service} — {inquiry.eventDate}</span>
+        </div>
+
+        {/* Message area */}
+        <textarea
+          rows={6}
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder={`Hi ${inquiry.customer.split(' ')[0]}! Thank you for your inquiry…`}
+          className="w-full border border-[#F1E5EC] rounded-xl px-4 py-3 text-sm text-[#1E293B] placeholder-[#ccc] resize-none focus:outline-none focus:ring-2 focus:ring-[#8E406F]/20 focus:border-[#8E406F] transition"
+        />
+
+        {/* Attachment placeholder */}
+        <button
+          type="button"
+          className="flex items-center gap-2 text-xs text-[#8E406F] font-medium hover:text-[#73325A] transition-colors"
+        >
+          <Paperclip size={13} />
+          Attach a file (brochure, package PDF…)
+        </button>
+      </div>
+
+      <div className="px-6 py-4 border-t border-[#F1E5EC] flex justify-between items-center">
+        <span className="text-[10px] text-[#999]">
+          {message.length} / 1000 characters
+        </span>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl border border-[#F1E5EC] text-[#555] text-sm font-medium hover:border-[#8E406F]/30 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={!message.trim() || sending}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#8E406F] text-white text-sm font-semibold hover:bg-[#73325A] active:scale-95 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {sending ? (
+              <span className="h-3.5 w-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+            ) : (
+              <Send size={13} />
+            )}
+            {sending ? 'Sending…' : 'Send Reply'}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// ============================================================
+// BOOKING DETAILS MODAL
+// ============================================================
+function BookingDetailsModal({ booking, onClose }) {
+  if (!booking) return null;
+  const isConfirmed = booking.status === 'Confirmed';
+  return (
+    <Modal onClose={onClose}>
+      <ModalHeader
+        title="Booking Details"
+        subtitle={`${booking.couple} · ${booking.date}`}
+        onClose={onClose}
+      />
+      <div className="px-6 py-5 space-y-5">
+        {/* Status + Couple */}
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#FDF0F4] text-xs font-bold text-[#8E406F] border border-[#F1E5EC]">
+            {booking.initials}
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-[#1E293B]">{booking.couple}</p>
+            <span
+              className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${
+                isConfirmed
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                  : 'border-amber-200 bg-amber-50 text-amber-700'
+              }`}
+            >
+              {booking.status}
+            </span>
+          </div>
+        </div>
+
+        {/* Details grid */}
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { label: 'Service / Package', value: booking.service,              icon: Package      },
+            { label: 'Event Date',        value: booking.date,                 icon: CalendarDays },
+            { label: 'Venue / Location',  value: booking.venue,                icon: MapPin       },
+            { label: 'Guest Count',       value: booking.guests ?? '~150 guests', icon: Users    },
+            { label: 'Total Payment',     value: booking.payment ?? '$2,500',  icon: DollarSign   },
+            { label: 'Payment Status',    value: booking.paymentStatus ?? 'Deposit Paid', icon: CheckCircle2 },
+          ].map(({ label, value, icon: Icon }) => (
+            <div key={label} className="bg-[#F8FAFC] rounded-xl p-3 border border-[#F1E5EC]">
+              <div className="flex items-center gap-1.5 text-[#999] text-[10px] font-semibold uppercase tracking-wide mb-1">
+                <Icon size={11} />
+                {label}
+              </div>
+              <p className="text-[#1E293B] text-xs font-medium">{value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Notes */}
+        <div>
+          <p className="text-xs font-semibold text-[#8E406F] uppercase tracking-wider mb-2">
+            Special Notes
+          </p>
+          <div className="bg-[#FDF0F4]/50 border border-[#F1E5EC] rounded-xl p-4 text-sm text-[#475569] leading-relaxed">
+            {booking.notes ?? 'No special notes provided by the couple. Please confirm final timeline 2 weeks before the event.'}
+          </div>
+        </div>
+      </div>
+      <div className="px-6 py-4 border-t border-[#F1E5EC] flex justify-end gap-3">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-4 py-2 rounded-xl border border-[#F1E5EC] text-[#555] text-sm font-medium hover:border-[#8E406F]/30 transition-colors"
+        >
+          Close
+        </button>
+        <button
+          type="button"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#8E406F] text-white text-sm font-semibold hover:bg-[#73325A] active:scale-95 transition-all shadow-sm"
+        >
+          <MessageCircle size={14} />
+          Message Couple
+        </button>
+      </div>
+    </Modal>
+  );
+}
 
 // ============================================================
 // SAMPLE DATA — Lumina Photography
@@ -210,9 +529,7 @@ function StatCard({ stat }) {
 }
 
 // Inquiries list card
-function InquiriesWidget() {
-  const filteredInquiries = RECENT_INQUIRIES;
-
+function InquiriesWidget({ onViewInquiry, onReplyInquiry, onViewAllInquiries, inquiries }) {
   return (
     <section
       aria-label="Recent customer inquiries"
@@ -221,12 +538,12 @@ function InquiriesWidget() {
       <SectionHeader
         title="Recent Customer Inquiries"
         actionText="View All Inquiries →"
-        onAction={() => {}}
+        onAction={onViewAllInquiries}
       />
 
       {/* Inquiry rows */}
       <div className="flex-1 divide-y divide-[#F9F0F5]">
-        {filteredInquiries.map((inq) => (
+        {inquiries.map((inq) => (
           <div
             key={inq.id}
             className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 transition-colors hover:bg-[#FDF0F4]/40"
@@ -266,12 +583,16 @@ function InquiriesWidget() {
             <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
               <button
                 type="button"
+                onClick={() => onViewInquiry(inq)}
+                aria-label={`View inquiry from ${inq.customer}`}
                 className="rounded-lg border border-[#F1E5EC] bg-white px-3 py-1.5 text-xs font-medium text-[#555] transition-all hover:border-[#8E406F] hover:text-[#8E406F] active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#8E406F]/20"
               >
                 View
               </button>
               <button
                 type="button"
+                onClick={() => onReplyInquiry(inq)}
+                aria-label={`Reply to ${inq.customer}`}
                 className="flex items-center gap-1 rounded-lg bg-[#8E406F] px-3.5 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-[#73325A] active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#8E406F]/40"
               >
                 <MessageCircle size={12} aria-hidden="true" />
@@ -285,10 +606,11 @@ function InquiriesWidget() {
       {/* Card footer */}
       <div className="border-t border-[#F1E5EC] px-6 py-3 bg-[#FCFCFD] flex items-center justify-between">
         <span className="text-xs text-[#999]">
-          Showing {filteredInquiries.length} of 24 inquiries
+          Showing {inquiries.length} of 24 inquiries
         </span>
         <button
           type="button"
+          onClick={onViewAllInquiries}
           className="flex items-center gap-1 text-xs font-medium text-[#8E406F] hover:text-[#73325A] transition-colors"
         >
           View All Inquiries <ArrowRight size={12} aria-hidden="true" />
@@ -299,7 +621,7 @@ function InquiriesWidget() {
 }
 
 // Bookings list card
-function BookingsWidget() {
+function BookingsWidget({ onViewDetails, onViewAllBookings }) {
   return (
     <section
       aria-label="Upcoming bookings"
@@ -308,7 +630,7 @@ function BookingsWidget() {
       <SectionHeader
         title="Upcoming Bookings"
         actionText="View All Bookings →"
-        onAction={() => {}}
+        onAction={onViewAllBookings}
       />
 
       <div className="flex-1 divide-y divide-[#F9F0F5]">
@@ -358,7 +680,9 @@ function BookingsWidget() {
               <div className="pt-2 border-t border-[#F9F0F5] flex justify-end">
                 <button
                   type="button"
-                  className="text-xs font-semibold text-[#8E406F] hover:text-[#73325A] hover:underline focus:outline-none"
+                  onClick={() => onViewDetails(b)}
+                  aria-label={`View booking details for ${b.couple}`}
+                  className="text-xs font-semibold text-[#8E406F] hover:text-[#73325A] hover:underline focus:outline-none focus:ring-2 focus:ring-[#8E406F]/20 rounded px-1"
                 >
                   View Details
                 </button>
@@ -372,6 +696,7 @@ function BookingsWidget() {
         <span className="text-xs text-[#999]">8 confirmed this season</span>
         <button
           type="button"
+          onClick={onViewAllBookings}
           className="flex items-center gap-1 text-xs font-medium text-[#8E406F] hover:text-[#73325A] transition-colors"
         >
           View All Bookings <ArrowRight size={12} aria-hidden="true" />
@@ -571,7 +896,15 @@ function ProfileStatusWidget() {
 }
 
 // Quick Actions Section
-function QuickActionsSection() {
+function QuickActionsSection({ onNavigate }) {
+  // Map each quick action label to a vendor page id
+  const ACTION_ROUTES = {
+    'Edit My Listing':  'vendor-profile',
+    'Add Service':      'vendor-profile',
+    'View Inquiries':   'vendor-dashboard',
+    'View Calendar':    'vendor-notifications',
+  };
+
   return (
     <section aria-label="Quick actions" className="pt-2">
       <h2
@@ -585,6 +918,7 @@ function QuickActionsSection() {
           <button
             key={label}
             type="button"
+            onClick={() => onNavigate?.(ACTION_ROUTES[label] ?? 'vendor-dashboard')}
             className="group flex items-center justify-between rounded-2xl border border-[#F1E5EC] bg-white p-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#8E406F]/40 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#8E406F]/20"
           >
             <div className="flex items-center gap-3">
@@ -613,7 +947,32 @@ function QuickActionsSection() {
 // ============================================================
 // MAIN PAGE COMPONENT
 // ============================================================
-export default function VendorDashboardPage() {
+export default function VendorDashboardPage({ onNavigate }) {
+  // ── Inquiry state (local copy so status can update reactively) ──
+  const [inquiries, setInquiries] = useState(
+    RECENT_INQUIRIES.map((inq) => ({ ...inq }))
+  );
+
+  // ── Modal state ──
+  const [viewInquiry,   setViewInquiry]   = useState(null); // inquiry object | null
+  const [replyInquiry,  setReplyInquiry]  = useState(null); // inquiry object | null
+  const [viewBooking,   setViewBooking]   = useState(null); // booking object | null
+
+  // Mark inquiry as Responded when reply is sent
+  const handleReplySent = (id) => {
+    setInquiries((prev) =>
+      prev.map((inq) =>
+        inq.id === id
+          ? {
+              ...inq,
+              status: 'Responded',
+              statusStyle: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            }
+          : inq
+      )
+    );
+  };
+
   return (
     <div className="mx-auto w-full max-w-[1400px] space-y-6">
       {/* ── Page Header ── */}
@@ -651,8 +1010,16 @@ export default function VendorDashboardPage() {
 
       {/* ── Row 2: Inquiries (65%) + Bookings (35%) ── */}
       <div className="grid grid-cols-1 lg:grid-cols-[65fr_35fr] gap-6 items-stretch">
-        <InquiriesWidget />
-        <BookingsWidget />
+        <InquiriesWidget
+          inquiries={inquiries}
+          onViewInquiry={setViewInquiry}
+          onReplyInquiry={setReplyInquiry}
+          onViewAllInquiries={() => onNavigate?.('vendor-performance')}
+        />
+        <BookingsWidget
+          onViewDetails={setViewBooking}
+          onViewAllBookings={() => onNavigate?.('vendor-notifications')}
+        />
       </div>
 
       {/* ── Row 3: Business Performance (65%) + Profile Status (35%) ── */}
@@ -662,7 +1029,23 @@ export default function VendorDashboardPage() {
       </div>
 
       {/* ── Row 4: Quick Actions ── */}
-      <QuickActionsSection />
+      <QuickActionsSection onNavigate={onNavigate} />
+
+      {/* ── Modals ── */}
+      <ViewInquiryModal
+        inquiry={viewInquiry}
+        onClose={() => setViewInquiry(null)}
+        onReply={(inq) => setReplyInquiry(inq)}
+      />
+      <ReplyModal
+        inquiry={replyInquiry}
+        onClose={() => setReplyInquiry(null)}
+        onSend={handleReplySent}
+      />
+      <BookingDetailsModal
+        booking={viewBooking}
+        onClose={() => setViewBooking(null)}
+      />
     </div>
   );
 }
