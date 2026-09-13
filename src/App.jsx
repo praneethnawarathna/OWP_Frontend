@@ -152,9 +152,9 @@ export default function App() {
         onLogout={handleLogout}
       >
         {currentPage === 'vendor-dashboard' && <VendorDashboardPage onNavigate={handleNavigate} />}
-        {currentPage === 'vendor-performance' && <ComingSoon title="Vendor Performance" desc="Analytics and performance metrics will appear here." />}
-        {currentPage === 'vendor-notifications' && <ComingSoon title="Notifications" desc="Your booking and inquiry notifications will appear here." />}
-        {currentPage === 'vendor-profile' && <ComingSoon title="Business Profile" desc="Edit your listing details, photos, and packages here." />}
+        {currentPage === 'vendor-performance' && <VendorContentPage type="performance" />}
+        {currentPage === 'vendor-notifications' && <VendorContentPage type="notifications" />}
+        {currentPage === 'vendor-profile' && <VendorContentPage type="services" />}
         {currentPage === 'vendor-ratings' && <ComingSoon title="Ratings & Reviews" desc="Manage customer ratings and add your responses here." />}
       </VendorLayout>
     );

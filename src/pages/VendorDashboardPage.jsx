@@ -620,7 +620,8 @@ function InquiriesWidget({ onViewInquiry, onReplyInquiry, onViewAllInquiries, in
 }
 
 // Bookings list card
-function BookingsWidget({ onViewDetails, onViewAllBookings }) {
+function BookingsWidget({ data = UPCOMING_BOOKINGS, onViewDetails, onViewAllBookings }) {
+  const bookingsList = data && data.length ? data : UPCOMING_BOOKINGS;
   return (
     <section
       aria-label="Upcoming bookings"
@@ -633,7 +634,7 @@ function BookingsWidget({ onViewDetails, onViewAllBookings }) {
       />
 
       <div className="flex-1 divide-y divide-[#F9F0F5]">
-        {data.map((b) => {
+        {bookingsList.map((b) => {
           const bookingStatus = b.status || 'Confirmed';
           const isConfirmed = bookingStatus === 'Confirmed';
           const coupleName = b.couple || b.coupleName;
@@ -874,6 +875,9 @@ function QuickActionsSection({ onNavigate }) {
 // MAIN PAGE COMPONENT
 // ============================================================
 export default function VendorDashboardPage({ onNavigate }) {
+  const [dashboard, setDashboard] = useState(null);
+  const [loading, setLoading] = useState(true);
+
   // ── Inquiry state (local copy so status can update reactively) ──
   const [inquiries, setInquiries] = useState(
     RECENT_INQUIRIES.map((inq) => ({ ...inq }))
@@ -883,6 +887,91 @@ export default function VendorDashboardPage({ onNavigate }) {
   const [viewInquiry,   setViewInquiry]   = useState(null); // inquiry object | null
   const [replyInquiry,  setReplyInquiry]  = useState(null); // inquiry object | null
   const [viewBooking,   setViewBooking]   = useState(null); // booking object | null
+
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const userId = Number(storedUser.userId);
+
+        if (!storedUser || !userId || !Number.isFinite(userId)) {
+          setDashboard(FALLBACK_DASHBOARD);
+          setLoading(false);
+          return;
+        }
+
+        const token = localStorage.getItem('token');
+        const response = await fetch(`http://localhost:5131/api/vendor-dashboard?userId=${userId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to load dashboard: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setDashboard({
+          ...FALLBACK_DASHBOARD,
+          ...data,
+          recentInquiries: data.recentInquiries?.length ? data.recentInquiries : FALLBACK_DASHBOARD.recentInquiries,
+          upcomingBookingList: data.upcomingBookingList?.length ? data.upcomingBookingList : FALLBACK_DASHBOARD.upcomingBookingList,
+        });
+
+        if (data.recentInquiries?.length) {
+          setInquiries(data.recentInquiries);
+        }
+      } catch (error) {
+        console.error('Vendor dashboard fetch failed:', error);
+        setDashboard(FALLBACK_DASHBOARD);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboard();
+  }, []);
+
+  const summaryStats = useMemo(() => {
+    const source = dashboard || FALLBACK_DASHBOARD;
+
+    return [
+      {
+        id: 'views',
+        label: 'Profile Views',
+        value: source.profileViews?.toLocaleString() ?? '1,248',
+        subtext: '+12% this month',
+        trendPositive: true,
+        icon: Eye,
+      },
+      {
+        id: 'inquiries',
+        label: 'New Inquiries',
+        value: String(source.newInquiries ?? 24),
+        subtext: '+5 this week',
+        trendPositive: true,
+        icon: MessageCircle,
+      },
+      {
+        id: 'bookings',
+        label: 'Upcoming Bookings',
+        value: String(source.upcomingBookings ?? 8),
+        subtext: '3 this week',
+        trendPositive: false,
+        icon: CalendarDays,
+      },
+      {
+        id: 'rating',
+        label: 'Average Rating',
+        value: `${Number(source.averageRating ?? 4.8).toFixed(1)} ★`,
+        subtext: `${source.reviewCount ?? 126} Reviews`,
+        isRating: true,
+        icon: Star,
+      },
+    ];
+  }, [dashboard]);
 
   // Mark inquiry as Responded when reply is sent
   const handleReplySent = (id) => {
@@ -898,6 +987,13 @@ export default function VendorDashboardPage({ onNavigate }) {
       )
     );
   };
+
+  const upcomingBookings = dashboard?.upcomingBookingList?.length ? dashboard.upcomingBookingList : UPCOMING_BOOKINGS;
+  const businessName = dashboard?.businessName || 'Lumina Photography';
+  const businessType = dashboard?.businessType || 'Photography & Videography';
+  const location = dashboard?.location || 'New York, NY';
+  const averageRating = Number(dashboard?.averageRating ?? 4.8).toFixed(1);
+  const reviewCount = dashboard?.reviewCount ?? 126;
 
   return (
     <div className="mx-auto w-full max-w-[1400px] space-y-6">
@@ -937,6 +1033,7 @@ export default function VendorDashboardPage({ onNavigate }) {
           onViewAllInquiries={() => onNavigate?.('vendor-performance')}
         />
         <BookingsWidget
+          data={upcomingBookings}
           onViewDetails={setViewBooking}
           onViewAllBookings={() => onNavigate?.('vendor-notifications')}
         />
