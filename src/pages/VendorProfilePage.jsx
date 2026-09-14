@@ -56,6 +56,49 @@ const DEFAULT_DAYS = [
   { day: 'Sunday', isClosed: true, openTime: '10:00', closeTime: '16:00' },
 ];
 
+// Sri Lanka cities with postal codes and provinces
+const SL_CITIES = [
+  { city: 'Colombo',       postalCode: '00100', province: 'Western' },
+  { city: 'Sri Jayawardenepura Kotte', postalCode: '10100', province: 'Western' },
+  { city: 'Dehiwala-Mount Lavinia',    postalCode: '10350', province: 'Western' },
+  { city: 'Moratuwa',     postalCode: '10400', province: 'Western' },
+  { city: 'Negombo',      postalCode: '11500', province: 'Western' },
+  { city: 'Kandy',        postalCode: '20000', province: 'Central' },
+  { city: 'Matale',       postalCode: '21000', province: 'Central' },
+  { city: 'Nuwara Eliya', postalCode: '22200', province: 'Central' },
+  { city: 'Galle',        postalCode: '80000', province: 'Southern' },
+  { city: 'Matara',       postalCode: '81000', province: 'Southern' },
+  { city: 'Hambantota',   postalCode: '82000', province: 'Southern' },
+  { city: 'Jaffna',       postalCode: '40000', province: 'Northern' },
+  { city: 'Vavuniya',     postalCode: '43000', province: 'Northern' },
+  { city: 'Kilinochchi',  postalCode: '44000', province: 'Northern' },
+  { city: 'Trincomalee',  postalCode: '31000', province: 'Eastern' },
+  { city: 'Batticaloa',   postalCode: '30000', province: 'Eastern' },
+  { city: 'Ampara',       postalCode: '32000', province: 'Eastern' },
+  { city: 'Kurunegala',   postalCode: '60000', province: 'North Western' },
+  { city: 'Puttalam',     postalCode: '61300', province: 'North Western' },
+  { city: 'Anuradhapura', postalCode: '50000', province: 'North Central' },
+  { city: 'Polonnaruwa',  postalCode: '51000', province: 'North Central' },
+  { city: 'Badulla',      postalCode: '90000', province: 'Uva' },
+  { city: 'Monaragala',   postalCode: '91000', province: 'Uva' },
+  { city: 'Ratnapura',    postalCode: '70000', province: 'Sabaragamuwa' },
+  { city: 'Kegalle',      postalCode: '71000', province: 'Sabaragamuwa' },
+  { city: 'Kalutara',     postalCode: '12000', province: 'Western' },
+  { city: 'Gampaha',      postalCode: '11000', province: 'Western' },
+];
+
+const SL_PROVINCES = [
+  'Western',
+  'Central',
+  'Southern',
+  'Northern',
+  'Eastern',
+  'North Western',
+  'North Central',
+  'Uva',
+  'Sabaragamuwa',
+];
+
 const DOCUMENT_TYPES = [
   'Business Registration (BR)',
   'Owner NIC / Passport',
@@ -1093,30 +1136,54 @@ export default function VendorProfilePage() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {/* City Dropdown */}
               <div>
                 <label className="block text-[11px] font-semibold text-[#555] uppercase tracking-wider mb-1">
                   City
                 </label>
-                <input
-                  type="text"
-                  value={formData.city}
-                  onChange={(e) => handleFieldChange('city', e.target.value)}
-                  placeholder="Colombo"
-                  className="w-full rounded-xl border border-[#E8DDE4] bg-[#F8FAFC]/50 px-3 py-2 text-sm text-[#1E293B] focus:border-[#8E406F] focus:outline-none"
-                />
+                <div className="relative">
+                  <select
+                    value={formData.city}
+                    onChange={(e) => {
+                      const selectedCity = SL_CITIES.find((c) => c.city === e.target.value);
+                      handleFieldChange('city', e.target.value);
+                      if (selectedCity) {
+                        handleFieldChange('postalCode', selectedCity.postalCode);
+                        handleFieldChange('state', selectedCity.province);
+                      }
+                    }}
+                    className="w-full appearance-none rounded-xl border border-[#E8DDE4] bg-[#F8FAFC]/50 px-3 py-2 text-sm text-[#1E293B] focus:border-[#8E406F] focus:outline-none pr-8"
+                  >
+                    <option value="">Select city…</option>
+                    {SL_CITIES.map((c) => (
+                      <option key={c.city} value={c.city}>{c.city}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8E406F]" />
+                </div>
               </div>
+
+              {/* Province / State Dropdown */}
               <div>
                 <label className="block text-[11px] font-semibold text-[#555] uppercase tracking-wider mb-1">
-                  State / Province
+                  Province
                 </label>
-                <input
-                  type="text"
-                  value={formData.state}
-                  onChange={(e) => handleFieldChange('state', e.target.value)}
-                  placeholder="Western"
-                  className="w-full rounded-xl border border-[#E8DDE4] bg-[#F8FAFC]/50 px-3 py-2 text-sm text-[#1E293B] focus:border-[#8E406F] focus:outline-none"
-                />
+                <div className="relative">
+                  <select
+                    value={formData.state}
+                    onChange={(e) => handleFieldChange('state', e.target.value)}
+                    className="w-full appearance-none rounded-xl border border-[#E8DDE4] bg-[#F8FAFC]/50 px-3 py-2 text-sm text-[#1E293B] focus:border-[#8E406F] focus:outline-none pr-8"
+                  >
+                    <option value="">Select province…</option>
+                    {SL_PROVINCES.map((p) => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8E406F]" />
+                </div>
               </div>
+
+              {/* Postal Code (auto-filled) */}
               <div>
                 <label className="block text-[11px] font-semibold text-[#555] uppercase tracking-wider mb-1">
                   Postal Code
@@ -1125,21 +1192,20 @@ export default function VendorProfilePage() {
                   type="text"
                   value={formData.postalCode}
                   onChange={(e) => handleFieldChange('postalCode', e.target.value)}
-                  placeholder="00400"
+                  placeholder="Auto-filled"
                   className="w-full rounded-xl border border-[#E8DDE4] bg-[#F8FAFC]/50 px-3 py-2 text-sm text-[#1E293B] focus:border-[#8E406F] focus:outline-none"
                 />
               </div>
+
+              {/* Country – Fixed to Sri Lanka */}
               <div>
                 <label className="block text-[11px] font-semibold text-[#555] uppercase tracking-wider mb-1">
                   Country
                 </label>
-                <input
-                  type="text"
-                  value={formData.country}
-                  onChange={(e) => handleFieldChange('country', e.target.value)}
-                  placeholder="Sri Lanka"
-                  className="w-full rounded-xl border border-[#E8DDE4] bg-[#F8FAFC]/50 px-3 py-2 text-sm text-[#1E293B] focus:border-[#8E406F] focus:outline-none"
-                />
+                <div className="w-full rounded-xl border border-[#E8DDE4] bg-[#F1F5F9] px-3 py-2 text-sm text-[#475569] flex items-center gap-1.5 cursor-not-allowed select-none">
+                  <span>🇱🇰</span>
+                  <span className="font-medium">Sri Lanka</span>
+                </div>
               </div>
             </div>
           </div>
