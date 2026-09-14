@@ -10,6 +10,7 @@ import AdminSettingsPage from './pages/AdminSettingsPage';
 import LoginPage from './pages/LoginPage';
 import VendorDashboardPage from './pages/VendorDashboardPage';
 import VendorContentPage from './pages/VendorContentPage';
+import VendorProfilePage from './pages/VendorProfilePage';
 
 const getStoredUser = () => {
   try {
@@ -57,9 +58,10 @@ const pathToPage = (path) => {
   const vendor = isVendor(getUserRole());
   if (vendor) {
     if (path === '/vendor-dashboard' || path === '/' || path === '/dashboard') return 'vendor-dashboard';
-    if (path === '/vendor-performance') return 'vendor-performance';
-    if (path === '/vendor-notifications') return 'vendor-notifications';
     if (path === '/vendor-profile') return 'vendor-profile';
+    if (path === '/vendor-services') return 'vendor-services';
+    if (path === '/vendor-ratings' || path === '/vendor-performance') return 'vendor-ratings';
+    if (path === '/vendor-notifications') return 'vendor-notifications';
     return 'vendor-dashboard';
   }
 
@@ -73,9 +75,10 @@ const pathToPage = (path) => {
 const pageToPath = (page) => {
   if (page === 'login') return '/login';
   if (page === 'vendor-dashboard') return '/vendor-dashboard';
-  if (page === 'vendor-performance') return '/vendor-performance';
-  if (page === 'vendor-notifications') return '/vendor-notifications';
   if (page === 'vendor-profile') return '/vendor-profile';
+  if (page === 'vendor-services') return '/vendor-services';
+  if (page === 'vendor-ratings') return '/vendor-ratings';
+  if (page === 'vendor-notifications') return '/vendor-notifications';
   if (page === 'customers') return '/customer-management';
   if (page === 'listing-review') return '/listing-review';
   if (page === 'admin-management') return '/admin-management';
@@ -152,10 +155,10 @@ export default function App() {
         onLogout={handleLogout}
       >
         {currentPage === 'vendor-dashboard' && <VendorDashboardPage onNavigate={handleNavigate} />}
-        {currentPage === 'vendor-performance' && <VendorContentPage type="performance" />}
+        {currentPage === 'vendor-profile' && <VendorProfilePage onNavigate={handleNavigate} />}
+        {currentPage === 'vendor-services' && <VendorContentPage type="services" />}
+        {currentPage === 'vendor-ratings' && <VendorContentPage type="performance" />}
         {currentPage === 'vendor-notifications' && <VendorContentPage type="notifications" />}
-        {currentPage === 'vendor-profile' && <VendorContentPage type="services" />}
-        {currentPage === 'vendor-ratings' && <ComingSoon title="Ratings & Reviews" desc="Manage customer ratings and add your responses here." />}
       </VendorLayout>
     );
   }
