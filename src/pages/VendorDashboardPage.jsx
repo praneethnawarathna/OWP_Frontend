@@ -836,7 +836,7 @@ function QuickActionsSection({ onNavigate }) {
   // Map each quick action label to a vendor page id
   const ACTION_ROUTES = {
     'Edit My Listing':  'vendor-profile',
-    'Add Service':      'vendor-profile',
+    'Add Service':      'vendor-services',
     'View Inquiries':   'vendor-dashboard',
     'View Calendar':    'vendor-notifications',
   };

@@ -1,6 +1,7 @@
 import {
   BarChart3,
   Bell,
+  Layers,
   LayoutDashboard,
   LogOut,
   Star,
@@ -15,6 +16,7 @@ const iconMap = {
   Bell,
   Store,
   Star,
+  Layers,
 };
 
 function NavItem({ item, isActive, onNavigate }) {
