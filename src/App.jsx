@@ -13,6 +13,7 @@ import VendorContentPage from './pages/VendorContentPage';
 import VendorProfilePage from './pages/VendorProfilePage';
 import VendorListingsPage from './pages/VendorListingsPage';
 import CreateListingPage from './pages/CreateListingPage';
+import VendorNotificationsPage from './pages/VendorNotificationsPage';
 
 const getStoredUser = () => {
   try {
@@ -163,7 +164,7 @@ export default function App() {
         {currentPage === 'vendor-services' && <VendorListingsPage onNavigate={handleNavigate} />}
         {currentPage === 'vendor-listing-editor' && <CreateListingPage onNavigate={handleNavigate} />}
         {currentPage === 'vendor-ratings' && <VendorContentPage type="performance" />}
-        {currentPage === 'vendor-notifications' && <VendorContentPage type="notifications" />}
+        {currentPage === 'vendor-notifications' && <VendorNotificationsPage onNavigate={handleNavigate} />}
       </VendorLayout>
     );
   }
