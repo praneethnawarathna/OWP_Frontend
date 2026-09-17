@@ -24,22 +24,35 @@ import {
   Save,
   AlertTriangle,
   ChevronDown,
+  Image as ImageIcon,
 } from 'lucide-react';
 import Badge from '../components/common/Badge';
-import {
-  initialListings,
-  LISTING_CATEGORIES,
-  LISTING_STATUSES,
-  getStoredListings,
-  saveStoredListing,
-  deleteStoredListing,
-} from '../mock/vendorListingsData';
+
+export const LISTING_CATEGORIES = [
+  'Hotel / Venue',
+  'Photography',
+  'Decorations',
+  'Catering',
+  'Music',
+];
+
+export const LISTING_STATUSES = ['Active', 'Draft'];
+
+const API_BASE = 'http://localhost:5131/api/vendor-content';
 
 // ─── helpers ────────────────────────────────────────────────
 
 function formatPrice(price) {
   if (price === null || price === undefined) return 'Price on request';
   return `Rs. ${Number(price).toLocaleString('en-LK')}`;
+}
+
+export function resolveImageUrl(url) {
+  if (!url) return null;
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) {
+    return url;
+  }
+  return `http://localhost:5131${url.startsWith('/') ? '' : '/'}${url}`;
 }
 
 /** Map category name → Badge variant (falls back to 'default') */
@@ -95,23 +108,42 @@ function StatCard({ icon: Icon, label, value, sub }) {
 
 function ListingCard({ listing, onEdit, onDelete }) {
   const isActive = listing.status === 'Active';
+  const coverUrl = resolveImageUrl(listing.coverImageUrl || listing.images?.[0]?.imageUrl);
+
   return (
     <article
-      className="group relative flex flex-col rounded-2xl border border-[#F1E5EC] bg-white p-5 shadow-sm transition hover:shadow-md hover:border-[#e8c4d8]"
+      className="group relative flex flex-col rounded-2xl border border-[#F1E5EC] bg-white overflow-hidden shadow-sm transition hover:shadow-md hover:border-[#e8c4d8]"
       aria-label={`Listing: ${listing.title}`}
     >
-      {/* Status dot */}
-      <div className="flex items-start justify-between gap-2 mb-3">
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-[#1E293B] text-sm leading-snug line-clamp-2">
-            {listing.title}
-          </h3>
+      {/* Cover Image Banner */}
+      <div className="relative aspect-video w-full overflow-hidden bg-slate-100 border-b border-[#F1E5EC]">
+        {coverUrl ? (
+          <img
+            src={coverUrl}
+            alt={listing.title}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              if (e.currentTarget.nextElementSibling) {
+                e.currentTarget.nextElementSibling.style.display = 'flex';
+              }
+            }}
+          />
+        ) : null}
+        <div
+          style={{ display: coverUrl ? 'none' : 'flex' }}
+          className="h-full w-full flex-col items-center justify-center bg-gradient-to-br from-[#FDF0F4] to-slate-100 text-[#8E406F]/40"
+        >
+          <ImageIcon size={32} className="mb-1 text-[#8E406F]/40" />
+          <span className="text-[11px] font-medium text-[#737373]/60">{listing.category}</span>
         </div>
+
+        {/* Status Badge overlay on image */}
         <span
-          className={`mt-0.5 shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
+          className={`absolute top-3 right-3 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold backdrop-blur-xs shadow-xs border ${
             isActive
-              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-              : 'bg-amber-50 text-amber-700 border-amber-200'
+              ? 'bg-emerald-50/90 text-emerald-800 border-emerald-200'
+              : 'bg-amber-50/90 text-amber-800 border-amber-200'
           }`}
         >
           <span className={`inline-block h-1.5 w-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-amber-500'}`} />
@@ -119,56 +151,63 @@ function ListingCard({ listing, onEdit, onDelete }) {
         </span>
       </div>
 
-      {/* Category badge */}
-      <div className="mb-2">
-        <Badge variant={categoryVariant(listing.category)} size="xs">
-          <Tag size={10} />
-          {listing.category}
-        </Badge>
-      </div>
+      <div className="flex flex-col flex-1 p-5">
+        {/* Title & Category */}
+        <div className="mb-2">
+          <div className="mb-1.5">
+            <Badge variant={categoryVariant(listing.category)} size="xs">
+              <Tag size={10} />
+              {listing.category}
+            </Badge>
+          </div>
+          <h3 className="font-semibold text-[#1E293B] text-sm leading-snug line-clamp-2">
+            {listing.title}
+          </h3>
+        </div>
 
-      {/* Price */}
-      <p className={`mb-2 text-sm font-semibold ${listing.price ? 'text-[#8E406F]' : 'text-[#999] italic'}`}>
-        {formatPrice(listing.price)}
-      </p>
+        {/* Price */}
+        <p className={`mb-2 text-sm font-semibold ${listing.price ? 'text-[#8E406F]' : 'text-[#999] italic'}`}>
+          {formatPrice(listing.price)}
+        </p>
 
-      {/* Description */}
-      <p className="flex-1 text-xs text-[#737373] leading-relaxed line-clamp-3 mb-4">
-        {listing.description || 'No description provided.'}
-      </p>
+        {/* Description */}
+        <p className="flex-1 text-xs text-[#737373] leading-relaxed line-clamp-3 mb-4">
+          {listing.description || 'No description provided.'}
+        </p>
 
-      {/* Placeholder stats */}
-      <div className="flex items-center gap-3 text-[11px] text-[#aaa] mb-4">
-        <span className="flex items-center gap-1">
-          <Eye size={11} />
-          {listing.views ?? '—'} views
-          <span className="ml-0.5 text-[#ccc] text-[9px]">[TODO]</span>
-        </span>
-        <span className="flex items-center gap-1">
-          <MessageSquare size={11} />
-          {listing.inquiries ?? '—'} inquiries
-          <span className="ml-0.5 text-[#ccc] text-[9px]">[TODO]</span>
-        </span>
-      </div>
+        {/* Placeholder stats */}
+        <div className="flex items-center gap-3 text-[11px] text-[#aaa] mb-4">
+          <span className="flex items-center gap-1">
+            <Eye size={11} />
+            {listing.views ?? '—'} views
+            <span className="ml-0.5 text-[#ccc] text-[9px]">[TODO]</span>
+          </span>
+          <span className="flex items-center gap-1">
+            <MessageSquare size={11} />
+            {listing.inquiries ?? '—'} inquiries
+            <span className="ml-0.5 text-[#ccc] text-[9px]">[TODO]</span>
+          </span>
+        </div>
 
-      {/* Actions */}
-      <div className="flex gap-2">
-        <button
-          id={`edit-listing-${listing.id}`}
-          onClick={() => onEdit(listing)}
-          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#E8DDE4] py-1.5 text-xs font-semibold text-[#8E406F] transition hover:bg-[#FDF0F4] hover:border-[#e8c4d8]"
-        >
-          <Pencil size={12} />
-          Edit
-        </button>
-        <button
-          id={`delete-listing-${listing.id}`}
-          onClick={() => onDelete(listing)}
-          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-rose-100 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 hover:border-rose-200"
-        >
-          <Trash2 size={12} />
-          Delete
-        </button>
+        {/* Actions */}
+        <div className="flex gap-2">
+          <button
+            id={`edit-listing-${listing.id}`}
+            onClick={() => onEdit(listing)}
+            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#E8DDE4] py-1.5 text-xs font-semibold text-[#8E406F] transition hover:bg-[#FDF0F4] hover:border-[#e8c4d8]"
+          >
+            <Pencil size={12} />
+            Edit
+          </button>
+          <button
+            id={`delete-listing-${listing.id}`}
+            onClick={() => onDelete(listing)}
+            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-rose-100 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 hover:border-rose-200"
+          >
+            <Trash2 size={12} />
+            Delete
+          </button>
+        </div>
       </div>
     </article>
   );
@@ -178,8 +217,33 @@ function ListingCard({ listing, onEdit, onDelete }) {
 
 function ListingRow({ listing, onEdit, onDelete }) {
   const isActive = listing.status === 'Active';
+  const coverUrl = resolveImageUrl(listing.coverImageUrl || listing.images?.[0]?.imageUrl);
+
   return (
-    <div className="flex items-center gap-4 rounded-xl border border-[#F1E5EC] bg-white px-4 py-3 shadow-sm transition hover:border-[#e8c4d8]">
+    <div className="flex items-center gap-4 rounded-xl border border-[#F1E5EC] bg-white p-3 sm:px-4 shadow-sm transition hover:border-[#e8c4d8]">
+      {/* Thumbnail */}
+      <div className="h-14 w-14 shrink-0 rounded-lg overflow-hidden bg-slate-100 border border-[#E8DDE4] relative flex items-center justify-center">
+        {coverUrl ? (
+          <img
+            src={coverUrl}
+            alt={listing.title}
+            className="h-full w-full object-cover"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              if (e.currentTarget.nextElementSibling) {
+                e.currentTarget.nextElementSibling.style.display = 'flex';
+              }
+            }}
+          />
+        ) : null}
+        <div
+          style={{ display: coverUrl ? 'none' : 'flex' }}
+          className="h-full w-full flex-col items-center justify-center bg-gradient-to-br from-[#FDF0F4] to-slate-100 text-[#8E406F]/40"
+        >
+          <ImageIcon size={18} />
+        </div>
+      </div>
+
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-semibold text-[#1E293B] truncate">{listing.title}</span>
@@ -470,17 +534,40 @@ function EmptyState({ filtered, onAdd }) {
 // ─── Main Page ───────────────────────────────────────────────
 
 export default function VendorListingsPage({ onNavigate }) {
-  const [listings, setListings] = useState(() => getStoredListings());
+  const [listings, setListings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
   const [modalListing, setModalListing] = useState(undefined); // undefined = closed; null = new; object = edit
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  // Sync latest listings from storage whenever page is active or focused
+  const fetchListings = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_BASE}/services`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+      });
+      if (!res.ok) throw new Error('Failed to load listings');
+      const data = await res.json();
+      setListings(Array.isArray(data) ? data : []);
+      setError('');
+    } catch (err) {
+      console.error('Error fetching listings:', err);
+      setError(err.message || 'Failed to load listings');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Sync latest listings from API on mount and whenever window regains focus
   useEffect(() => {
-    setListings(getStoredListings());
-    const handleFocus = () => setListings(getStoredListings());
+    fetchListings();
+    const handleFocus = () => fetchListings();
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
   }, []);
@@ -495,8 +582,9 @@ export default function VendorListingsPage({ onNavigate }) {
   };
 
   const handleOpenEdit = (listing) => {
+    const id = listing.serviceId || listing.id;
     if (onNavigate) {
-      window.history.pushState({}, '', `/vendor-listing-editor?id=${listing.id}`);
+      window.history.pushState({}, '', `/vendor-listing-editor?id=${id}`);
       onNavigate('vendor-listing-editor');
     } else {
       setModalListing(listing);
@@ -516,24 +604,71 @@ export default function VendorListingsPage({ onNavigate }) {
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
     return listings.filter((l) => {
-      const matchSearch = !q || l.title.toLowerCase().includes(q) || l.description.toLowerCase().includes(q);
+      const matchSearch = !q || (l.title || '').toLowerCase().includes(q) || (l.description || '').toLowerCase().includes(q);
       const matchCat = categoryFilter === 'All' || l.category === categoryFilter;
       return matchSearch && matchCat;
     });
   }, [listings, search, categoryFilter]);
 
   // ── CRUD handlers ──────────────────────────────────────────
-  const handleSave = (saved) => {
-    const updated = saveStoredListing(saved);
-    setListings(updated);
-    setModalListing(undefined);
+  const handleSave = async (saved) => {
+    const token = localStorage.getItem('token');
+    const isExisting = Boolean(saved.serviceId || (saved.id && !String(saved.id).startsWith('lst-')));
+    const targetId = saved.serviceId || saved.id;
+    const method = isExisting ? 'PUT' : 'POST';
+    const url = isExisting ? `${API_BASE}/services/${targetId}` : `${API_BASE}/services`;
+
+    const payload = {
+      title: saved.title?.trim() || '',
+      category: saved.category,
+      price: saved.price === '' || saved.price === null ? null : Number(saved.price),
+      priceOnRequest: saved.price === '' || saved.price === null,
+      description: saved.description?.trim() || '',
+      fullDescription: saved.fullDescription?.trim() || saved.description?.trim() || '',
+      status: saved.status || 'Active',
+      details: saved.details || null,
+      spaces: saved.spaces || null
+    };
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || 'Failed to save listing');
+      }
+      await fetchListings();
+      setModalListing(undefined);
+    } catch (err) {
+      alert(`Error saving listing: ${err.message}`);
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!deleteTarget) return;
-    const updated = deleteStoredListing(deleteTarget.id);
-    setListings(updated);
-    setDeleteTarget(null);
+    const token = localStorage.getItem('token');
+    const targetId = deleteTarget.serviceId || deleteTarget.id;
+    try {
+      const res = await fetch(`${API_BASE}/services/${targetId}`, {
+        method: 'DELETE',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+      });
+      if (!res.ok && res.status !== 204) {
+        throw new Error('Failed to delete listing');
+      }
+      setListings((prev) => prev.filter((l) => (l.serviceId || l.id) !== targetId));
+      setDeleteTarget(null);
+    } catch (err) {
+      alert(`Error deleting listing: ${err.message}`);
+    }
   };
 
   // ── all category pills ─────────────────────────────────────
@@ -692,7 +827,7 @@ export default function VendorListingsPage({ onNavigate }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((listing) => (
             <ListingCard
-              key={listing.id}
+              key={listing.serviceId || listing.id}
               listing={listing}
               onEdit={handleOpenEdit}
               onDelete={(l) => setDeleteTarget(l)}
@@ -703,7 +838,7 @@ export default function VendorListingsPage({ onNavigate }) {
         <div className="flex flex-col gap-2">
           {filtered.map((listing) => (
             <ListingRow
-              key={listing.id}
+              key={listing.serviceId || listing.id}
               listing={listing}
               onEdit={handleOpenEdit}
               onDelete={(l) => setDeleteTarget(l)}

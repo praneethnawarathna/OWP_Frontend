@@ -38,12 +38,16 @@ import PhotographyDetails from '../components/listing-form/PhotographyDetails';
 import MusicDetails from '../components/listing-form/MusicDetails';
 import DecorationsDetails from '../components/listing-form/DecorationsDetails';
 import CateringDetails from '../components/listing-form/CateringDetails';
-import {
-  initialListings,
-  LISTING_CATEGORIES,
-  getStoredListings,
-  saveStoredListing,
-} from '../mock/vendorListingsData';
+
+export const LISTING_CATEGORIES = [
+  'Hotel / Venue',
+  'Photography',
+  'Decorations',
+  'Catering',
+  'Music',
+];
+
+const API_BASE = 'http://localhost:5131/api/vendor-content';
 
 const STEPS = [
   { id: 1, label: 'Basic Info & Category', desc: 'Title, category, starting rate' },
@@ -102,32 +106,11 @@ const SAMPLE_PRESET_IMAGES = [
   },
 ];
 
-export default function CreateListingPage({ onNavigate }) {
-  // ── File input reference for local media upload ──
-  const fileInputRef = useRef(null);
-
-  // ── Extract edit ID from URL search params ──
-  const searchParams = useMemo(() => new URLSearchParams(window.location.search), []);
-  const editId = searchParams.get('id');
-  const isEditMode = Boolean(editId);
-
-  // ── Find existing listing if in edit mode ──
-  const existingListing = useMemo(() => {
-    if (!editId) return null;
-    return getStoredListings().find((l) => l.id === editId) || null;
-  }, [editId]);
-
-  // ── Current Step state ──
-  const [currentStep, setCurrentStep] = useState(1);
-
-  // ── Validation Errors State ──
-  const [errors, setErrors] = useState({});
-
-  // ── Form State ──
-  const [formData, setFormData] = useState({
+function buildInitialFormData(existingListing = null) {
+  return {
     title: existingListing?.title || '',
     category: existingListing?.category || 'Hotel / Venue',
-    priceOnRequest: existingListing ? existingListing.price === null : false,
+    priceOnRequest: existingListing ? (existingListing.priceOnRequest ?? existingListing.price === null) : false,
     price: existingListing?.price !== null && existingListing?.price !== undefined ? existingListing.price : '',
     // Short Description shown on search/directory cards (max 200 chars)
     description: existingListing?.description || '',
@@ -135,21 +118,47 @@ export default function CreateListingPage({ onNavigate }) {
     fullDescription: existingListing?.fullDescription || existingListing?.description || '',
     status: existingListing?.status || 'Active',
     // Media & Photos state
-    images: existingListing?.images?.length ? existingListing.images : [],
+    images: (existingListing?.images || []).length
+      ? existingListing.images.map((img, idx) => ({
+          id: img.imageId ? `img-${img.imageId}` : `img-existing-${idx}`,
+          imageId: img.imageId,
+          name: img.imageUrl ? img.imageUrl.split('/').pop() : `Photo ${idx + 1}`,
+          url: img.imageUrl?.startsWith('/') ? `http://localhost:5131${img.imageUrl}` : (img.imageUrl || img.url),
+          isCover: Boolean(img.isCover || (existingListing.coverImageUrl && existingListing.coverImageUrl === img.imageUrl)),
+        }))
+      : (existingListing?.coverImageUrl
+          ? [{
+              id: 'img-cover',
+              name: existingListing.coverImageUrl.split('/').pop() || 'Cover photo',
+              url: existingListing.coverImageUrl.startsWith('/') ? `http://localhost:5131${existingListing.coverImageUrl}` : existingListing.coverImageUrl,
+              isCover: true,
+            }]
+          : []),
     // Details object for category specific data
     details: {
       // Spaces (Repeatable)
-      spaces: existingListing?.details?.spaces || [
-        {
-          id: 'space-1',
-          name: 'Grand Ballroom',
-          type: 'Indoor Ballroom',
-          capacitySeated: '350',
-          capacityFloating: '500',
-          isAirConditioned: true,
-          description: 'Spacious banquet hall with crystal chandeliers and stage lighting.',
-        },
-      ],
+      spaces: (existingListing?.spaces || existingListing?.details?.spaces || []).length
+        ? (existingListing?.spaces || existingListing?.details?.spaces).map((s, idx) => ({
+            id: s.spaceId ? `space-${s.spaceId}` : (s.id || `space-${idx + 1}`),
+            spaceId: s.spaceId || s.venueSpaceId,
+            name: s.name || '',
+            type: s.type || 'Indoor Ballroom',
+            capacitySeated: s.capacitySeated !== undefined && s.capacitySeated !== null ? String(s.capacitySeated) : '',
+            capacityFloating: s.capacityFloating !== undefined && s.capacityFloating !== null ? String(s.capacityFloating) : '',
+            isAirConditioned: s.isAirConditioned ?? true,
+            description: s.description || '',
+          }))
+        : [
+            {
+              id: 'space-1',
+              name: 'Grand Ballroom',
+              type: 'Indoor Ballroom',
+              capacitySeated: '350',
+              capacityFloating: '500',
+              isAirConditioned: true,
+              description: 'Spacious banquet hall with crystal chandeliers and stage lighting.',
+            },
+          ],
       // 1. Top-Level Venue Specifications
       venueType: existingListing?.details?.venueType || 'Hotel',
       venueSetting: existingListing?.details?.venueSetting || 'City',
@@ -238,7 +247,7 @@ export default function CreateListingPage({ onNavigate }) {
         existingListing?.details?.outsideVendorRestrictions ||
         'All external decorators and sound crews must submit equipment specs 14 days prior.',
 
-      // ── Photography Defaults ──
+      // Photography Defaults
       shootingStyle: existingListing?.details?.shootingStyle || 'Candid / Documentary',
       hoursOfCoverage: existingListing?.details?.hoursOfCoverage || 'Full Day (10–12 Hours)',
       includedServices: existingListing?.details?.includedServices || [
@@ -266,7 +275,7 @@ export default function CreateListingPage({ onNavigate }) {
       travelOutsideColombo: existingListing?.details?.travelOutsideColombo || 'Yes - Additional Fee',
       outstationAccommodationRequired: existingListing?.details?.outstationAccommodationRequired ?? true,
 
-      // ── Music Defaults ──
+      // Music Defaults
       performanceType: existingListing?.details?.performanceType || 'Live Band',
       lineupSize: existingListing?.details?.lineupSize || '6–8 Piece Full Band',
       setDuration: existingListing?.details?.setDuration || '5 Hours (Standard Reception)',
@@ -287,7 +296,7 @@ export default function CreateListingPage({ onNavigate }) {
       customSongsAllowed: existingListing?.details?.customSongsAllowed || 'Up to 3 Rehearsed Songs',
       overtimeRate: existingListing?.details?.overtimeRate || 'Rs. 25,000 / Hour',
 
-      // ── Decorations Defaults ──
+      // Decorations Defaults
       primaryStyles: existingListing?.details?.primaryStyles || [
         'Classic / Traditional',
         'Glamorous / Luxury Floral',
@@ -316,7 +325,7 @@ export default function CreateListingPage({ onNavigate }) {
       designFeePolicy: existingListing?.details?.designFeePolicy || 'Complimentary with Confirmed Booking',
       minimumBudget: existingListing?.details?.minimumBudget || 'Rs. 250,000',
 
-      // ── Catering Defaults ──
+      // Catering Defaults
       serviceStyle: existingListing?.details?.serviceStyle || 'Buffet Service',
       cuisines: existingListing?.details?.cuisines || [
         'Sri Lankan Traditional & Village',
@@ -342,7 +351,53 @@ export default function CreateListingPage({ onNavigate }) {
       tastingAvailable: existingListing?.details?.tastingAvailable ?? true,
       tastingPolicy: existingListing?.details?.tastingPolicy || 'Complimentary for Couple (2 Pax)',
     },
-  });
+  };
+}
+
+export default function CreateListingPage({ onNavigate }) {
+  // ── File input reference for local media upload ──
+  const fileInputRef = useRef(null);
+
+  // ── Extract edit ID from URL search params ──
+  const searchParams = useMemo(() => new URLSearchParams(window.location.search), []);
+  const editId = searchParams.get('id');
+  const isEditMode = Boolean(editId);
+
+  // ── Current Step state ──
+  const [currentStep, setCurrentStep] = useState(1);
+
+  // ── Validation Errors State ──
+  const [errors, setErrors] = useState({});
+
+  // ── Form State ──
+  const [formData, setFormData] = useState(() => buildInitialFormData());
+  const [existingListing, setExistingListing] = useState(null);
+  const [isLoadingListing, setIsLoadingListing] = useState(Boolean(editId));
+
+  useEffect(() => {
+    if (!editId) return;
+    const token = localStorage.getItem('token');
+    setIsLoadingListing(true);
+    fetch(`${API_BASE}/services/${editId}`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      }
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Listing not found');
+        return res.json();
+      })
+      .then((data) => {
+        setExistingListing(data);
+        setFormData(buildInitialFormData(data));
+      })
+      .catch((err) => {
+        console.error('Failed to load listing for edit:', err);
+      })
+      .finally(() => {
+        setIsLoadingListing(false);
+      });
+  }, [editId]);
 
   // Track draft save feedback
   const [saveBanner, setSaveBanner] = useState(null);
@@ -373,7 +428,7 @@ export default function CreateListingPage({ onNavigate }) {
     clearError(detailField);
   };
 
-  // ── Media Handlers (Client-Side Preview Only) ──
+  // ── Media Handlers (Real Backend Upload & Storage) ──
   const handleFilesSelected = (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -383,6 +438,7 @@ export default function CreateListingPage({ onNavigate }) {
       name: file.name,
       size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
       url: URL.createObjectURL(file),
+      file,
       isCover: (formData.images || []).length === 0 && idx === 0,
     }));
 
@@ -431,7 +487,22 @@ export default function CreateListingPage({ onNavigate }) {
     }));
   };
 
-  const handleRemoveImage = (imgId) => {
+  const handleRemoveImage = async (imgId) => {
+    const target = (formData.images || []).find((img) => img.id === imgId);
+    if (target?.imageId && editId) {
+      try {
+        const token = localStorage.getItem('token');
+        await fetch(`${API_BASE}/services/${editId}/images/${target.imageId}`, {
+          method: 'DELETE',
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          }
+        });
+      } catch (err) {
+        console.warn('Failed to delete image from server:', err);
+      }
+    }
+
     setFormData((prev) => {
       const filtered = (prev.images || []).filter((img) => img.id !== imgId);
       if (filtered.length > 0 && !filtered.some((img) => img.isCover)) {
@@ -503,27 +574,102 @@ export default function CreateListingPage({ onNavigate }) {
     return newErrors;
   };
 
-  const handleSaveDraft = () => {
-    const draftToSave = {
-      id: isEditMode ? editId : `lst-${Date.now()}`,
-      title: formData.title.trim() || 'Untitled Listing (Draft)',
-      category: formData.category,
-      price: formData.priceOnRequest ? null : (formData.price ? Number(formData.price) : null),
-      description: formData.description.trim() || 'Draft listing',
-      fullDescription: formData.fullDescription.trim(),
-      status: 'Draft',
-      images: formData.images || [],
-      details: formData.details,
-      createdAt: isEditMode && existingListing?.createdAt ? existingListing.createdAt : new Date().toISOString().split('T')[0],
-      views: isEditMode && existingListing?.views ? existingListing.views : 0,
-      inquiries: isEditMode && existingListing?.inquiries ? existingListing.inquiries : 0,
-    };
-    saveStoredListing(draftToSave);
-    setSaveBanner('Draft saved to local session.');
-    setTimeout(() => setSaveBanner(null), 3500);
+  const uploadPendingImages = async (serviceId, token) => {
+    const imagesToUpload = (formData.images || []).filter((img) => img.file);
+    for (const img of imagesToUpload) {
+      try {
+        const data = new FormData();
+        data.append('file', img.file);
+        data.append('isCover', Boolean(img.isCover));
+        const res = await fetch(`${API_BASE}/services/${serviceId}/images`, {
+          method: 'POST',
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          body: data
+        });
+        if (res.ok) {
+          const uploaded = await res.json();
+          img.imageId = uploaded.imageId;
+          img.url = `http://localhost:5131${uploaded.imageUrl}`;
+          delete img.file;
+        }
+      } catch (uploadErr) {
+        console.warn('Image upload error:', uploadErr);
+      }
+    }
   };
 
-  const handleNextStep = () => {
+  const handleSaveDraft = async () => {
+    const token = localStorage.getItem('token');
+    const isNumericId = Boolean(editId && !isNaN(Number(editId)));
+    const method = isNumericId ? 'PUT' : 'POST';
+    const url = isNumericId ? `${API_BASE}/services/${editId}` : `${API_BASE}/services`;
+
+    const formattedSpaces = (formData.category === 'Hotel / Venue' ? (formData.details?.spaces || []) : []).map((sp) => ({
+      spaceId: sp.spaceId ? Number(sp.spaceId) : (typeof sp.id === 'number' ? sp.id : (String(sp.id).startsWith('space-') && !isNaN(Number(String(sp.id).replace('space-', ''))) ? Number(String(sp.id).replace('space-', '')) : null)),
+      name: sp.name?.trim() || '',
+      type: sp.type || 'Indoor Ballroom',
+      capacitySeated: sp.capacitySeated ? Number(sp.capacitySeated) : null,
+      capacityFloating: sp.capacityFloating ? Number(sp.capacityFloating) : null,
+      isAirConditioned: sp.isAirConditioned ?? true,
+      description: sp.description || ''
+    }));
+
+    const chosenCover = (formData.images || []).find((img) => img.isCover);
+    const coverImageUrl = chosenCover?.url?.startsWith('http://localhost:5131')
+      ? chosenCover.url.replace('http://localhost:5131', '')
+      : (chosenCover && !chosenCover.file && !chosenCover.url?.startsWith('blob:') ? chosenCover.url : null);
+
+    const payload = {
+      title: formData.title.trim() || 'Untitled Listing (Draft)',
+      category: formData.category,
+      price: formData.priceOnRequest ? null : (formData.price !== '' && formData.price !== null ? Number(formData.price) : null),
+      priceOnRequest: Boolean(formData.priceOnRequest),
+      description: formData.description.trim() || 'Draft listing',
+      fullDescription: formData.fullDescription?.trim() || formData.description.trim(),
+      status: 'Draft',
+      coverImageUrl,
+      spaces: formattedSpaces,
+      details: {
+        ...formData.details,
+        spaces: formattedSpaces
+      }
+    };
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to save draft');
+      }
+
+      const saved = await res.json();
+      const targetServiceId = saved.serviceId || editId;
+      if (targetServiceId) {
+        await uploadPendingImages(targetServiceId, token);
+      }
+
+      setSaveBanner('Draft saved successfully! Redirecting to My Listings...');
+      setTimeout(() => {
+        onNavigate?.('vendor-services');
+      }, 700);
+    } catch (err) {
+      console.error('Save draft error:', err);
+      setSaveBanner(`Save failed: ${err.message}`);
+      setTimeout(() => setSaveBanner(null), 4000);
+    }
+  };
+
+  const handleNextStep = async () => {
     const stepErrors = validateStep(currentStep);
     if (Object.keys(stepErrors).length > 0) {
       setErrors(stepErrors);
@@ -536,26 +682,72 @@ export default function CreateListingPage({ onNavigate }) {
       setCurrentStep((prev) => prev + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      // Final submit - save to stored listings
-      const listingToSave = {
-        id: isEditMode ? editId : `lst-${Date.now()}`,
+      // Final submit - save to backend
+      const isNumericId = Boolean(editId && !isNaN(Number(editId)));
+      const method = isNumericId ? 'PUT' : 'POST';
+      const url = isNumericId ? `${API_BASE}/services/${editId}` : `${API_BASE}/services`;
+
+      const formattedSpaces = (formData.category === 'Hotel / Venue' ? (formData.details?.spaces || []) : []).map((sp) => ({
+        spaceId: sp.spaceId ? Number(sp.spaceId) : (typeof sp.id === 'number' ? sp.id : (String(sp.id).startsWith('space-') && !isNaN(Number(String(sp.id).replace('space-', ''))) ? Number(String(sp.id).replace('space-', '')) : null)),
+        name: sp.name?.trim() || '',
+        type: sp.type || 'Indoor Ballroom',
+        capacitySeated: sp.capacitySeated ? Number(sp.capacitySeated) : null,
+        capacityFloating: sp.capacityFloating ? Number(sp.capacityFloating) : null,
+        isAirConditioned: sp.isAirConditioned ?? true,
+        description: sp.description || ''
+      }));
+
+      const chosenCover = (formData.images || []).find((img) => img.isCover);
+      const coverImageUrl = chosenCover?.url?.startsWith('http://localhost:5131')
+        ? chosenCover.url.replace('http://localhost:5131', '')
+        : (chosenCover && !chosenCover.file && !chosenCover.url?.startsWith('blob:') ? chosenCover.url : null);
+
+      const payload = {
         title: formData.title.trim(),
         category: formData.category,
-        price: formData.priceOnRequest ? null : (formData.price ? Number(formData.price) : null),
+        price: formData.priceOnRequest ? null : (formData.price !== '' && formData.price !== null ? Number(formData.price) : null),
+        priceOnRequest: Boolean(formData.priceOnRequest),
         description: formData.description.trim(),
-        fullDescription: formData.fullDescription.trim(),
-        status: formData.status,
-        images: formData.images || [],
-        details: formData.details,
-        createdAt: isEditMode && existingListing?.createdAt ? existingListing.createdAt : new Date().toISOString().split('T')[0],
-        views: isEditMode && existingListing?.views ? existingListing.views : 0,
-        inquiries: isEditMode && existingListing?.inquiries ? existingListing.inquiries : 0,
+        fullDescription: formData.fullDescription?.trim() || formData.description.trim(),
+        status: formData.status || 'Active',
+        coverImageUrl,
+        spaces: formattedSpaces,
+        details: {
+          ...formData.details,
+          spaces: formattedSpaces
+        }
       };
-      saveStoredListing(listingToSave);
-      setSaveBanner(isEditMode ? 'Listing changes saved successfully!' : 'Listing published successfully!');
-      setTimeout(() => {
-        onNavigate?.('vendor-services');
-      }, 1000);
+
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.message || 'Failed to save listing');
+        }
+
+        const saved = await res.json();
+        const targetServiceId = saved.serviceId || editId;
+        if (targetServiceId) {
+          await uploadPendingImages(targetServiceId, token);
+        }
+
+        setSaveBanner(isEditMode ? 'Listing changes saved successfully! Redirecting...' : 'Listing published successfully! Redirecting...');
+        setTimeout(() => {
+          onNavigate?.('vendor-services');
+        }, 700);
+      } catch (err) {
+        console.error('Submit listing error:', err);
+        setSaveBanner(`Save failed: ${err.message}`);
+      }
     }
   };
 
@@ -972,7 +1164,7 @@ export default function CreateListingPage({ onNavigate }) {
         )}
 
         {/* ════════════════════════════════════════════════════════════════════
-            STEP 3: Photos & Media (Client-Side Preview Mode)
+            STEP 3: Photos & Gallery Media
            ════════════════════════════════════════════════════════════════════ */}
         {currentStep === 3 && (
           <div className="space-y-6 animate-fadeIn">
@@ -992,17 +1184,6 @@ export default function CreateListingPage({ onNavigate }) {
               <p className="text-xs text-[#737373]">
                 Upload high-resolution photography showcasing your services, venues, setup styles, and portfolio work.
               </p>
-            </div>
-
-            {/* Client-Side Notice Alert */}
-            <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50/70 p-4 text-xs text-blue-900">
-              <Info size={16} className="text-blue-600 shrink-0 mt-0.5" />
-              <div className="space-y-0.5">
-                <p className="font-bold">Client-Side Preview Mode (Mock Storage)</p>
-                <p className="text-blue-800 leading-relaxed">
-                  Image files are rendered in local browser memory for preview purposes. No files are uploaded to an external storage server or backend endpoint.
-                </p>
-              </div>
             </div>
 
             {/* Validation error if attempted to continue with 0 images */}
