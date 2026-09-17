@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bell, ImagePlus, Pencil, Plus, Save, Store, Trash2, Upload, X } from 'lucide-react';
+import { Bell, CheckCheck, ImagePlus, Pencil, Plus, Save, Store, Trash2, Upload, X } from 'lucide-react';
+import VendorNotificationsPage from './VendorNotificationsPage';
 
 const API_URL = 'https://owpbackend-production.up.railway.app/api/vendor-content';
 const FILE_URL = 'https://owpbackend-production.up.railway.app';
@@ -35,7 +36,7 @@ function ActionButton({ children, onClick, danger = false }) { return <button ty
 
 export default function VendorContentPage({ type }) {
   const token = localStorage.getItem('token');
-  if (type === 'notifications') return <NotificationsPage token={token} />;
+  if (type === 'notifications') return <VendorNotificationsPage />;
   const isServices = type === 'services';
   const endpoint = isServices ? 'services' : 'performances';
   const { items, error, reload } = useVendorContent(endpoint, token);
@@ -233,9 +234,4 @@ export default function VendorContentPage({ type }) {
     </section>
     <section className="space-y-3"><h2 className="text-base font-semibold text-[#1E293B]">Saved {isServices ? 'services' : 'performances'}</h2>{error && <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}{items.length === 0 ? <p className="rounded-2xl border border-dashed border-[#E8DDE4] bg-white p-6 text-sm text-[#737373]">Nothing added yet.</p> : <div className="grid gap-3 md:grid-cols-2">{items.map((item) => { const id = isServices ? item.serviceId : item.performanceId; return <article key={id} className="rounded-xl border border-[#F1E5EC] bg-white p-4 shadow-sm"><div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold text-[#1E293B]">{isServices ? item.serviceName : item.title}</h3><span className="text-xs text-[#8E406F]">{item.category}</span></div><div className="flex gap-2"><ActionButton onClick={() => editItem(item)}><Pencil size={13} />Edit</ActionButton><ActionButton danger onClick={() => removeItem(id)}><Trash2 size={13} />Delete</ActionButton></div></div><p className="mt-2 text-sm text-[#737373]">{item.description || item.customerFeedback || 'No description provided.'}</p>{!isServices && item.photoUrl && <img src={`${FILE_URL}${item.photoUrl}`} alt={item.title} className="mt-3 h-40 w-full rounded-lg object-cover" />}</article>; })}</div>}</section>
   </PageShell>;
-}
-
-function NotificationsPage({ token }) {
-  const { items, error } = useVendorContent('notifications', token);
-  return <PageShell title="Notifications" description="Messages connected to your vendor account." icon={Bell}>{error ? <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : items.length === 0 ? <p className="rounded-2xl border border-dashed border-[#E8DDE4] bg-white p-6 text-sm text-[#737373]">No notifications yet.</p> : <div className="space-y-3">{items.map((item) => <article key={item.notificationId} className="rounded-xl border border-[#F1E5EC] bg-white p-4 shadow-sm"><h2 className="font-semibold text-[#1E293B]">{item.title}</h2><p className="mt-1 text-sm text-[#737373]">{item.message}</p></article>)}</div>}</PageShell>;
 }

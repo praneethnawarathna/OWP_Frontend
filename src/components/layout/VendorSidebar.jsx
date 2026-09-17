@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
   BarChart3,
   Bell,
@@ -10,6 +11,8 @@ import {
 } from 'lucide-react';
 import { vendorSidebarNav } from '../../mock/vendorData';
 
+const NOTIFICATIONS_API_URL = 'http://localhost:5131/api/notifications';
+
 const iconMap = {
   LayoutDashboard,
   BarChart3,
@@ -19,7 +22,7 @@ const iconMap = {
   Layers,
 };
 
-function NavItem({ item, isActive, onNavigate }) {
+function NavItem({ item, isActive, onNavigate, badgeCount = 0 }) {
   const Icon = iconMap[item.icon] ?? LayoutDashboard;
   return (
     <li>
@@ -41,7 +44,12 @@ function NavItem({ item, isActive, onNavigate }) {
           className={`shrink-0 ${isActive ? 'text-[#8E406F]' : item.routable ? 'text-[#999]' : 'text-[#ccc]'}`}
           aria-hidden="true"
         />
-        <span className="text-left whitespace-nowrap">{item.label}</span>
+        <span className="text-left whitespace-nowrap flex-1">{item.label}</span>
+        {badgeCount > 0 && (
+          <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-[#8E406F] px-1 text-[10px] font-bold text-white shadow-sm">
+            {badgeCount > 99 ? '99+' : badgeCount}
+          </span>
+        )}
       </button>
     </li>
   );
@@ -54,6 +62,24 @@ export default function VendorSidebar({
   onNavigate,
   onLogout,
 }) {
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    fetch(NOTIFICATIONS_API_URL, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setUnreadCount(data.filter((n) => !n.isRead).length);
+        }
+      })
+      .catch(() => {});
+  }, [currentPage]);
+
   // Retrieve authenticated vendor data from localStorage
   const storedUser = (() => {
     try {
@@ -122,6 +148,7 @@ export default function VendorSidebar({
                 item={item}
                 isActive={currentPage === item.id}
                 onNavigate={onNavigate}
+                badgeCount={item.id === 'vendor-notifications' ? unreadCount : 0}
               />
             ))}
           </ul>
