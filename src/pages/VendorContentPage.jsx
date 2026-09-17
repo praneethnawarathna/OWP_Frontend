@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bell, ImagePlus, Pencil, Plus, Save, Store, Trash2, Upload, X } from 'lucide-react';
+import { Bell, CheckCheck, ImagePlus, Pencil, Plus, Save, Store, Trash2, Upload, X } from 'lucide-react';
 
 const API_URL = 'http://localhost:5131/api/vendor-content';
 const FILE_URL = 'http://localhost:5131';
@@ -235,7 +235,198 @@ export default function VendorContentPage({ type }) {
   </PageShell>;
 }
 
+const NOTIFICATIONS_API_URL = 'http://localhost:5131/api/notifications';
+
 function NotificationsPage({ token }) {
-  const { items, error } = useVendorContent('notifications', token);
-  return <PageShell title="Notifications" description="Messages connected to your vendor account." icon={Bell}>{error ? <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : items.length === 0 ? <p className="rounded-2xl border border-dashed border-[#E8DDE4] bg-white p-6 text-sm text-[#737373]">No notifications yet.</p> : <div className="space-y-3">{items.map((item) => <article key={item.notificationId} className="rounded-xl border border-[#F1E5EC] bg-white p-4 shadow-sm"><h2 className="font-semibold text-[#1E293B]">{item.title}</h2><p className="mt-1 text-sm text-[#737373]">{item.message}</p></article>)}</div>}</PageShell>;
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const loadNotifications = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(NOTIFICATIONS_API_URL, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Unable to load notifications.');
+      const data = await res.json();
+      setNotifications(data);
+      setError('');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (token) loadNotifications();
+  }, [token]);
+
+  const handleMarkAsRead = async (id, isRead) => {
+    if (isRead) return;
+    // Optimistic update
+    setNotifications((prev) =>
+      prev.map((n) => (n.notificationId === id ? { ...n, isRead: true } : n))
+    );
+    try {
+      await fetch(`${NOTIFICATIONS_API_URL}/${id}/read`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.error('Failed to mark notification as read:', err);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    // Optimistic update
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    try {
+      await fetch(`${NOTIFICATIONS_API_URL}/read-all`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.error('Failed to mark all notifications as read:', err);
+    }
+  };
+
+  const handleDelete = async (e, id) => {
+    e.stopPropagation();
+    // Optimistic update
+    setNotifications((prev) => prev.filter((n) => n.notificationId !== id));
+    try {
+      await fetch(`${NOTIFICATIONS_API_URL}/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.error('Failed to delete notification:', err);
+    }
+  };
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  const formatDate = (isoString) => {
+    if (!isoString) return '';
+    try {
+      const date = new Date(isoString);
+      return date.toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return '';
+    }
+  };
+
+  return (
+    <PageShell
+      title="Notifications"
+      description="Messages and activity updates connected to your vendor account."
+      icon={Bell}
+    >
+      <div className="space-y-4">
+        {/* Top actions bar */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-[#737373]">
+              {notifications.length} {notifications.length === 1 ? 'notification' : 'notifications'}
+            </span>
+            {unreadCount > 0 && (
+              <span className="inline-flex items-center rounded-full bg-[#FDF0F4] px-2 py-0.5 text-xs font-semibold text-[#8E406F]">
+                {unreadCount} unread
+              </span>
+            )}
+          </div>
+
+          {unreadCount > 0 && (
+            <ActionButton onClick={handleMarkAllAsRead}>
+              <CheckCheck size={14} />
+              Mark all as read
+            </ActionButton>
+          )}
+        </div>
+
+        {/* Content list or states */}
+        {error ? (
+          <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>
+        ) : loading ? (
+          <div className="rounded-xl border border-[#F1E5EC] bg-white p-8 text-center text-sm text-[#737373]">
+            Loading notifications...
+          </div>
+        ) : notifications.length === 0 ? (
+          <p className="rounded-2xl border border-dashed border-[#E8DDE4] bg-white p-6 text-sm text-[#737373]">
+            No notifications yet.
+          </p>
+        ) : (
+          <div className="space-y-2.5">
+            {notifications.map((item) => {
+              const isUnread = !item.isRead;
+              return (
+                <article
+                  key={item.notificationId}
+                  onClick={() => handleMarkAsRead(item.notificationId, item.isRead)}
+                  className={`group relative flex items-start justify-between gap-4 rounded-xl border p-4 shadow-sm transition cursor-pointer ${
+                    isUnread
+                      ? 'border-[#E8DDE4] border-l-4 border-l-[#8E406F] bg-[#FDF0F4]/25 hover:bg-[#FDF0F4]/40'
+                      : 'border-[#F1E5EC] border-l-4 border-l-transparent bg-white hover:bg-[#FAFAFA]'
+                  }`}
+                >
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    {/* Unread indicator dot */}
+                    <div className="pt-1">
+                      <span
+                        className={`block h-2 w-2 rounded-full transition ${
+                          isUnread ? 'bg-[#8E406F]' : 'bg-transparent'
+                        }`}
+                      />
+                    </div>
+
+                    <div className="space-y-1 flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2
+                          className={`text-sm ${
+                            isUnread ? 'font-bold text-[#1E293B]' : 'font-semibold text-[#475569]'
+                          }`}
+                        >
+                          {item.title}
+                        </h2>
+                        {item.type && (
+                          <span className="rounded bg-[#FDF0F4] px-1.5 py-0.5 text-[10px] font-medium text-[#8E406F]">
+                            {item.type}
+                          </span>
+                        )}
+                        <span className="text-[11px] text-[#94A3B8]">
+                          {formatDate(item.createdAt)}
+                        </span>
+                      </div>
+                      <p className="text-sm text-[#555] leading-relaxed break-words">
+                        {item.message}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Dismiss / Delete button */}
+                  <div className="shrink-0 pt-0.5">
+                    <button
+                      type="button"
+                      title="Dismiss notification"
+                      onClick={(e) => handleDelete(e, item.notificationId)}
+                      className="rounded-lg p-1.5 text-[#94A3B8] opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-600 transition"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </PageShell>
+  );
 }

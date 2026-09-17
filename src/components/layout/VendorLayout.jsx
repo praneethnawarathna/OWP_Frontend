@@ -34,6 +34,8 @@ export default function VendorLayout({
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <VendorHeader
           onMenuClick={() => setMobileOpen(true)}
+          onNavigate={onNavigate}
+          currentPage={currentPage}
         />
 
         <main

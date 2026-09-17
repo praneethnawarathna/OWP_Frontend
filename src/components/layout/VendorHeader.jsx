@@ -1,4 +1,7 @@
+import { useEffect, useState } from 'react';
 import { Bell, Menu, Search } from 'lucide-react';
+
+const NOTIFICATIONS_API_URL = 'http://localhost:5131/api/notifications';
 
 /**
  * VendorHeader – stripped-down top bar for the vendor portal.
@@ -6,7 +9,31 @@ import { Bell, Menu, Search } from 'lucide-react';
  * All admin-specific items (role switcher, Add New Vendor, profile icon,
  * duplicate sign-out) are intentionally omitted.
  */
-export default function VendorHeader({ onMenuClick }) {
+export default function VendorHeader({ onMenuClick, onNavigate, currentPage }) {
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    fetch(NOTIFICATIONS_API_URL, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setUnreadCount(data.filter((n) => !n.isRead).length);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch notifications for bell badge:', err);
+      });
+  }, [currentPage]);
+
+  const handleNotificationsClick = () => {
+    onNavigate?.('vendor-notifications');
+  };
+
   return (
     <header className="h-14 shrink-0 w-full bg-white border-b border-[#F1E5EC] flex items-center px-6 gap-4">
 
@@ -36,10 +63,16 @@ export default function VendorHeader({ onMenuClick }) {
 
       {/* Notification Bell */}
       <button
-        aria-label="Notifications"
-        className="relative flex items-center justify-center h-8 w-8 rounded-full bg-[#F8FAFC] border border-[#F1E5EC] text-[#737373] hover:bg-[#FDF0F4] hover:text-[#8E406F] transition-colors"
+        onClick={handleNotificationsClick}
+        aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
+        className="relative flex items-center justify-center h-8 w-8 rounded-full bg-[#F8FAFC] border border-[#F1E5EC] text-[#737373] hover:bg-[#FDF0F4] hover:text-[#8E406F] transition-colors cursor-pointer"
       >
         <Bell size={16} />
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#8E406F] px-1 text-[10px] font-bold text-white ring-2 ring-white">
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
+        )}
       </button>
 
     </header>
