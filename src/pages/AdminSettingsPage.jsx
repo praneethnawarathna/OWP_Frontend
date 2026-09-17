@@ -50,7 +50,7 @@ import PinInput from '../components/common/PinInput';
 
 // ─── API ─────────────────────────────────────────────────────────────────────
 
-const API_BASE = 'https://owpbackend-production.up.railway.app/api';
+const API_BASE = 'http://localhost:5131/api';
 
 const getAuthHeaders = () => ({
   'Content-Type': 'application/json',
