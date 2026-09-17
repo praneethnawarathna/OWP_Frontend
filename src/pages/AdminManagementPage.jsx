@@ -38,7 +38,7 @@ import {
 //   8. Dynamic Stat Cards bound to /api/admin/metrics
 // ============================================================
 
-const API_BASE = 'http://localhost:5131/api/admin';
+const API_BASE = 'https://owpbackend-production.up.railway.app/api/admin';
 
 // Helper to get JWT token for authenticated requests
 const getAuthHeaders = () => ({
@@ -531,19 +531,17 @@ function ViewAdminModal({ admin, onClose }) {
               <p className="text-xs text-[#737373]">{email}</p>
               <div className="flex items-center gap-2 mt-2">
                 <span
-                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                    accessLevel === 'SuperAdmin'
+                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${accessLevel === 'SuperAdmin'
                       ? 'bg-[#8E406F]/10 text-[#8E406F]'
                       : 'bg-blue-50 text-blue-600'
-                  }`}
+                    }`}
                 >
                   <Shield size={12} />
                   {accessLevel}
                 </span>
                 <span
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                    isActive ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
-                  }`}
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${isActive ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
+                    }`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-red-400'}`} />
                   {isActive ? 'Active' : 'Inactive'}
@@ -972,11 +970,10 @@ function DeleteAdminModal({ admin, isSelf, onClose, onDeleted }) {
             type="button"
             onClick={handleDelete}
             disabled={isDeleting || isSelf}
-            className={`px-5 py-2 text-sm font-semibold rounded-lg shadow-md transition-all flex items-center gap-2 ${
-              isSelf
+            className={`px-5 py-2 text-sm font-semibold rounded-lg shadow-md transition-all flex items-center gap-2 ${isSelf
                 ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 : 'text-white bg-red-600 hover:bg-red-700 active:scale-95'
-            }`}
+              }`}
           >
             {isDeleting ? (
               <>

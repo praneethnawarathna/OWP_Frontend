@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ShieldCheck, RefreshCw } from 'lucide-react';
 
-const API_BASE = 'http://localhost:5131/api/admin-management';
+const API_BASE = 'https://owpbackend-production.up.railway.app/api/admin-management';
 
 const getAuthHeaders = () => ({
   'Content-Type': 'application/json',
@@ -126,11 +126,10 @@ export default function AdminTeamWidget({ onNavigate }) {
 
                   {/* Access Level Badge */}
                   <span
-                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                      isSuper
+                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${isSuper
                         ? 'bg-[#8E406F]/10 text-[#8E406F]'
                         : 'bg-blue-50 text-blue-600'
-                    }`}
+                      }`}
                   >
                     {isSuper ? 'Super Admin' : 'Admin'}
                   </span>

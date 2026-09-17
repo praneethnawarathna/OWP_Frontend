@@ -50,7 +50,7 @@ import PinInput from '../components/common/PinInput';
 
 // ─── API ─────────────────────────────────────────────────────────────────────
 
-const API_BASE = 'http://localhost:5131/api';
+const API_BASE = 'https://owpbackend-production.up.railway.app/api';
 
 const getAuthHeaders = () => ({
   'Content-Type': 'application/json',
@@ -665,11 +665,10 @@ function SlotDigit({ finalDigit, delay, spinning }) {
 
   return (
     <div
-      className={`relative w-16 h-20 bg-gradient-to-b from-[#1a0a12] to-[#2d1520] rounded-xl flex items-center justify-center overflow-hidden transition-all duration-300 ${
-        spinning
+      className={`relative w-16 h-20 bg-gradient-to-b from-[#1a0a12] to-[#2d1520] rounded-xl flex items-center justify-center overflow-hidden transition-all duration-300 ${spinning
           ? 'border-2 border-[#8E406F]/40 shadow-md'
           : 'border-2 border-[#f3a8ce] shadow-[0_0_20px_rgba(243,168,206,0.5)] ring-1 ring-[#f3a8ce]/30'
-      }`}
+        }`}
     >
       {/* Glossy overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-white/15 to-transparent rounded-xl pointer-events-none" />
@@ -1077,11 +1076,11 @@ const DEFAULT_NOTIFICATIONS = {
 };
 
 const NOTIFICATION_DEFS = [
-  { id: 'newVendorPending',   label: 'New vendor pending review',          description: 'Notify me when a new vendor listing is submitted for approval.' },
-  { id: 'flaggedContent',     label: 'Flagged content reported',           description: 'Notify me when content is flagged by users or automated systems.' },
-  { id: 'customerComplaint',  label: 'Customer complaint submitted',       description: 'Notify me when a customer files a complaint through the portal.' },
-  { id: 'aiWorkflowApproval', label: 'AI workflow requires my approval',   description: 'Notify me when an AI-moderated action needs human confirmation. (Depends on approval permission — see code comment).' },
-  { id: 'weeklySummary',      label: 'Weekly summary email',               description: 'Receive a weekly digest of key metrics and activity on Mondays.' },
+  { id: 'newVendorPending', label: 'New vendor pending review', description: 'Notify me when a new vendor listing is submitted for approval.' },
+  { id: 'flaggedContent', label: 'Flagged content reported', description: 'Notify me when content is flagged by users or automated systems.' },
+  { id: 'customerComplaint', label: 'Customer complaint submitted', description: 'Notify me when a customer files a complaint through the portal.' },
+  { id: 'aiWorkflowApproval', label: 'AI workflow requires my approval', description: 'Notify me when an AI-moderated action needs human confirmation. (Depends on approval permission — see code comment).' },
+  { id: 'weeklySummary', label: 'Weekly summary email', description: 'Receive a weekly digest of key metrics and activity on Mondays.' },
 ];
 
 function NotificationsSection({ onShowToast }) {
@@ -1319,9 +1318,9 @@ function ActivitySection() {
                 <p className="text-xs text-[#999] mt-0.5">
                   {item.timestamp
                     ? new Date(item.timestamp).toLocaleString('en-US', {
-                        year: 'numeric', month: 'short', day: 'numeric',
-                        hour: '2-digit', minute: '2-digit',
-                      })
+                      year: 'numeric', month: 'short', day: 'numeric',
+                      hour: '2-digit', minute: '2-digit',
+                    })
                     : '—'}
                 </p>
               </div>
@@ -1336,12 +1335,12 @@ function ActivitySection() {
 // ─── Navigation Tab Definition ────────────────────────────────────────────────
 
 const TABS = [
-  { id: 'profile',       label: 'My Profile',               icon: User },
-  { id: 'password',      label: 'Change Password',           icon: Lock },
-  { id: 'pin',           label: 'Secure PIN',                icon: KeyRound },
-  { id: 'notifications', label: 'Notifications',             icon: Bell },
-  { id: 'sessions',      label: 'Sessions',                  icon: Monitor },
-  { id: 'activity',      label: 'My Activity',               icon: Activity },
+  { id: 'profile', label: 'My Profile', icon: User },
+  { id: 'password', label: 'Change Password', icon: Lock },
+  { id: 'pin', label: 'Secure PIN', icon: KeyRound },
+  { id: 'notifications', label: 'Notifications', icon: Bell },
+  { id: 'sessions', label: 'Sessions', icon: Monitor },
+  { id: 'activity', label: 'My Activity', icon: Activity },
 ];
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
@@ -1417,12 +1416,12 @@ export default function AdminSettingsPage() {
 
           {/* ── Active section content ── */}
           <div className="flex-1 min-w-0">
-            {activeTab === 'profile'       && <ProfileSection user={user} onShowToast={showToast} />}
-            {activeTab === 'password'      && <PasswordSection />}
-            {activeTab === 'pin'           && <PinSection />}
+            {activeTab === 'profile' && <ProfileSection user={user} onShowToast={showToast} />}
+            {activeTab === 'password' && <PasswordSection />}
+            {activeTab === 'pin' && <PinSection />}
             {activeTab === 'notifications' && <NotificationsSection onShowToast={showToast} />}
-            {activeTab === 'sessions'      && <SessionSection onShowToast={showToast} />}
-            {activeTab === 'activity'      && <ActivitySection />}
+            {activeTab === 'sessions' && <SessionSection onShowToast={showToast} />}
+            {activeTab === 'activity' && <ActivitySection />}
           </div>
 
         </div>

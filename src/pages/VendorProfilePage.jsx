@@ -36,8 +36,8 @@ import {
   X,
 } from 'lucide-react';
 
-const API_BASE = 'http://localhost:5131/api/vendor-profile';
-const FILE_HOST = 'http://localhost:5131';
+const API_BASE = 'https://owpbackend-production.up.railway.app/api/vendor-profile';
+const FILE_HOST = 'https://owpbackend-production.up.railway.app';
 
 const CATEGORIES = [
   'Decorations',
@@ -58,33 +58,33 @@ const DEFAULT_DAYS = [
 
 // Sri Lanka cities with postal codes and provinces
 const SL_CITIES = [
-  { city: 'Colombo',       postalCode: '00100', province: 'Western' },
+  { city: 'Colombo', postalCode: '00100', province: 'Western' },
   { city: 'Sri Jayawardenepura Kotte', postalCode: '10100', province: 'Western' },
-  { city: 'Dehiwala-Mount Lavinia',    postalCode: '10350', province: 'Western' },
-  { city: 'Moratuwa',     postalCode: '10400', province: 'Western' },
-  { city: 'Negombo',      postalCode: '11500', province: 'Western' },
-  { city: 'Kandy',        postalCode: '20000', province: 'Central' },
-  { city: 'Matale',       postalCode: '21000', province: 'Central' },
+  { city: 'Dehiwala-Mount Lavinia', postalCode: '10350', province: 'Western' },
+  { city: 'Moratuwa', postalCode: '10400', province: 'Western' },
+  { city: 'Negombo', postalCode: '11500', province: 'Western' },
+  { city: 'Kandy', postalCode: '20000', province: 'Central' },
+  { city: 'Matale', postalCode: '21000', province: 'Central' },
   { city: 'Nuwara Eliya', postalCode: '22200', province: 'Central' },
-  { city: 'Galle',        postalCode: '80000', province: 'Southern' },
-  { city: 'Matara',       postalCode: '81000', province: 'Southern' },
-  { city: 'Hambantota',   postalCode: '82000', province: 'Southern' },
-  { city: 'Jaffna',       postalCode: '40000', province: 'Northern' },
-  { city: 'Vavuniya',     postalCode: '43000', province: 'Northern' },
-  { city: 'Kilinochchi',  postalCode: '44000', province: 'Northern' },
-  { city: 'Trincomalee',  postalCode: '31000', province: 'Eastern' },
-  { city: 'Batticaloa',   postalCode: '30000', province: 'Eastern' },
-  { city: 'Ampara',       postalCode: '32000', province: 'Eastern' },
-  { city: 'Kurunegala',   postalCode: '60000', province: 'North Western' },
-  { city: 'Puttalam',     postalCode: '61300', province: 'North Western' },
+  { city: 'Galle', postalCode: '80000', province: 'Southern' },
+  { city: 'Matara', postalCode: '81000', province: 'Southern' },
+  { city: 'Hambantota', postalCode: '82000', province: 'Southern' },
+  { city: 'Jaffna', postalCode: '40000', province: 'Northern' },
+  { city: 'Vavuniya', postalCode: '43000', province: 'Northern' },
+  { city: 'Kilinochchi', postalCode: '44000', province: 'Northern' },
+  { city: 'Trincomalee', postalCode: '31000', province: 'Eastern' },
+  { city: 'Batticaloa', postalCode: '30000', province: 'Eastern' },
+  { city: 'Ampara', postalCode: '32000', province: 'Eastern' },
+  { city: 'Kurunegala', postalCode: '60000', province: 'North Western' },
+  { city: 'Puttalam', postalCode: '61300', province: 'North Western' },
   { city: 'Anuradhapura', postalCode: '50000', province: 'North Central' },
-  { city: 'Polonnaruwa',  postalCode: '51000', province: 'North Central' },
-  { city: 'Badulla',      postalCode: '90000', province: 'Uva' },
-  { city: 'Monaragala',   postalCode: '91000', province: 'Uva' },
-  { city: 'Ratnapura',    postalCode: '70000', province: 'Sabaragamuwa' },
-  { city: 'Kegalle',      postalCode: '71000', province: 'Sabaragamuwa' },
-  { city: 'Kalutara',     postalCode: '12000', province: 'Western' },
-  { city: 'Gampaha',      postalCode: '11000', province: 'Western' },
+  { city: 'Polonnaruwa', postalCode: '51000', province: 'North Central' },
+  { city: 'Badulla', postalCode: '90000', province: 'Uva' },
+  { city: 'Monaragala', postalCode: '91000', province: 'Uva' },
+  { city: 'Ratnapura', postalCode: '70000', province: 'Sabaragamuwa' },
+  { city: 'Kegalle', postalCode: '71000', province: 'Sabaragamuwa' },
+  { city: 'Kalutara', postalCode: '12000', province: 'Western' },
+  { city: 'Gampaha', postalCode: '11000', province: 'Western' },
 ];
 
 const SL_PROVINCES = [
@@ -641,13 +641,12 @@ export default function VendorProfilePage() {
       {statusMessage.text && (
         <div
           role="status"
-          className={`fixed top-5 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl text-sm font-medium transition-all duration-300 animate-in fade-in slide-in-from-top-4 ${
-            statusMessage.type === 'error'
+          className={`fixed top-5 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl text-sm font-medium transition-all duration-300 animate-in fade-in slide-in-from-top-4 ${statusMessage.type === 'error'
               ? 'bg-rose-50 border border-rose-200 text-rose-800'
               : statusMessage.type === 'info'
-              ? 'bg-sky-50 border border-sky-200 text-sky-800'
-              : 'bg-emerald-50 border border-emerald-200 text-emerald-800'
-          }`}
+                ? 'bg-sky-50 border border-sky-200 text-sky-800'
+                : 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+            }`}
         >
           {statusMessage.type === 'error' ? (
             <AlertCircle size={18} className="text-rose-600 shrink-0" />
@@ -759,13 +758,12 @@ export default function VendorProfilePage() {
                   </h1>
                   {/* Profile Status Pill */}
                   <span
-                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
-                      verificationStatus === 'Verified'
+                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${verificationStatus === 'Verified'
                         ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                         : verificationStatus === 'Rejected'
-                        ? 'bg-rose-50 text-rose-700 border-rose-200'
-                        : 'bg-amber-50 text-amber-700 border-amber-200'
-                    }`}
+                          ? 'bg-rose-50 text-rose-700 border-rose-200'
+                          : 'bg-amber-50 text-amber-700 border-amber-200'
+                      }`}
                   >
                     <ShieldCheck size={13} />
                     {verificationStatus}
@@ -886,11 +884,10 @@ export default function VendorProfilePage() {
                       setCategoryDropdownOpen((prev) => !prev);
                     }
                   }}
-                  className={`w-full min-h-[42px] cursor-pointer rounded-xl border px-3 py-1.5 text-sm transition flex items-center justify-between gap-2 ${
-                    categoryDropdownOpen
+                  className={`w-full min-h-[42px] cursor-pointer rounded-xl border px-3 py-1.5 text-sm transition flex items-center justify-between gap-2 ${categoryDropdownOpen
                       ? 'border-[#8E406F] bg-white ring-2 ring-[#8E406F]/15'
                       : 'border-[#E8DDE4] bg-[#F8FAFC]/50 hover:bg-white'
-                  }`}
+                    }`}
                 >
                   <div className="flex flex-wrap items-center gap-1.5 flex-1 py-0.5">
                     {formData.categories.length > 0 ? (
@@ -914,9 +911,8 @@ export default function VendorProfilePage() {
 
                   <ChevronDown
                     size={16}
-                    className={`text-[#8E406F] shrink-0 transition-transform duration-200 ${
-                      categoryDropdownOpen ? 'rotate-180' : ''
-                    }`}
+                    className={`text-[#8E406F] shrink-0 transition-transform duration-200 ${categoryDropdownOpen ? 'rotate-180' : ''
+                      }`}
                   />
                 </div>
 
@@ -951,19 +947,17 @@ export default function VendorProfilePage() {
                           <div
                             key={cat}
                             onClick={() => toggleCategory(cat)}
-                            className={`flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer text-xs font-semibold transition select-none ${
-                              isSelected
+                            className={`flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer text-xs font-semibold transition select-none ${isSelected
                                 ? 'bg-[#FDF0F4] text-[#8E406F]'
                                 : 'text-[#333] hover:bg-[#F8FAFC]'
-                            }`}
+                              }`}
                           >
                             <div className="flex items-center gap-2.5">
                               <div
-                                className={`h-4 w-4 rounded-md border flex items-center justify-center transition ${
-                                  isSelected
+                                className={`h-4 w-4 rounded-md border flex items-center justify-center transition ${isSelected
                                     ? 'bg-[#8E406F] border-[#8E406F] text-white'
                                     : 'border-[#CCC] bg-white'
-                                }`}
+                                  }`}
                               >
                                 {isSelected && <Check size={11} strokeWidth={3} />}
                               </div>
@@ -1343,11 +1337,11 @@ export default function VendorProfilePage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[
             { key: 'instagram', label: 'Instagram', placeholder: 'https://instagram.com/yourhandle' },
-            { key: 'facebook',  label: 'Facebook',  placeholder: 'https://facebook.com/yourpage' },
-            { key: 'tiktok',    label: 'TikTok',    placeholder: 'https://tiktok.com/@yourprofile' },
-            { key: 'youtube',   label: 'YouTube',   placeholder: 'https://youtube.com/@yourchannel' },
+            { key: 'facebook', label: 'Facebook', placeholder: 'https://facebook.com/yourpage' },
+            { key: 'tiktok', label: 'TikTok', placeholder: 'https://tiktok.com/@yourprofile' },
+            { key: 'youtube', label: 'YouTube', placeholder: 'https://youtube.com/@yourchannel' },
             { key: 'pinterest', label: 'Pinterest', placeholder: 'https://pinterest.com/yourboards' },
-            { key: 'website',   label: 'Blog / Portfolio', placeholder: 'https://portfolio.yourbrand.com' },
+            { key: 'website', label: 'Blog / Portfolio', placeholder: 'https://portfolio.yourbrand.com' },
           ].map(({ key, label, placeholder }) => (
             <div key={key} className="space-y-1.5">
               <label className="block text-xs font-semibold text-[#555] uppercase tracking-wider">
@@ -1542,13 +1536,12 @@ export default function VendorProfilePage() {
                       <span>{doc.documentType}</span>
                       <span>•</span>
                       <span
-                        className={`font-semibold ${
-                          doc.status === 'Verified'
+                        className={`font-semibold ${doc.status === 'Verified'
                             ? 'text-emerald-700'
                             : doc.status === 'Rejected'
-                            ? 'text-rose-600'
-                            : 'text-amber-600'
-                        }`}
+                              ? 'text-rose-600'
+                              : 'text-amber-600'
+                          }`}
                       >
                         {doc.status}
                       </span>

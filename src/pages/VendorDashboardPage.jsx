@@ -110,10 +110,10 @@ function ViewInquiryModal({ inquiry, onClose, onReply }) {
         {/* Details grid */}
         <div className="grid grid-cols-2 gap-3">
           {[
-            { label: 'Service Requested', value: inquiry.service,   icon: Package      },
-            { label: 'Event Date',        value: inquiry.eventDate, icon: CalendarDays },
-            { label: 'Received',          value: inquiry.received,  icon: Clock3       },
-            { label: 'Guests (est.)',     value: inquiry.guests ?? 'Not specified', icon: Users },
+            { label: 'Service Requested', value: inquiry.service, icon: Package },
+            { label: 'Event Date', value: inquiry.eventDate, icon: CalendarDays },
+            { label: 'Received', value: inquiry.received, icon: Clock3 },
+            { label: 'Guests (est.)', value: inquiry.guests ?? 'Not specified', icon: Users },
           ].map(({ label, value, icon: Icon }) => (
             <div key={label} className="bg-[#F8FAFC] rounded-xl p-3 border border-[#F1E5EC]">
               <div className="flex items-center gap-1.5 text-[#999] text-[10px] font-semibold uppercase tracking-wide mb-1">
@@ -276,11 +276,10 @@ function BookingDetailsModal({ booking, onClose }) {
           <div>
             <p className="text-sm font-semibold text-[#1E293B]">{booking.couple}</p>
             <span
-              className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${
-                isConfirmed
+              className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${isConfirmed
                   ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
                   : 'border-amber-200 bg-amber-50 text-amber-700'
-              }`}
+                }`}
             >
               {booking.status}
             </span>
@@ -290,12 +289,12 @@ function BookingDetailsModal({ booking, onClose }) {
         {/* Details grid */}
         <div className="grid grid-cols-2 gap-3">
           {[
-            { label: 'Service / Package', value: booking.service,              icon: Package      },
-            { label: 'Event Date',        value: booking.date,                 icon: CalendarDays },
-            { label: 'Venue / Location',  value: booking.venue,                icon: MapPin       },
-            { label: 'Guest Count',       value: booking.guests ?? '~150 guests', icon: Users    },
-            { label: 'Total Payment',     value: booking.payment ?? '$2,500',  icon: DollarSign   },
-            { label: 'Payment Status',    value: booking.paymentStatus ?? 'Deposit Paid', icon: CheckCircle2 },
+            { label: 'Service / Package', value: booking.service, icon: Package },
+            { label: 'Event Date', value: booking.date, icon: CalendarDays },
+            { label: 'Venue / Location', value: booking.venue, icon: MapPin },
+            { label: 'Guest Count', value: booking.guests ?? '~150 guests', icon: Users },
+            { label: 'Total Payment', value: booking.payment ?? '$2,500', icon: DollarSign },
+            { label: 'Payment Status', value: booking.paymentStatus ?? 'Deposit Paid', icon: CheckCircle2 },
           ].map(({ label, value, icon: Icon }) => (
             <div key={label} className="bg-[#F8FAFC] rounded-xl p-3 border border-[#F1E5EC]">
               <div className="flex items-center gap-1.5 text-[#999] text-[10px] font-semibold uppercase tracking-wide mb-1">
@@ -835,10 +834,10 @@ function ProfileStatusWidget({ businessName = 'Lumina Photography', businessType
 function QuickActionsSection({ onNavigate }) {
   // Map each quick action label to a vendor page id
   const ACTION_ROUTES = {
-    'Edit My Listing':  'vendor-profile',
-    'Add Service':      'vendor-services',
-    'View Inquiries':   'vendor-dashboard',
-    'View Calendar':    'vendor-notifications',
+    'Edit My Listing': 'vendor-profile',
+    'Add Service': 'vendor-services',
+    'View Inquiries': 'vendor-dashboard',
+    'View Calendar': 'vendor-notifications',
   };
 
   return (
@@ -884,9 +883,9 @@ export default function VendorDashboardPage({ onNavigate }) {
   );
 
   // ── Modal state ──
-  const [viewInquiry,   setViewInquiry]   = useState(null); // inquiry object | null
-  const [replyInquiry,  setReplyInquiry]  = useState(null); // inquiry object | null
-  const [viewBooking,   setViewBooking]   = useState(null); // booking object | null
+  const [viewInquiry, setViewInquiry] = useState(null); // inquiry object | null
+  const [replyInquiry, setReplyInquiry] = useState(null); // inquiry object | null
+  const [viewBooking, setViewBooking] = useState(null); // booking object | null
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -901,7 +900,7 @@ export default function VendorDashboardPage({ onNavigate }) {
         }
 
         const token = localStorage.getItem('token');
-        const response = await fetch(`http://localhost:5131/api/vendor-dashboard?userId=${userId}`, {
+        const response = await fetch(`https://owpbackend-production.up.railway.app/api/vendor-dashboard?userId=${userId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -979,10 +978,10 @@ export default function VendorDashboardPage({ onNavigate }) {
       prev.map((inq) =>
         inq.id === id
           ? {
-              ...inq,
-              status: 'Responded',
-              statusStyle: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-            }
+            ...inq,
+            status: 'Responded',
+            statusStyle: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+          }
           : inq
       )
     );
