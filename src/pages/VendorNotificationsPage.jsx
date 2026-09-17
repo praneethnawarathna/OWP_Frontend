@@ -13,7 +13,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 
-const NOTIFICATIONS_API_URL = 'http://localhost:5131/api/notifications';
+import { fetchNotificationsApi } from '../services/notificationsApi';
 
 function PageShell({ title, description, icon: Icon, children }) {
   return (
@@ -85,12 +85,13 @@ export default function VendorNotificationsPage({ onNavigate }) {
   const loadNotifications = async () => {
     try {
       setLoading(true);
-      const res = await fetch(NOTIFICATIONS_API_URL, {
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
+      const res = await fetchNotificationsApi();
+      if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error('Your session has expired. Please log in again.');
         }
-      });
-      if (!res.ok) throw new Error('Unable to load notifications.');
+        throw new Error(`Unable to load notifications (status: ${res.status}).`);
+      }
       const data = await res.json();
       setNotifications(Array.isArray(data) ? data : []);
       setError('');
@@ -102,7 +103,7 @@ export default function VendorNotificationsPage({ onNavigate }) {
   };
 
   useEffect(() => {
-    if (token) loadNotifications();
+    loadNotifications();
   }, [token]);
 
   const handleMarkAsRead = async (id, isRead) => {
@@ -111,12 +112,7 @@ export default function VendorNotificationsPage({ onNavigate }) {
       prev.map((n) => (n.notificationId === id ? { ...n, isRead: true } : n))
     );
     try {
-      await fetch(`${NOTIFICATIONS_API_URL}/${id}/read`, {
-        method: 'PATCH',
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        }
-      });
+      await fetchNotificationsApi(`/${id}/read`, { method: 'PATCH' });
     } catch (err) {
       console.error('Failed to mark notification as read:', err);
     }
@@ -125,12 +121,7 @@ export default function VendorNotificationsPage({ onNavigate }) {
   const handleMarkAllAsRead = async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     try {
-      await fetch(`${NOTIFICATIONS_API_URL}/read-all`, {
-        method: 'PATCH',
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        }
-      });
+      await fetchNotificationsApi('/read-all', { method: 'PATCH' });
     } catch (err) {
       console.error('Failed to mark all notifications as read:', err);
     }
@@ -140,12 +131,7 @@ export default function VendorNotificationsPage({ onNavigate }) {
     e.stopPropagation();
     setNotifications((prev) => prev.filter((n) => n.notificationId !== id));
     try {
-      await fetch(`${NOTIFICATIONS_API_URL}/${id}`, {
-        method: 'DELETE',
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        }
-      });
+      await fetchNotificationsApi(`/${id}`, { method: 'DELETE' });
     } catch (err) {
       console.error('Failed to delete notification:', err);
     }
