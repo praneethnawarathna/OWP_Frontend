@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Bell, Menu, Search, CheckCheck, ChevronRight, Inbox, Clock, Sparkles } from 'lucide-react';
 
-const NOTIFICATIONS_API_URL = 'http://localhost:5131/api/notifications';
+import { fetchNotificationsApi } from '../../services/notificationsApi';
 
 /**
  * VendorHeader – top bar for the vendor portal with interactive
@@ -20,9 +20,7 @@ export default function VendorHeader({ onMenuClick, onNavigate, currentPage }) {
 
     try {
       setLoading(true);
-      const res = await fetch(NOTIFICATIONS_API_URL, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await fetchNotificationsApi();
       if (!res.ok) return;
       const data = await res.json();
       if (Array.isArray(data)) {
@@ -74,11 +72,9 @@ export default function VendorHeader({ onMenuClick, onNavigate, currentPage }) {
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
 
-      const token = localStorage.getItem('token');
       try {
-        await fetch(`${NOTIFICATIONS_API_URL}/${item.notificationId}/read`, {
-          method: 'PATCH',
-          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+        await fetchNotificationsApi(`/${item.notificationId}/read`, {
+          method: 'PATCH'
         });
       } catch (err) {
         console.error('Failed to mark read from dropdown:', err);
@@ -91,11 +87,9 @@ export default function VendorHeader({ onMenuClick, onNavigate, currentPage }) {
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     setUnreadCount(0);
 
-    const token = localStorage.getItem('token');
     try {
-      await fetch(`${NOTIFICATIONS_API_URL}/read-all`, {
-        method: 'PATCH',
-        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+      await fetchNotificationsApi('/read-all', {
+        method: 'PATCH'
       });
     } catch (err) {
       console.error('Failed to mark all read from dropdown:', err);

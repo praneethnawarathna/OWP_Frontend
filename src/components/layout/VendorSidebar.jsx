@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { vendorSidebarNav } from '../../mock/vendorData';
 
-const NOTIFICATIONS_API_URL = 'http://localhost:5131/api/notifications';
+import { fetchNotificationsApi } from '../../services/notificationsApi';
 
 const iconMap = {
   LayoutDashboard,
@@ -68,9 +68,7 @@ export default function VendorSidebar({
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    fetch(NOTIFICATIONS_API_URL, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    fetchNotificationsApi()
       .then((res) => (res.ok ? res.json() : []))
       .then((data) => {
         if (Array.isArray(data)) {
