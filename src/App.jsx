@@ -11,6 +11,8 @@ import LoginPage from './pages/LoginPage';
 import VendorDashboardPage from './pages/VendorDashboardPage';
 import VendorContentPage from './pages/VendorContentPage';
 import VendorProfilePage from './pages/VendorProfilePage';
+import VendorListingsPage from './pages/VendorListingsPage';
+import CreateListingPage from './pages/CreateListingPage';
 
 const getStoredUser = () => {
   try {
@@ -60,6 +62,7 @@ const pathToPage = (path) => {
     if (path === '/vendor-dashboard' || path === '/' || path === '/dashboard') return 'vendor-dashboard';
     if (path === '/vendor-profile') return 'vendor-profile';
     if (path === '/vendor-services') return 'vendor-services';
+    if (path === '/vendor-listing-editor') return 'vendor-listing-editor';
     if (path === '/vendor-ratings' || path === '/vendor-performance') return 'vendor-ratings';
     if (path === '/vendor-notifications') return 'vendor-notifications';
     return 'vendor-dashboard';
@@ -77,6 +80,7 @@ const pageToPath = (page) => {
   if (page === 'vendor-dashboard') return '/vendor-dashboard';
   if (page === 'vendor-profile') return '/vendor-profile';
   if (page === 'vendor-services') return '/vendor-services';
+  if (page === 'vendor-listing-editor') return '/vendor-listing-editor';
   if (page === 'vendor-ratings') return '/vendor-ratings';
   if (page === 'vendor-notifications') return '/vendor-notifications';
   if (page === 'customers') return '/customer-management';
@@ -156,7 +160,8 @@ export default function App() {
       >
         {currentPage === 'vendor-dashboard' && <VendorDashboardPage onNavigate={handleNavigate} />}
         {currentPage === 'vendor-profile' && <VendorProfilePage onNavigate={handleNavigate} />}
-        {currentPage === 'vendor-services' && <VendorContentPage type="services" />}
+        {currentPage === 'vendor-services' && <VendorListingsPage onNavigate={handleNavigate} />}
+        {currentPage === 'vendor-listing-editor' && <CreateListingPage onNavigate={handleNavigate} />}
         {currentPage === 'vendor-ratings' && <VendorContentPage type="performance" />}
         {currentPage === 'vendor-notifications' && <VendorContentPage type="notifications" />}
       </VendorLayout>

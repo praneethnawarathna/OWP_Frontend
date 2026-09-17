@@ -121,7 +121,11 @@ export default function VendorContentPage({ type }) {
         headers['Content-Type'] = 'application/json';
       } else {
         body = new FormData();
-        Object.entries({ ...form, eventDate: form.eventDate || '' }).forEach(([key, value]) => body.append(key, value));
+        Object.entries(form).forEach(([key, value]) => {
+          // Skip eventDate if empty — backend expects DateTime? (null), not an empty string
+          if (key === 'eventDate' && !value) return;
+          body.append(key, value);
+        });
         if (photo) body.append('photo', photo);
       }
       const response = await fetch(requestUrl, { method, headers, body });
