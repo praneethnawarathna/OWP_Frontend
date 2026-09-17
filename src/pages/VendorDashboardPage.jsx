@@ -900,7 +900,7 @@ export default function VendorDashboardPage({ onNavigate }) {
         }
 
         const token = localStorage.getItem('token');
-        const response = await fetch(`https://owpbackend-production.up.railway.app/api/vendor-dashboard?userId=${userId}`, {
+        const response = await fetch(`http://localhost:5131/api/vendor-dashboard?userId=${userId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',

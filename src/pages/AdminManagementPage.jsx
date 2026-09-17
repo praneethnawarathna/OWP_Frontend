@@ -38,7 +38,7 @@ import {
 //   8. Dynamic Stat Cards bound to /api/admin/metrics
 // ============================================================
 
-const API_BASE = 'https://owpbackend-production.up.railway.app/api/admin';
+const API_BASE = 'http://localhost:5131/api/admin';
 
 // Helper to get JWT token for authenticated requests
 const getAuthHeaders = () => ({

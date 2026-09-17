@@ -36,8 +36,8 @@ import {
   X,
 } from 'lucide-react';
 
-const API_BASE = 'https://owpbackend-production.up.railway.app/api/vendor-profile';
-const FILE_HOST = 'https://owpbackend-production.up.railway.app';
+const API_BASE = 'http://localhost:5131/api/vendor-profile';
+const FILE_HOST = 'http://localhost:5131';
 
 const CATEGORIES = [
   'Decorations',
