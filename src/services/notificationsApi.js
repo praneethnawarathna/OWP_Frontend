@@ -14,3 +14,19 @@ export async function fetchNotificationsApi(urlPath = '', options = {}) {
   const url = `${API_BASE}${urlPath}`;
   return await fetch(url, { ...options, headers });
 }
+
+export async function getNotifications() {
+  return fetchNotificationsApi();
+}
+
+export async function markNotificationAsRead(id) {
+  return fetchNotificationsApi(`/${id}/read`, { method: 'PATCH' });
+}
+
+export async function markAllNotificationsAsRead() {
+  return fetchNotificationsApi('/read-all', { method: 'PATCH' });
+}
+
+export async function deleteNotification(id) {
+  return fetchNotificationsApi(`/${id}`, { method: 'DELETE' });
+}

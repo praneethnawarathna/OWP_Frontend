@@ -34,6 +34,7 @@ export default function AdminLayout({
           userRole={userRole}
           onNavigate={onNavigate}
           onLogout={onLogout}
+          currentPage={currentPage}
         />
 
         <main
