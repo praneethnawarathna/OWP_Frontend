@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Search,
   Plus,
@@ -20,8 +20,8 @@ import {
   ShieldOff,
   ArrowUpDown,
   AlertTriangle,
+  Loader2,
 } from 'lucide-react';
-import { initialVendors, VENDOR_CATEGORIES, generateVendorId } from '../mock/vendorDirectoryData';
 import StatusBadge from '../components/vendorDirectory/StatusBadge';
 import VendorFormModal from '../components/vendorDirectory/VendorFormModal';
 import VendorDetailsModal from '../components/vendorDirectory/VendorDetailsModal';
@@ -33,11 +33,23 @@ const CATEGORY_ICON = {
   Music: Music2,
 };
 
+const VENDOR_CATEGORIES = ['Photography', 'Decorations', 'Hotels', 'Music'];
 const STATUS_TABS = ['All', 'Pending', 'Approved', 'Suspended', 'Banned', 'Rejected'];
 const PAGE_SIZE = 6;
 
+const API_BASE = 'http://localhost:5131/api/admin/vendors';
+
+const getAuthHeaders = () => ({
+  'Content-Type': 'application/json',
+  Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+});
+
 export default function VendorDirectoryPage() {
-  const [vendors, setVendors] = useState(initialVendors);
+  const [vendors, setVendors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
+
   const [statusTab, setStatusTab] = useState('All');
   const [category, setCategory] = useState('All');
   const [search, setSearch] = useState('');
@@ -48,6 +60,29 @@ export default function VendorDirectoryPage() {
   const [formModal, setFormModal] = useState({ open: false, vendor: null });
   const [detailsVendor, setDetailsVendor] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+
+  // Fetch vendors from database
+  const fetchVendors = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(API_BASE, { headers: getAuthHeaders() });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || errData.title || `Server returned error ${res.status}`);
+      }
+      const data = await res.json();
+      setVendors(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err.message || 'Unable to connect to the backend server.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchVendors();
+  }, [fetchVendors]);
 
   const stats = useMemo(() => {
     const byStatus = (s) => vendors.filter((v) => v.status === s).length;
@@ -68,10 +103,10 @@ export default function VendorDirectoryPage() {
       const q = search.trim().toLowerCase();
       list = list.filter(
         (v) =>
-          v.businessName.toLowerCase().includes(q) ||
-          v.ownerName.toLowerCase().includes(q) ||
-          v.email.toLowerCase().includes(q) ||
-          v.id.toLowerCase().includes(q)
+          (v.businessName && v.businessName.toLowerCase().includes(q)) ||
+          (v.ownerName && v.ownerName.toLowerCase().includes(q)) ||
+          (v.email && v.email.toLowerCase().includes(q)) ||
+          (v.id && String(v.id).toLowerCase().includes(q))
       );
     }
     const sorted = [...list].sort((a, b) => {
@@ -100,153 +135,211 @@ export default function VendorDirectoryPage() {
     }
   }
 
-  // ---- CRUD handlers ----
+  // ---- CRUD & Status handlers ----
 
-  function handleSaveVendor(form) {
-    if (form.id) {
-      setVendors((prev) => prev.map((v) => (v.id === form.id ? { ...v, ...form } : v)));
-    } else {
-      const newVendor = {
-        ...form,
-        id: generateVendorId(),
-        appliedDate: new Date().toISOString().slice(0, 10),
-        listingsCount: 0,
-        rating: null,
-        revenue: 0,
-        verificationDocs: [],
-      };
-      setVendors((prev) => [newVendor, ...prev]);
+  async function handleSaveVendor(form) {
+    setActionLoading(true);
+    try {
+      const numericId = form.vendorId || (form.id ? parseInt(String(form.id).replace(/\D/g, ''), 10) : null);
+      const isEdit = Boolean(numericId);
+      const url = isEdit ? `${API_BASE}/${numericId}` : API_BASE;
+      const method = isEdit ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: getAuthHeaders(),
+        body: JSON.stringify(form),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        alert(errData.detail || errData.title || 'Failed to save vendor');
+        return;
+      }
+
+      await fetchVendors();
+      setFormModal({ open: false, vendor: null });
+    } catch (err) {
+      alert(err.message || 'Error saving vendor.');
+    } finally {
+      setActionLoading(false);
     }
-    setFormModal({ open: false, vendor: null });
   }
 
-  function updateVendor(id, patch) {
-    setVendors((prev) => prev.map((v) => (v.id === id ? { ...v, ...patch } : v)));
+  async function updateVendorStatus(vendor, newStatus, reason) {
+    const id = vendor.vendorId || parseInt(String(vendor.id).replace(/\D/g, ''), 10);
+    if (!id) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/${id}/status`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ status: newStatus, reason }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        alert(errData.detail || errData.title || 'Failed to update vendor status.');
+        return;
+      }
+
+      await fetchVendors();
+      setDetailsVendor(null);
+    } catch (err) {
+      alert(err.message || 'Error updating vendor status.');
+    } finally {
+      setActionLoading(false);
+    }
   }
 
   function handleApprove(vendor) {
-    updateVendor(vendor.id, {
-      status: 'Approved',
-      approvedDate: new Date().toISOString().slice(0, 10),
-      suspendReason: undefined,
-    });
-    setDetailsVendor(null);
+    updateVendorStatus(vendor, 'Approved');
   }
 
   function handleReject(vendor, reason) {
-    updateVendor(vendor.id, { status: 'Rejected', rejectReason: reason });
-    setDetailsVendor(null);
+    updateVendorStatus(vendor, 'Rejected', reason);
   }
 
   function handleRequestInfo(vendor) {
-    updateVendor(vendor.id, { status: 'Pending', infoRequested: true });
-    setDetailsVendor(null);
+    updateVendorStatus(vendor, 'Pending', 'Info Requested');
   }
 
   function handleHold(vendor) {
-    updateVendor(vendor.id, { status: 'Pending', onHold: true });
-    setDetailsVendor(null);
+    updateVendorStatus(vendor, 'Pending', 'On Hold');
   }
 
   function handleSuspend(vendor) {
-    updateVendor(vendor.id, {
-      status: 'Suspended',
-      suspendedDate: new Date().toISOString().slice(0, 10),
-      suspendReason: 'Suspended by admin pending review',
-    });
-    setDetailsVendor(null);
+    updateVendorStatus(vendor, 'Suspended', 'Suspended by admin');
   }
 
   function handleBan(vendor, reason) {
-    updateVendor(vendor.id, {
-      status: 'Banned',
-      banDate: new Date().toISOString().slice(0, 10),
-      banReason: reason,
-    });
-    setDetailsVendor(null);
+    updateVendorStatus(vendor, 'Banned', reason);
   }
 
   function handleUnban(vendor) {
-    updateVendor(vendor.id, { status: 'Approved', banReason: undefined, banDate: undefined });
-    setDetailsVendor(null);
+    updateVendorStatus(vendor, 'Approved');
   }
 
-  function confirmDelete() {
-    setVendors((prev) => prev.filter((v) => v.id !== deleteTarget.id));
-    setDeleteTarget(null);
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    const id = deleteTarget.vendorId || parseInt(String(deleteTarget.id).replace(/\D/g, ''), 10);
+    if (!id) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        alert(errData.detail || errData.title || 'Failed to delete vendor.');
+        return;
+      }
+
+      await fetchVendors();
+      setDeleteTarget(null);
+    } catch (err) {
+      alert(err.message || 'Error deleting vendor.');
+    } finally {
+      setActionLoading(false);
+    }
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Vendor directory</h1>
-          <p className="text-sm text-gray-500">
+          <h1
+            className="text-2xl font-bold text-gray-900"
+            style={{ fontFamily: "'Playfair Display', serif" }}
+          >
+            Vendor Directory
+          </h1>
+          <p className="mt-1 text-sm text-gray-500">
             Manage photography, decorations, hotels and music vendors in one place.
           </p>
         </div>
         <button
           onClick={() => setFormModal({ open: true, vendor: null })}
-          className="inline-flex items-center gap-2 rounded-md bg-[#8E406F] px-4 py-2 text-sm font-medium text-white hover:bg-[#75325a]"
+          className="inline-flex items-center gap-2 self-start rounded-lg bg-[#8E406F] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#78345c] sm:self-auto"
         >
           <Plus size={16} />
           Add vendor
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+      {/* Metric Cards */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         <StatCard icon={Users} label="Total vendors" value={stats.total} />
-        <StatCard icon={Clock} label="Pending" value={stats.pending} tone="amber" />
+        <StatCard icon={Clock} label="Pending approval" value={stats.pending} tone="amber" />
         <StatCard icon={ShieldCheck} label="Approved" value={stats.approved} tone="emerald" />
-        <StatCard icon={ShieldAlert} label="Suspended" value={stats.suspended} tone="orange" />
-        <StatCard icon={ShieldOff} label="Banned" value={stats.banned} tone="red" />
+        <StatCard icon={ShieldAlert} label="Suspended" value={stats.suspended} tone="rose" />
+        <StatCard icon={ShieldOff} label="Banned" value={stats.banned} tone="slate" />
       </div>
 
-      {/* Category tabs */}
-      <div className="flex flex-wrap gap-2">
-        <CategoryPill
-          label="All categories"
-          active={category === 'All'}
-          onClick={() => {
-            setCategory('All');
-            resetToFirstPage();
-          }}
-        />
-        {VENDOR_CATEGORIES.map((c) => (
-          <CategoryPill
-            key={c}
-            label={c}
-            icon={CATEGORY_ICON[c]}
-            active={category === c}
-            onClick={() => {
-              setCategory(c);
-              resetToFirstPage();
-            }}
-          />
-        ))}
-      </div>
-
-      <div className="rounded-lg border border-gray-200 bg-white">
-        {/* Status tabs + search */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-4 py-3">
-          <div className="flex flex-wrap gap-1">
-            {STATUS_TABS.map((s) => (
+      {/* Main card: tabs, search, filter, table */}
+      <div className="rounded-xl border border-gray-100 bg-white shadow-sm">
+        {/* Status Tabs */}
+        <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 px-6 pt-4">
+          {STATUS_TABS.map((tab) => {
+            const count =
+              tab === 'All'
+                ? vendors.length
+                : vendors.filter((v) => v.status === tab).length;
+            const active = statusTab === tab;
+            return (
               <button
-                key={s}
+                key={tab}
                 onClick={() => {
-                  setStatusTab(s);
+                  setStatusTab(tab);
                   resetToFirstPage();
                 }}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium ${
-                  statusTab === s
-                    ? 'bg-[#FDF0F4] text-[#8E406F]'
-                    : 'text-gray-500 hover:bg-gray-50'
+                className={`flex items-center gap-2 border-b-2 px-3 pb-3 text-sm font-medium transition-colors ${
+                  active
+                    ? 'border-[#8E406F] text-[#8E406F]'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
-                {s}
+                {tab}
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs ${
+                    active ? 'bg-[#FDF0F4] text-[#8E406F]' : 'bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  {count}
+                </span>
               </button>
-            ))}
+            );
+          })}
+        </div>
+
+        {/* Toolbar: Category filter + search */}
+        <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium uppercase tracking-wider text-gray-400">
+              Category:
+            </span>
+            {['All', ...VENDOR_CATEGORIES].map((cat) => {
+              const active = category === cat;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => {
+                    setCategory(cat);
+                    resetToFirstPage();
+                  }}
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                    active
+                      ? 'bg-[#8E406F] text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {cat}
+                </button>
+              );
+            })}
           </div>
           <div className="relative">
             <Search
@@ -281,118 +374,151 @@ export default function VendorDirectoryPage() {
               </tr>
             </thead>
             <tbody>
-              {pageItems.length === 0 && (
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-12 text-center text-sm text-gray-500">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Loader2 size={24} className="animate-spin text-[#8E406F]" />
+                      <span>Loading vendors from database...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-10 text-center text-sm text-red-600">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <AlertTriangle size={24} className="text-red-500" />
+                      <span>{error}</span>
+                      <button
+                        onClick={fetchVendors}
+                        className="mt-2 rounded bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : pageItems.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-400">
                     No vendors match these filters.
                   </td>
                 </tr>
-              )}
-              {pageItems.map((v) => {
-                const CategoryIcon = CATEGORY_ICON[v.category] || Building2;
-                return (
-                  <tr key={v.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-gray-900">{v.businessName}</p>
-                      <p className="text-xs text-gray-400">
-                        {v.id} &middot; {v.ownerName}
-                      </p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center gap-1.5 text-gray-600">
-                        <CategoryIcon size={14} className="text-[#8E406F]" />
-                        {v.category}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">{v.listingsCount ?? 0}</td>
-                    <td className="px-4 py-3 text-gray-600">
-                      {v.rating ? `${v.rating} ★` : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500">{v.appliedDate}</td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={v.status} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-end gap-1">
-                        <IconButton icon={Eye} label="View" onClick={() => setDetailsVendor(v)} />
-                        <IconButton
-                          icon={Edit2}
-                          label="Edit"
-                          onClick={() => setFormModal({ open: true, vendor: v })}
-                        />
-                        {v.status === 'Approved' && (
+              ) : (
+                pageItems.map((v) => {
+                  const CategoryIcon = CATEGORY_ICON[v.category] || Building2;
+                  return (
+                    <tr key={v.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-gray-900">{v.businessName}</p>
+                        <p className="text-xs text-gray-400">
+                          {v.id} &middot; {v.ownerName}
+                        </p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center gap-1.5 text-gray-600">
+                          <CategoryIcon size={14} className="text-[#8E406F]" />
+                          {v.category}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">{v.listingsCount ?? 0}</td>
+                      <td className="px-4 py-3 text-gray-600">
+                        {v.rating ? `${v.rating} ★` : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500">{v.appliedDate}</td>
+                      <td className="px-4 py-3">
+                        <StatusBadge status={v.status} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex justify-end gap-1">
+                          <IconButton icon={Eye} label="View" onClick={() => setDetailsVendor(v)} />
                           <IconButton
-                            icon={ShieldAlert}
-                            label="Suspend"
-                            onClick={() => handleSuspend(v)}
+                            icon={Edit2}
+                            label="Edit"
+                            onClick={() => setFormModal({ open: true, vendor: v })}
                           />
-                        )}
-                        {v.status === 'Suspended' && (
+                          {v.status === 'Approved' && (
+                            <IconButton
+                              icon={ShieldAlert}
+                              label="Suspend"
+                              onClick={() => handleSuspend(v)}
+                            />
+                          )}
+                          {v.status === 'Suspended' && (
+                            <IconButton
+                              icon={RotateCcw}
+                              label="Reactivate"
+                              onClick={() => handleApprove(v)}
+                            />
+                          )}
+                          {v.status === 'Banned' && (
+                            <IconButton icon={RotateCcw} label="Unban" onClick={() => handleUnban(v)} />
+                          )}
+                          {v.status !== 'Banned' && v.status !== 'Pending' && (
+                            <IconButton
+                              icon={Ban}
+                              label="Ban"
+                              tone="danger"
+                              onClick={() => handleBan(v, 'Banned directly from directory')}
+                            />
+                          )}
                           <IconButton
-                            icon={RotateCcw}
-                            label="Reactivate"
-                            onClick={() => handleApprove(v)}
-                          />
-                        )}
-                        {v.status === 'Banned' && (
-                          <IconButton icon={RotateCcw} label="Unban" onClick={() => handleUnban(v)} />
-                        )}
-                        {v.status !== 'Banned' && v.status !== 'Pending' && (
-                          <IconButton
-                            icon={Ban}
-                            label="Ban"
+                            icon={Trash2}
+                            label="Delete"
                             tone="danger"
-                            onClick={() => handleBan(v, 'Banned directly from directory')}
+                            onClick={() => setDeleteTarget(v)}
                           />
-                        )}
-                        <IconButton
-                          icon={Trash2}
-                          label="Delete"
-                          tone="danger"
-                          onClick={() => setDeleteTarget(v)}
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3 text-sm text-gray-500">
+        <div className="flex items-center justify-between border-t border-gray-100 px-6 py-3 text-sm text-gray-500">
           <span>
-            Showing {pageItems.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}–
-            {Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
+            {filtered.length === 0
+              ? 'Showing 0 vendors'
+              : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(
+                  page * PAGE_SIZE,
+                  filtered.length
+                )} of ${filtered.length}`}
           </span>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="rounded-md border border-gray-200 p-1.5 disabled:opacity-40"
+              className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-30"
+              aria-label="Previous page"
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={18} />
             </button>
-            <span>
+            <span className="text-xs">
               Page {page} of {totalPages}
             </span>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="rounded-md border border-gray-200 p-1.5 disabled:opacity-40"
+              className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-30"
+              aria-label="Next page"
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={18} />
             </button>
           </div>
         </div>
       </div>
 
+      {/* Modals */}
       {formModal.open && (
         <VendorFormModal
           vendor={formModal.vendor}
           onClose={() => setFormModal({ open: false, vendor: null })}
           onSave={handleSaveVendor}
+          loading={actionLoading}
         />
       )}
 
@@ -411,28 +537,31 @@ export default function VendorDirectoryPage() {
       )}
 
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
-            <div className="mb-3 flex items-center gap-2 text-red-600">
-              <AlertTriangle size={18} />
+            <div className="flex items-center gap-3 text-red-600">
+              <AlertTriangle size={24} />
               <h3 className="font-semibold">Delete vendor?</h3>
             </div>
-            <p className="text-sm text-gray-600">
-              This permanently removes <strong>{deleteTarget.businessName}</strong> and its
-              records from the directory. This can&rsquo;t be undone.
+            <p className="mt-2 text-sm text-gray-600">
+              Are you sure you want to delete{' '}
+              <span className="font-medium text-gray-900">{deleteTarget.businessName}</span>?
+              This action cannot be undone.
             </p>
-            <div className="mt-5 flex justify-end gap-3">
+            <div className="mt-5 flex justify-end gap-2">
               <button
                 onClick={() => setDeleteTarget(null)}
-                className="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+                disabled={actionLoading}
+                className="rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
-                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+                disabled={actionLoading}
+                className="rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
               >
-                Delete permanently
+                {actionLoading ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>
@@ -442,39 +571,26 @@ export default function VendorDirectoryPage() {
   );
 }
 
-function StatCard({ icon: Icon, label, value, tone }) {
-  const toneClass =
-    {
-      amber: 'text-amber-600 bg-amber-50',
-      emerald: 'text-emerald-600 bg-emerald-50',
-      orange: 'text-orange-600 bg-orange-50',
-      red: 'text-red-600 bg-red-50',
-    }[tone] || 'text-[#8E406F] bg-[#FDF0F4]';
+// ── Helpers ──
 
+function StatCard({ icon: Icon, label, value, tone = 'default' }) {
+  const toneClasses = {
+    default: 'bg-[#FDF0F4] text-[#8E406F]',
+    amber: 'bg-amber-50 text-amber-700',
+    emerald: 'bg-emerald-50 text-emerald-700',
+    rose: 'bg-rose-50 text-rose-700',
+    slate: 'bg-slate-100 text-slate-700',
+  };
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <div className={`mb-2 inline-flex rounded-md p-1.5 ${toneClass}`}>
-        <Icon size={16} />
+    <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+      <div className={`rounded-lg p-2.5 ${toneClasses[tone]}`}>
+        <Icon size={20} />
       </div>
-      <p className="text-lg font-semibold text-gray-900">{value}</p>
-      <p className="text-xs text-gray-500">{label}</p>
+      <div>
+        <p className="text-xs text-gray-400">{label}</p>
+        <p className="text-xl font-semibold text-gray-900">{value}</p>
+      </div>
     </div>
-  );
-}
-
-function CategoryPill({ label, icon: Icon, active, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium ${
-        active
-          ? 'border-[#8E406F] bg-[#8E406F] text-white'
-          : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-      }`}
-    >
-      {Icon && <Icon size={14} />}
-      {label}
-    </button>
   );
 }
 
@@ -484,25 +600,26 @@ function Th({ label, field, sortBy, sortDir, onSort }) {
     <th className="px-4 py-3">
       <button
         onClick={() => onSort(field)}
-        className={`inline-flex items-center gap-1 ${active ? 'text-[#8E406F]' : ''}`}
+        className="inline-flex items-center gap-1 hover:text-gray-700"
       >
-        {label}
-        <ArrowUpDown size={12} className={active ? 'opacity-100' : 'opacity-30'} />
+        <span>{label}</span>
+        <ArrowUpDown size={12} className={active ? 'text-[#8E406F]' : 'text-gray-300'} />
       </button>
     </th>
   );
 }
 
-function IconButton({ icon: Icon, label, onClick, tone }) {
+function IconButton({ icon: Icon, label, onClick, tone = 'default' }) {
+  const toneClass =
+    tone === 'danger'
+      ? 'text-gray-400 hover:bg-red-50 hover:text-red-600'
+      : 'text-gray-400 hover:bg-gray-100 hover:text-gray-700';
   return (
     <button
       onClick={onClick}
+      aria-label={label}
       title={label}
-      className={`rounded-md p-1.5 ${
-        tone === 'danger'
-          ? 'text-red-500 hover:bg-red-50'
-          : 'text-gray-500 hover:bg-gray-100'
-      }`}
+      className={`rounded p-1.5 transition-colors ${toneClass}`}
     >
       <Icon size={15} />
     </button>

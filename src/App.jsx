@@ -7,6 +7,7 @@ import CustomerManagementPage from './pages/CustomerManagementPage';
 import ListingReviewPage from './pages/ListingReviewPage';
 import AdminManagementPage from './pages/AdminManagementPage';
 import AdminSettingsPage from './pages/AdminSettingsPage';
+import VendorDirectoryPage from './pages/VendorDirectoryPage';
 import LoginPage from './pages/LoginPage';
 import VendorDashboardPage from './pages/VendorDashboardPage';
 import VendorContentPage from './pages/VendorContentPage';
@@ -47,6 +48,8 @@ const isAuthenticated = () => {
 const getUserRole = () => {
   try {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const role = String(user.role || '').toUpperCase();
+    if (role.includes('SUPER')) return 'SUPER_ADMIN';
     return user.role || 'ADMIN';
   } catch {
     return 'ADMIN';
@@ -71,6 +74,7 @@ const pathToPage = (path) => {
 
   if (path === '/customer-management' || path === '/customers') return 'customers';
   if (path === '/listing-review' || path === '/listings') return 'listing-review';
+  if (path === '/all-vendors' || path === '/vendor-directory' || path === '/vendors') return 'all-vendors';
   if (path === '/admin-management' || path === '/admins') return 'admin-management';
   if (path === '/settings') return 'settings';
   return 'dashboard'; // Default route for '/' or '/dashboard'
@@ -86,6 +90,7 @@ const pageToPath = (page) => {
   if (page === 'vendor-notifications') return '/vendor-notifications';
   if (page === 'customers') return '/customer-management';
   if (page === 'listing-review') return '/listing-review';
+  if (page === 'all-vendors' || page === 'vendor-directory') return '/all-vendors';
   if (page === 'admin-management') return '/admin-management';
   if (page === 'settings') return '/settings';
   return '/';
@@ -180,6 +185,7 @@ export default function App() {
       {currentPage === 'dashboard' && <DashboardPage onNavigate={handleNavigate} />}
       {currentPage === 'customers' && <CustomerManagementPage />}
       {currentPage === 'listing-review' && <ListingReviewPage />}
+      {(currentPage === 'all-vendors' || currentPage === 'vendor-directory') && <VendorDirectoryPage />}
       {currentPage === 'admin-management' && <AdminManagementPage />}
       {currentPage === 'settings' && <AdminSettingsPage />}
     </AdminLayout>

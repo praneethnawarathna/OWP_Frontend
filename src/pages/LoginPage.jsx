@@ -170,6 +170,10 @@ export default function LoginPage({ onLoginSuccess }) {
         }
       }
 
+      if (resolvedRole === 'SUPERADMIN' || resolvedRole.includes('SUPER')) {
+        resolvedRole = 'SUPER_ADMIN';
+      }
+
       if (!resolvedRole) {
         resolvedRole = isAdmin ? 'ADMIN' : 'VENDOR';
       }
