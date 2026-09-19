@@ -176,6 +176,8 @@ export default function LoginPage({ onLoginSuccess }) {
 
       if (!resolvedRole) {
         resolvedRole = isAdmin ? 'ADMIN' : 'VENDOR';
+      } else if (resolvedRole === 'SUPERADMIN') {
+        resolvedRole = 'SUPER_ADMIN';
       }
 
       // Store JWT token and user profile for subsequent authenticated requests

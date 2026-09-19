@@ -31,6 +31,7 @@ const iconMap = {
 };
 
 // IDs that map to real pages
+const ROUTABLE_IDS = new Set(['dashboard', 'customers', 'listing-review', 'all-vendors', 'admin-management', 'settings', 'notifications']);
 const ROUTABLE_IDS = new Set(['dashboard', 'customers', 'listing-review', 'all-vendors', 'admin-management', 'settings']);
 const ROUTABLE_IDS = new Set(['dashboard', 'customers', 'listing-review', 'admin-management', 'settings', 'notifications']);
 
@@ -86,6 +87,9 @@ export default function Sidebar({
       return {};
     }
   })();
+
+  const effectiveRole = String(userRole || storedUser.role || '').toUpperCase();
+  const isSuperAdmin = effectiveRole.includes('SUPER');
 
   const displayName = storedUser.fullName || 'System Admin';
   const displayRole = storedUser.role || (isSuperAdmin ? 'SUPER_ADMIN' : 'ADMIN');
