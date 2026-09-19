@@ -31,7 +31,7 @@ const iconMap = {
 };
 
 // IDs that map to real pages
-const ROUTABLE_IDS = new Set(['dashboard', 'customers', 'listing-review', 'admin-management', 'settings']);
+const ROUTABLE_IDS = new Set(['dashboard', 'customers', 'listing-review', 'admin-management', 'settings', 'notifications']);
 
 function NavItem({ item, isActive, onNavigate }) {
   const Icon = iconMap[item.icon] ?? LayoutDashboard;
