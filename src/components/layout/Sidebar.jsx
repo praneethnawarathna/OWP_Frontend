@@ -32,8 +32,6 @@ const iconMap = {
 
 // IDs that map to real pages
 const ROUTABLE_IDS = new Set(['dashboard', 'customers', 'listing-review', 'all-vendors', 'admin-management', 'settings', 'notifications']);
-const ROUTABLE_IDS = new Set(['dashboard', 'customers', 'listing-review', 'all-vendors', 'admin-management', 'settings']);
-const ROUTABLE_IDS = new Set(['dashboard', 'customers', 'listing-review', 'admin-management', 'settings', 'notifications']);
 
 function NavItem({ item, isActive, onNavigate }) {
   const Icon = iconMap[item.icon] ?? LayoutDashboard;
@@ -72,13 +70,6 @@ export default function Sidebar({
   userRole,
   onLogout,
 }) {
-  const isSuperAdmin =
-    userRole === 'SUPER_ADMIN' ||
-    userRole === 'SUPERADMIN' ||
-    userRole === 'SuperAdmin' ||
-    String(userRole || '').toUpperCase().includes('SUPER') ||
-    String(storedUser.role || '').toUpperCase().includes('SUPER');
-
   // Retrieve authenticated user data from localStorage
   const storedUser = (() => {
     try {
