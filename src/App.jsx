@@ -15,6 +15,7 @@ import VendorProfilePage from './pages/VendorProfilePage';
 import VendorListingsPage from './pages/VendorListingsPage';
 import CreateListingPage from './pages/CreateListingPage';
 import VendorNotificationsPage from './pages/VendorNotificationsPage';
+import AdminNotificationsPage from './pages/AdminNotificationsPage';
 
 const getStoredUser = () => {
   try {
@@ -77,6 +78,7 @@ const pathToPage = (path) => {
   if (path === '/all-vendors' || path === '/vendor-directory' || path === '/vendors') return 'all-vendors';
   if (path === '/admin-management' || path === '/admins') return 'admin-management';
   if (path === '/settings') return 'settings';
+  if (path === '/notifications' || path === '/admin-notifications') return 'notifications';
   return 'dashboard'; // Default route for '/' or '/dashboard'
 };
 
@@ -93,6 +95,7 @@ const pageToPath = (page) => {
   if (page === 'all-vendors' || page === 'vendor-directory') return '/all-vendors';
   if (page === 'admin-management') return '/admin-management';
   if (page === 'settings') return '/settings';
+  if (page === 'notifications') return '/notifications';
   return '/';
 };
 
@@ -188,6 +191,7 @@ export default function App() {
       {(currentPage === 'all-vendors' || currentPage === 'vendor-directory') && <VendorDirectoryPage />}
       {currentPage === 'admin-management' && <AdminManagementPage />}
       {currentPage === 'settings' && <AdminSettingsPage />}
+      {currentPage === 'notifications' && <AdminNotificationsPage onNavigate={handleNavigate} />}
     </AdminLayout>
   );
 }
