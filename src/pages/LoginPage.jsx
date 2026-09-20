@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-
-// ============================================================
+import VendorRegisterPage from './VendorRegisterPage';
+import GoogleSignInButton from '../components/auth/GoogleSignInButton';
+import { signInWithGoogleApi } from '../components/auth/googleAuthApi';
+import { saveSession } from '../components/auth/saveSession';// ============================================================
 // LoginPage.jsx — Oleena Wedding Planner
 // Design System: Ethereal Union (from Stitch)
 // Colors:
@@ -38,6 +40,12 @@ export default function LoginPage({ onLoginSuccess }) {
   // --- State ---
   // isAdmin: controls whether the Admin toggle is ON
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // view: controls whether we show the login form or the registration wizard
+  const [view, setView] = useState('login');
+  
+  // googlePrefill: stores data if registration is required after Google Sign-In
+  const [googlePrefill, setGooglePrefill] = useState(null);
 
   // showPassword: controls eye-icon password visibility toggle
   const [showPassword, setShowPassword] = useState(false);
@@ -114,6 +122,32 @@ export default function LoginPage({ onLoginSuccess }) {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Handle Google Sign-In success
+  const handleGoogleSuccess = async (idToken) => {
+    setLoginError('');
+    setIsLoading(true);
+    try {
+      const data = await signInWithGoogleApi(idToken);
+      if (data.status === 'AUTHENTICATED') {
+        saveSession(data);
+        onLoginSuccess();
+      } else if (data.status === 'REGISTRATION_REQUIRED') {
+        setGooglePrefill({
+          email: data.email,
+          fullName: data.fullName,
+          idToken: idToken,
+        });
+        setView('register');
+      } else {
+        setLoginError('Unexpected response from Google authentication.');
+      }
+    } catch (err) {
+      setLoginError(err.message || 'Google sign-in failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Handle Sign In form submission
@@ -200,17 +234,27 @@ export default function LoginPage({ onLoginSuccess }) {
 
   // Auto-focus first PIN cell when admin mode is activated
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdmin && view === 'login') {
       setTimeout(() => pinRefs[0].current?.focus(), 350);
     }
-  }, [isAdmin]);
+  }, [isAdmin, view]);
+
+  if (view === 'register') {
+    return (
+      <VendorRegisterPage 
+        onRegisterSuccess={onLoginSuccess} 
+        onBackToLogin={() => setView('login')} 
+        googlePrefill={googlePrefill} 
+      />
+    );
+  }
 
   return (
     // ============================================================
     // Root container — full viewport, mobile-first flex column
     // On md+ screens: flex-row (split-screen layout)
     // ============================================================
-    <div className="min-h-screen flex flex-col md:flex-row font-sans">
+    <div className="min-h-screen flex flex-col md:flex-row font-sans bg-white">
 
       {/* ========================================================
           LEFT PANEL — Brand / Hero Section
@@ -266,9 +310,8 @@ export default function LoginPage({ onLoginSuccess }) {
           {/* Logo / Brand Name — Playfair Display for editorial elegance */}
           {/* To change brand name: edit the text inside the h1 */}
           <h1
-            className={`font-serif text-8xl md:text-3xl lg:text-8xl font-bold leading-tight tracking-tight mb-6 ${LEFT_PANEL_IMAGE ? 'text-white' : 'text-[#8E406F]'
+            className={`font-display text-8xl md:text-3xl lg:text-8xl font-bold leading-tight tracking-tight mb-6 ${LEFT_PANEL_IMAGE ? 'text-white' : 'text-[#8E406F]'
               }`}
-            style={{ fontFamily: "'Playfair Display', serif" }}
           >
             Oleena Wedding Planner
           </h1>
@@ -276,9 +319,8 @@ export default function LoginPage({ onLoginSuccess }) {
           {/* Brand tagline */}
           {/* To change tagline: edit the paragraph text below */}
           <p
-            className={`text-base md:text-lg lg:text-2xl leading-relaxed ${LEFT_PANEL_IMAGE ? 'text-white/80' : 'text-[#737373]'
+            className={`font-sans text-base md:text-lg lg:text-2xl leading-relaxed ${LEFT_PANEL_IMAGE ? 'text-white/80' : 'text-[#737373]'
               }`}
-            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
           >
             Curating elegant, seamless wedding experiences with precision and grace.
           </p>
@@ -305,14 +347,12 @@ export default function LoginPage({ onLoginSuccess }) {
           {/* Welcome heading */}
           {/* To change the heading text: edit the h2 content below */}
           <h2
-            className="text-5xl font-bold text-[#8E406F] mb-2"
-            style={{ fontFamily: "'Playfair Display', serif" }}
+            className="font-display text-4xl lg:text-5xl font-bold text-[#8E406F] mb-2"
           >
             Welcome Back
           </h2>
           <p
-            className="text-[#737373] text-sm mb-8"
-            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            className="font-sans text-[#737373] text-sm mb-8"
           >
             Please enter your details to sign in.
           </p>
@@ -327,8 +367,7 @@ export default function LoginPage({ onLoginSuccess }) {
             <div className="mb-5">
               <label
                 htmlFor="email"
-                className="block text-xs font-semibold text-[#2d2926] mb-1.5 tracking-wide uppercase"
-                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                className="font-sans block text-xs font-semibold text-[#2d2926] mb-1.5 tracking-wide uppercase"
               >
                 Email Address
               </label>
@@ -351,8 +390,7 @@ export default function LoginPage({ onLoginSuccess }) {
                   onChange={handleInputChange}
                   aria-label="Email address"
                   aria-required="true"
-                  className="w-full pl-10 pr-4 py-3 border border-[#d6c1c9] rounded text-sm text-[#2d2926] placeholder-[#b0a0a8] bg-white transition-all duration-200 focus:outline-none focus:border-[#8E406F] focus:ring-2 focus:ring-[#8E406F]/20 hover:border-[#8E406F]/60"
-                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                  className="font-sans w-full pl-10 pr-4 py-3 border border-[#d6c1c9] rounded-lg text-sm text-[#2d2926] placeholder-[#b0a0a8] bg-white shadow-sm transition-all duration-200 focus:outline-none focus:border-[#8E406F] focus:ring-2 focus:ring-[#8E406F]/20 hover:border-[#8E406F]/60"
                 />
               </div>
             </div>
@@ -361,8 +399,7 @@ export default function LoginPage({ onLoginSuccess }) {
             <div className="mb-2">
               <label
                 htmlFor="password"
-                className="block text-xs font-semibold text-[#2d2926] mb-1.5 tracking-wide uppercase"
-                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                className="font-sans block text-xs font-semibold text-[#2d2926] mb-1.5 tracking-wide uppercase"
               >
                 Password
               </label>
@@ -385,8 +422,7 @@ export default function LoginPage({ onLoginSuccess }) {
                   onChange={handleInputChange}
                   aria-label="Password"
                   aria-required="true"
-                  className="w-full pl-10 pr-11 py-3 border border-[#d6c1c9] rounded text-sm text-[#2d2926] placeholder-[#b0a0a8] bg-white transition-all duration-200 focus:outline-none focus:border-[#8E406F] focus:ring-2 focus:ring-[#8E406F]/20 hover:border-[#8E406F]/60"
-                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                  className="font-sans w-full pl-10 pr-11 py-3 border border-[#d6c1c9] rounded-lg text-sm text-[#2d2926] placeholder-[#b0a0a8] bg-white shadow-sm transition-all duration-200 focus:outline-none focus:border-[#8E406F] focus:ring-2 focus:ring-[#8E406F]/20 hover:border-[#8E406F]/60"
                 />
                 {/* Eye toggle button */}
                 <button
@@ -416,10 +452,9 @@ export default function LoginPage({ onLoginSuccess }) {
             <div className="flex justify-end mb-6">
               <button
                 type="button"
-                className="text-xs text-[#8E406F] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8E406F] rounded"
+                className="font-sans text-xs text-[#8E406F] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8E406F] rounded"
                 aria-label="Forgot password"
                 onClick={() => alert('Navigate to Forgot Password page')}
-                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
               >
                 Forgot Password?
               </button>
@@ -432,9 +467,8 @@ export default function LoginPage({ onLoginSuccess }) {
                 =================================================== */}
             <div className="flex items-center justify-between mb-4">
               <span
-                className="text-sm font-medium text-[#2d2926]"
+                className="font-sans text-sm font-medium text-[#2d2926]"
                 id="admin-toggle-label"
-                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
               >
                 I am an Administrator
               </span>
@@ -479,8 +513,7 @@ export default function LoginPage({ onLoginSuccess }) {
                   </svg>
                   <span
                     id="pin-label"
-                    className="text-xs font-semibold text-[#8E406F] tracking-wide uppercase"
-                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                    className="font-sans text-xs font-semibold text-[#8E406F] tracking-wide uppercase"
                   >
                     Secure Admin PIN
                   </span>
@@ -503,8 +536,7 @@ export default function LoginPage({ onLoginSuccess }) {
                       onPaste={handlePinPaste}
                       aria-label={`PIN digit ${index + 1} of 4`}
                       aria-required={isAdmin}
-                      className={`w-12 h-12 text-center text-lg font-bold rounded border-2 bg-white text-[#2d2926] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#8E406F]/30 ${pinError ? 'border-red-400 bg-red-50' : digit ? 'border-[#8E406F]' : 'border-[#d6c1c9] focus:border-[#8E406F]'}`}
-                      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                      className={`font-sans w-12 h-12 text-center text-lg font-bold rounded-lg border-2 bg-white text-[#2d2926] shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#8E406F]/30 ${pinError ? 'border-red-400 bg-red-50' : digit ? 'border-[#8E406F]' : 'border-[#d6c1c9] focus:border-[#8E406F]'}`}
                     />
                   ))}
                 </div>
@@ -512,10 +544,9 @@ export default function LoginPage({ onLoginSuccess }) {
                 {/* PIN validation error message */}
                 {pinError && (
                   <p
-                    className="text-red-500 text-xs text-center mt-2"
+                    className="font-sans text-red-500 text-xs text-center mt-2"
                     role="alert"
                     aria-live="polite"
-                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
                   >
                     Please enter your 4-digit admin PIN.
                   </p>
@@ -546,8 +577,7 @@ export default function LoginPage({ onLoginSuccess }) {
               type="submit"
               disabled={isLoading}
               aria-label="Sign in to your account"
-              className={`w-full py-3.5 px-6 rounded flex items-center justify-center gap-2 text-white font-semibold text-sm tracking-wide transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8E406F] focus-visible:ring-offset-2 ${isLoading ? 'bg-[#8E406F]/70 cursor-not-allowed' : 'bg-[#8E406F] hover:bg-[#722856] active:scale-[0.98] shadow-[0px_10px_30px_rgba(142,64,111,0.25)] hover:shadow-[0px_10px_30px_rgba(142,64,111,0.4)]'}`}
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              className={`font-sans w-full py-3.5 px-6 rounded-lg flex items-center justify-center gap-2 text-white font-semibold text-sm tracking-wide transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8E406F] focus-visible:ring-offset-2 ${isLoading ? 'bg-[#8E406F]/70 cursor-not-allowed' : 'bg-[#8E406F] hover:bg-[#722856] active:scale-[0.98] shadow-[0px_10px_30px_rgba(142,64,111,0.25)] hover:shadow-[0px_10px_30px_rgba(142,64,111,0.4)]'}`}
             >
               {isLoading ? (
                 <>
@@ -567,6 +597,14 @@ export default function LoginPage({ onLoginSuccess }) {
                 </>
               )}
             </button>
+
+            {/* ===================================================
+                GOOGLE SIGN-IN
+                =================================================== */}
+            <div className="my-6 flex items-center before:mt-0.5 before:flex-1 before:border-t before:border-[#d6c1c9] after:mt-0.5 after:flex-1 after:border-t after:border-[#d6c1c9]">
+              <span className="px-3 text-xs text-[#94A3B8]">Or continue with</span>
+            </div>
+            <GoogleSignInButton onSuccess={handleGoogleSuccess} />
           </form>
 
           {/* =====================================================
@@ -575,17 +613,16 @@ export default function LoginPage({ onLoginSuccess }) {
               To change this text or link: edit the button below
               ===================================================== */}
           <p
-            className="text-center text-sm text-[#737373] mt-6"
-            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            className="font-sans text-center text-sm text-[#737373] mt-6"
           >
             Don&apos;t have an account?{' '}
             <button
               type="button"
               className="text-[#8E406F] font-semibold hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8E406F] rounded"
-              onClick={() => alert('Navigate to Vendor Inquiry / Onboarding page')}
-              aria-label="Inquire about creating a vendor account"
+              onClick={() => setView('register')}
+              aria-label="Register as a vendor"
             >
-              Inquire Now
+              Register as Vendor
             </button>
           </p>
         </div>
