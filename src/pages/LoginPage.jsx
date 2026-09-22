@@ -1,4 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+
+// ============================================================
 import VendorRegisterPage from './VendorRegisterPage';
 import GoogleSignInButton from '../components/auth/GoogleSignInButton';
 import { signInWithGoogleApi } from '../components/auth/googleAuthApi';
@@ -254,6 +258,13 @@ export default function LoginPage({ onLoginSuccess }) {
     // Root container — full viewport, mobile-first flex column
     // On md+ screens: flex-row (split-screen layout)
     // ============================================================
+    <motion.div
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+      className="min-h-screen flex flex-col md:flex-row font-sans"
+    >
     <div className="min-h-screen flex flex-col md:flex-row font-sans bg-white">
 
       {/* ========================================================
@@ -343,6 +354,17 @@ export default function LoginPage({ onLoginSuccess }) {
       >
         {/* Form Card — max width constrained for readability */}
         <div className="w-full max-w-md">
+
+          {/* Back button */}
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-stone-500 hover:text-[#5B1435] mb-6 transition-colors duration-200 group"
+          >
+            <svg className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+            </svg>
+            <span>Back</span>
+          </Link>
 
           {/* Welcome heading */}
           {/* To change the heading text: edit the h2 content below */}
@@ -632,6 +654,6 @@ export default function LoginPage({ onLoginSuccess }) {
           )}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

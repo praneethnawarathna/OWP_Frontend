@@ -1,12 +1,24 @@
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import './index.css';
+
+// Public Pages
+import LandingPage from './pages/LandingPage';
+import LoginPage from './pages/LoginPage';
+
+// Layouts
 import AdminLayout from './components/layout/AdminLayout';
 import VendorLayout from './components/layout/VendorLayout';
+
+// Admin Pages
 import DashboardPage from './pages/DashboardPage';
 import CustomerManagementPage from './pages/CustomerManagementPage';
 import ListingReviewPage from './pages/ListingReviewPage';
 import AdminManagementPage from './pages/AdminManagementPage';
 import AdminSettingsPage from './pages/AdminSettingsPage';
+
+// Vendor Pages
 import VendorDirectoryPage from './pages/VendorDirectoryPage';
 import LoginPage from './pages/LoginPage';
 import VendorDashboardPage from './pages/VendorDashboardPage';
@@ -15,15 +27,6 @@ import VendorProfilePage from './pages/VendorProfilePage';
 import VendorListingsPage from './pages/VendorListingsPage';
 import CreateListingPage from './pages/CreateListingPage';
 import VendorNotificationsPage from './pages/VendorNotificationsPage';
-import AdminNotificationsPage from './pages/AdminNotificationsPage';
-
-const getStoredUser = () => {
-  try {
-    return JSON.parse(localStorage.getItem('user') || '{}');
-  } catch {
-    return {};
-  }
-};
 
 const isVendor = (role) => String(role || '').toUpperCase() === 'VENDOR';
 
@@ -49,6 +52,7 @@ const isAuthenticated = () => {
 const getUserRole = () => {
   try {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
+    return user?.role || 'ADMIN';
     const role = String(user.role || '').toUpperCase();
     if (role.includes('SUPER')) return 'SUPER_ADMIN';
     return user.role || 'ADMIN';
@@ -57,6 +61,35 @@ const getUserRole = () => {
   }
 };
 
+// Map route path to page ID expected by Sidebar/Header
+const pathToPageId = (path) => {
+  if (path.includes('customer')) return 'customers';
+  if (path.includes('listing-review') || path.includes('listings')) return 'listing-review';
+  if (path.includes('admin-management') || path.includes('admins')) return 'admin-management';
+  if (path.includes('settings')) return 'settings';
+  if (path.includes('vendor-profile')) return 'vendor-profile';
+  if (path.includes('vendor-services')) return 'vendor-services';
+  if (path.includes('vendor-listing-editor')) return 'vendor-listing-editor';
+  if (path.includes('vendor-ratings') || path.includes('vendor-performance')) return 'vendor-ratings';
+  if (path.includes('vendor-notifications')) return 'vendor-notifications';
+  if (path.includes('vendor-dashboard')) return 'vendor-dashboard';
+  return 'dashboard';
+};
+
+const pageIdToPath = {
+  'landing': '/',
+  'login': '/login',
+  'dashboard': '/dashboard',
+  'customers': '/customer-management',
+  'listing-review': '/listing-review',
+  'admin-management': '/admin-management',
+  'settings': '/settings',
+  'vendor-dashboard': '/vendor-dashboard',
+  'vendor-profile': '/vendor-profile',
+  'vendor-services': '/vendor-services',
+  'vendor-listing-editor': '/vendor-listing-editor',
+  'vendor-ratings': '/vendor-ratings',
+  'vendor-notifications': '/vendor-notifications',
 // Map browser URL paths to internal page state.
 const pathToPage = (path) => {
   if (path === '/login') return 'login';
@@ -99,86 +132,278 @@ const pageToPath = (page) => {
   return '/';
 };
 
-// Placeholder for vendor sub-pages not yet built
-function ComingSoon({ title, desc }) {
+// Smooth page transition wrapper
+function PageTransition({ children }) {
   return (
-    <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center px-6">
-      <div className="h-16 w-16 rounded-2xl bg-[#FDF0F4] border border-[#F1E5EC] flex items-center justify-center mb-4">
-        <span className="text-3xl">🚀</span>
-      </div>
-      <h2
-        className="text-xl font-bold text-[#1E293B] mb-1"
-        style={{ fontFamily: "'Playfair Display', serif" }}
-      >
-        {title}
-      </h2>
-      <p className="text-sm text-[#737373] max-w-xs">{desc}</p>
-      <span className="mt-4 inline-flex items-center px-3 py-1 rounded-full border border-[#F1E5EC] bg-[#FDF0F4] text-xs font-medium text-[#8E406F]">
-        Coming soon
-      </span>
-    </div>
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -6 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      className="h-full"
+    >
+      {children}
+    </motion.div>
   );
 }
 
+// Protected Route Guard
+function ProtectedRoute({ children, requiredRole }) {
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" replace />;
+  }
+  const currentRole = getUserRole();
+  if (requiredRole === 'vendor' && !isVendor(currentRole)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  if (requiredRole === 'admin' && isVendor(currentRole)) {
+    return <Navigate to="/vendor-dashboard" replace />;
+  }
+  return children;
+}
+
 export default function App() {
-  const [currentPage, setCurrentPage] = useState(() => pathToPage(window.location.pathname));
+  const location = useLocation();
+  const navigate = useNavigate();
   const [userRole, setUserRole] = useState(() => getUserRole());
 
-  // Sync state if user clicks Browser Back/Forward buttons
   useEffect(() => {
-    const handlePopState = () => {
-      setCurrentPage(pathToPage(window.location.pathname));
-      setUserRole(getUserRole());
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+    setUserRole(getUserRole());
+  }, [location.pathname]);
 
-  const handleNavigate = (page) => {
-    setCurrentPage(page);
-    const newPath = pageToPath(page);
-    if (window.location.pathname !== newPath) {
-      window.history.pushState({}, '', newPath);
+  const handleNavigate = (pageOrPath) => {
+    if (pageOrPath.startsWith('/')) {
+      navigate(pageOrPath);
+    } else {
+      navigate(pageIdToPath[pageOrPath] || `/${pageOrPath}`);
     }
   };
 
   const handleLoginSuccess = () => {
     const role = getUserRole();
     setUserRole(role);
-    handleNavigate(isVendor(role) ? 'vendor-dashboard' : 'dashboard');
+    navigate(isVendor(role) ? '/vendor-dashboard' : '/dashboard');
   };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUserRole('ADMIN');
-    handleNavigate('login');
+    navigate('/login');
   };
 
-  if (currentPage === 'login') {
-    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
-  }
+  const currentPageId = pathToPageId(location.pathname);
 
-  // Vendor users get their own layout shell
-  if (isVendor(userRole)) {
-    return (
-      <VendorLayout
-        currentPage={currentPage}
-        onNavigate={handleNavigate}
-        onLogout={handleLogout}
-      >
-        {currentPage === 'vendor-dashboard' && <VendorDashboardPage onNavigate={handleNavigate} />}
-        {currentPage === 'vendor-profile' && <VendorProfilePage onNavigate={handleNavigate} />}
-        {currentPage === 'vendor-services' && <VendorListingsPage onNavigate={handleNavigate} />}
-        {currentPage === 'vendor-listing-editor' && <CreateListingPage onNavigate={handleNavigate} />}
-        {currentPage === 'vendor-ratings' && <VendorContentPage type="performance" />}
-        {currentPage === 'vendor-notifications' && <VendorNotificationsPage onNavigate={handleNavigate} />}
-      </VendorLayout>
-    );
-  }
-
-  // Admin Portal: Wrapped inside AdminLayout
   return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        {/* Public Routes */}
+        <Route path="/" element={<LandingPage />} />
+        <Route
+          path="/login"
+          element={
+            isAuthenticated() ? (
+              <Navigate to={isVendor(getUserRole()) ? "/vendor-dashboard" : "/dashboard"} replace />
+            ) : (
+              <LoginPage onLoginSuccess={handleLoginSuccess} />
+            )
+          }
+        />
+        <Route path="/landing" element={<LandingPage />} />
+
+        {/* Admin Protected Routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminLayout
+                currentPage={currentPageId}
+                onNavigate={handleNavigate}
+                onLogout={handleLogout}
+                userRole={userRole}
+              >
+                <PageTransition>
+                  <DashboardPage onNavigate={handleNavigate} />
+                </PageTransition>
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/customer-management"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminLayout
+                currentPage="customers"
+                onNavigate={handleNavigate}
+                onLogout={handleLogout}
+                userRole={userRole}
+              >
+                <PageTransition>
+                  <CustomerManagementPage />
+                </PageTransition>
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/customers" element={<Navigate to="/customer-management" replace />} />
+        <Route
+          path="/listing-review"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminLayout
+                currentPage="listing-review"
+                onNavigate={handleNavigate}
+                onLogout={handleLogout}
+                userRole={userRole}
+              >
+                <PageTransition>
+                  <ListingReviewPage />
+                </PageTransition>
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/listings" element={<Navigate to="/listing-review" replace />} />
+        <Route
+          path="/admin-management"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminLayout
+                currentPage="admin-management"
+                onNavigate={handleNavigate}
+                onLogout={handleLogout}
+                userRole={userRole}
+              >
+                <PageTransition>
+                  <AdminManagementPage />
+                </PageTransition>
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/admins" element={<Navigate to="/admin-management" replace />} />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminLayout
+                currentPage="settings"
+                onNavigate={handleNavigate}
+                onLogout={handleLogout}
+                userRole={userRole}
+              >
+                <PageTransition>
+                  <AdminSettingsPage />
+                </PageTransition>
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Vendor Protected Routes */}
+        <Route
+          path="/vendor-dashboard"
+          element={
+            <ProtectedRoute requiredRole="vendor">
+              <VendorLayout
+                currentPage={currentPageId}
+                onNavigate={handleNavigate}
+                onLogout={handleLogout}
+              >
+                <PageTransition>
+                  <VendorDashboardPage onNavigate={handleNavigate} />
+                </PageTransition>
+              </VendorLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/vendor-profile"
+          element={
+            <ProtectedRoute requiredRole="vendor">
+              <VendorLayout
+                currentPage="vendor-profile"
+                onNavigate={handleNavigate}
+                onLogout={handleLogout}
+              >
+                <PageTransition>
+                  <VendorProfilePage onNavigate={handleNavigate} />
+                </PageTransition>
+              </VendorLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/vendor-services"
+          element={
+            <ProtectedRoute requiredRole="vendor">
+              <VendorLayout
+                currentPage="vendor-services"
+                onNavigate={handleNavigate}
+                onLogout={handleLogout}
+              >
+                <PageTransition>
+                  <VendorListingsPage onNavigate={handleNavigate} />
+                </PageTransition>
+              </VendorLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/vendor-listing-editor"
+          element={
+            <ProtectedRoute requiredRole="vendor">
+              <VendorLayout
+                currentPage="vendor-listing-editor"
+                onNavigate={handleNavigate}
+                onLogout={handleLogout}
+              >
+                <PageTransition>
+                  <CreateListingPage onNavigate={handleNavigate} />
+                </PageTransition>
+              </VendorLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/vendor-ratings"
+          element={
+            <ProtectedRoute requiredRole="vendor">
+              <VendorLayout
+                currentPage="vendor-ratings"
+                onNavigate={handleNavigate}
+                onLogout={handleLogout}
+              >
+                <PageTransition>
+                  <VendorContentPage type="performance" />
+                </PageTransition>
+              </VendorLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/vendor-performance" element={<Navigate to="/vendor-ratings" replace />} />
+        <Route
+          path="/vendor-notifications"
+          element={
+            <ProtectedRoute requiredRole="vendor">
+              <VendorLayout
+                currentPage="vendor-notifications"
+                onNavigate={handleNavigate}
+                onLogout={handleLogout}
+              >
+                <PageTransition>
+                  <VendorNotificationsPage onNavigate={handleNavigate} />
+                </PageTransition>
+              </VendorLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Catch-all fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AnimatePresence>
     <AdminLayout
       currentPage={currentPage}
       onNavigate={handleNavigate}
