@@ -265,7 +265,7 @@ export default function LoginPage({ onLoginSuccess }) {
       transition={{ duration: 0.5, ease: 'easeOut' }}
       className="min-h-screen flex flex-col md:flex-row font-sans"
     >
-    <div className="min-h-screen flex flex-col md:flex-row font-sans bg-white">
+    
 
       {/* ========================================================
           LEFT PANEL — Brand / Hero Section
