@@ -19,6 +19,8 @@ import AdminManagementPage from './pages/AdminManagementPage';
 import AdminSettingsPage from './pages/AdminSettingsPage';
 
 // Vendor Pages
+import VendorDirectoryPage from './pages/VendorDirectoryPage';
+import LoginPage from './pages/LoginPage';
 import VendorDashboardPage from './pages/VendorDashboardPage';
 import VendorContentPage from './pages/VendorContentPage';
 import VendorProfilePage from './pages/VendorProfilePage';
@@ -51,6 +53,9 @@ const getUserRole = () => {
   try {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     return user?.role || 'ADMIN';
+    const role = String(user.role || '').toUpperCase();
+    if (role.includes('SUPER')) return 'SUPER_ADMIN';
+    return user.role || 'ADMIN';
   } catch {
     return 'ADMIN';
   }
@@ -85,6 +90,46 @@ const pageIdToPath = {
   'vendor-listing-editor': '/vendor-listing-editor',
   'vendor-ratings': '/vendor-ratings',
   'vendor-notifications': '/vendor-notifications',
+// Map browser URL paths to internal page state.
+const pathToPage = (path) => {
+  if (path === '/login') return 'login';
+  if (!isAuthenticated()) return 'login';
+
+  const vendor = isVendor(getUserRole());
+  if (vendor) {
+    if (path === '/vendor-dashboard' || path === '/' || path === '/dashboard') return 'vendor-dashboard';
+    if (path === '/vendor-profile') return 'vendor-profile';
+    if (path === '/vendor-services') return 'vendor-services';
+    if (path === '/vendor-listing-editor') return 'vendor-listing-editor';
+    if (path === '/vendor-ratings' || path === '/vendor-performance') return 'vendor-ratings';
+    if (path === '/vendor-notifications') return 'vendor-notifications';
+    return 'vendor-dashboard';
+  }
+
+  if (path === '/customer-management' || path === '/customers') return 'customers';
+  if (path === '/listing-review' || path === '/listings') return 'listing-review';
+  if (path === '/all-vendors' || path === '/vendor-directory' || path === '/vendors') return 'all-vendors';
+  if (path === '/admin-management' || path === '/admins') return 'admin-management';
+  if (path === '/settings') return 'settings';
+  if (path === '/notifications' || path === '/admin-notifications') return 'notifications';
+  return 'dashboard'; // Default route for '/' or '/dashboard'
+};
+
+const pageToPath = (page) => {
+  if (page === 'login') return '/login';
+  if (page === 'vendor-dashboard') return '/vendor-dashboard';
+  if (page === 'vendor-profile') return '/vendor-profile';
+  if (page === 'vendor-services') return '/vendor-services';
+  if (page === 'vendor-listing-editor') return '/vendor-listing-editor';
+  if (page === 'vendor-ratings') return '/vendor-ratings';
+  if (page === 'vendor-notifications') return '/vendor-notifications';
+  if (page === 'customers') return '/customer-management';
+  if (page === 'listing-review') return '/listing-review';
+  if (page === 'all-vendors' || page === 'vendor-directory') return '/all-vendors';
+  if (page === 'admin-management') return '/admin-management';
+  if (page === 'settings') return '/settings';
+  if (page === 'notifications') return '/notifications';
+  return '/';
 };
 
 // Smooth page transition wrapper
@@ -359,5 +404,19 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AnimatePresence>
+    <AdminLayout
+      currentPage={currentPage}
+      onNavigate={handleNavigate}
+      onLogout={handleLogout}
+      userRole={userRole}
+    >
+      {currentPage === 'dashboard' && <DashboardPage onNavigate={handleNavigate} />}
+      {currentPage === 'customers' && <CustomerManagementPage />}
+      {currentPage === 'listing-review' && <ListingReviewPage />}
+      {(currentPage === 'all-vendors' || currentPage === 'vendor-directory') && <VendorDirectoryPage />}
+      {currentPage === 'admin-management' && <AdminManagementPage />}
+      {currentPage === 'settings' && <AdminSettingsPage />}
+      {currentPage === 'notifications' && <AdminNotificationsPage onNavigate={handleNavigate} />}
+    </AdminLayout>
   );
 }

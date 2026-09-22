@@ -38,6 +38,7 @@ import PhotographyDetails from '../components/listing-form/PhotographyDetails';
 import MusicDetails from '../components/listing-form/MusicDetails';
 import DecorationsDetails from '../components/listing-form/DecorationsDetails';
 import CateringDetails from '../components/listing-form/CateringDetails';
+import PendingApprovalModal from '../components/vendor/PendingApprovalModal';
 
 export const LISTING_CATEGORIES = [
   'Hotel / Venue',
@@ -368,6 +369,10 @@ export default function CreateListingPage({ onNavigate }) {
 
   // ── Validation Errors State ──
   const [errors, setErrors] = useState({});
+
+  // ── Pending Approval Modal State ──
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [modalVendorStatus, setModalVendorStatus] = useState(null);
 
   // ── Form State ──
   const [formData, setFormData] = useState(() => buildInitialFormData());
@@ -738,6 +743,13 @@ export default function CreateListingPage({ onNavigate }) {
         const targetServiceId = saved.serviceId || editId;
         if (targetServiceId) {
           await uploadPendingImages(targetServiceId, token);
+        }
+
+        const vendorStatusWarning = res.headers.get('X-Vendor-Status-Warning');
+        if (vendorStatusWarning) {
+          setModalVendorStatus(vendorStatusWarning);
+          setShowApprovalModal(true);
+          return;
         }
 
         setSaveBanner(isEditMode ? 'Listing changes saved successfully! Redirecting...' : 'Listing published successfully! Redirecting...');
@@ -1960,6 +1972,12 @@ export default function CreateListingPage({ onNavigate }) {
         </div>
       </div>
 
+      {/* ── Pending Approval Modal ── */}
+      <PendingApprovalModal
+        open={showApprovalModal}
+        vendorStatus={modalVendorStatus}
+        onClose={() => onNavigate?.('vendor-services')}
+      />
     </div>
   );
 }
