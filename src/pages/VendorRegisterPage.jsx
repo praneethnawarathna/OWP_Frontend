@@ -30,9 +30,25 @@ export default function VendorRegisterPage({
 }) {
   const isGoogleFlow = !!(googlePrefill && googlePrefill.idToken);
 
+  // --- SessionStorage draft ---
+  const DRAFT_KEY = 'oleena_vendor_registration_draft';
+  const EXCLUDED_KEYS = ['password', 'confirmPassword', 'googleIdToken'];
+
+  const loadDraft = () => {
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  };
+  // Evaluated once at module scope so useState gets the value synchronously
+  const savedDraft = loadDraft();
+
   // --- Wizard Step State ---
-  const [currentStep, setCurrentStep] = useState(0);
-  const [maxStepReached, setMaxStepReached] = useState(0);
+  const [currentStep, setCurrentStep] = useState(savedDraft?.currentStep ?? 0);
+  const [maxStepReached, setMaxStepReached] = useState(savedDraft?.maxStepReached ?? 0);
+  const [draftRestoredBanner, setDraftRestoredBanner] = useState(!!savedDraft);
 
   // --- Options State (loaded from backend) ---
   const [options, setOptions] = useState({ categories: [], districts: [], businessTypes: [] });
@@ -40,37 +56,44 @@ export default function VendorRegisterPage({
   const [optionsError, setOptionsError] = useState(null);
 
   // --- Master Form State ---
-  const [formData, setFormData] = useState({
-    // Step 1: Account
-    fullName: googlePrefill?.fullName || '',
-    email: googlePrefill?.email || '',
-    password: '',
-    confirmPassword: '',
-    phoneNumber: '',
-    googleIdToken: googlePrefill?.idToken || null,
+  const [formData, setFormData] = useState(() => {
+    const defaults = {
+      // Step 1: Account
+      fullName: googlePrefill?.fullName || '',
+      email: googlePrefill?.email || '',
+      password: '',
+      confirmPassword: '',
+      phoneNumber: '',
+      googleIdToken: googlePrefill?.idToken || null,
 
-    // Step 2: Business
-    businessName: '',
-    businessType: '',
-    category: '',
-    tagline: '',
-    description: '',
-    yearsInBusiness: '',
-    businessRegistrationNumber: '',
+      // Step 2: Business
+      businessName: '',
+      businessType: '',
+      category: '',
+      tagline: '',
+      description: '',
+      yearsInBusiness: '',
+      businessRegistrationNumber: '',
 
-    // Step 3: Contact & Location
-    businessEmail: googlePrefill?.email || '',
-    contactNumber: '',
-    altPhoneNumber: '',
-    websiteUrl: '',
-    address: '',
-    city: '',
-    district: '',
-    postalCode: '',
-    serviceAreas: [],
+      // Step 3: Contact & Location
+      businessEmail: googlePrefill?.email || '',
+      contactNumber: '',
+      altPhoneNumber: '',
+      websiteUrl: '',
+      address: '',
+      city: '',
+      district: '',
+      postalCode: '',
+      serviceAreas: [],
 
-    // Step 4: Terms
-    acceptTerms: false,
+      // Step 4: Terms
+      acceptTerms: false,
+    };
+    // Merge saved draft (never overwrite excluded secrets)
+    if (savedDraft?.formData) {
+      return { ...defaults, ...savedDraft.formData };
+    }
+    return defaults;
   });
 
   // --- Form Validation & UI State ---
@@ -100,6 +123,18 @@ export default function VendorRegisterPage({
   useEffect(() => {
     loadOptions();
   }, []);
+
+  // --- Persist draft to sessionStorage on every change ---
+  useEffect(() => {
+    try {
+      const safeFormData = Object.fromEntries(
+        Object.entries(formData).filter(([k]) => !EXCLUDED_KEYS.includes(k))
+      );
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ formData: safeFormData, currentStep, maxStepReached }));
+    } catch {
+      // sessionStorage may be unavailable (private mode quota)
+    }
+  }, [formData, currentStep, maxStepReached]);
 
   // Update form values if googlePrefill changes dynamically
   useEffect(() => {
@@ -246,7 +281,8 @@ export default function VendorRegisterPage({
       const result = await submitRegistration(payload);
 
       if (result.ok && result.status === 201) {
-        // Success: store session and notify parent
+        // Success: clear draft, store session, and notify parent
+        sessionStorage.removeItem(DRAFT_KEY);
         saveSession(result.data);
         if (onRegisterSuccess) {
           onRegisterSuccess();
@@ -462,6 +498,25 @@ export default function VendorRegisterPage({
           ) : (
             /* Active Step Form */
             <form onSubmit={handleSubmit} noValidate>
+              {/* Draft Restored Banner */}
+              {draftRestoredBanner && (
+                <div
+                  role="status"
+                  className="mb-4 p-3 rounded-lg border border-[#8E406F]/25 bg-[#FDF0F4] text-[#8E406F] text-xs flex items-center gap-2.5"
+                >
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span className="flex-1">We restored your in-progress application.</span>
+                  <button
+                    type="button"
+                    aria-label="Dismiss"
+                    onClick={() => setDraftRestoredBanner(false)}
+                    className="text-[#8E406F]/60 hover:text-[#8E406F] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-[#8E406F] rounded"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
               {/* Global Error Banner */}
               {submitError && (
                 <div

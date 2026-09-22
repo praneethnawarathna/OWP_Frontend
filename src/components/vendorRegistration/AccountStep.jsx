@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { Eye, EyeOff, Lock, User, Mail, Phone } from 'lucide-react';
 import FormField from '../common/FormField';
-import { calculatePasswordStrength } from './validation';
+import { calculatePasswordStrength, sanitizePhoneInput } from './validation';
 
 export default function AccountStep({
   formData,
@@ -259,8 +259,9 @@ export default function AccountStep({
             autoComplete="tel"
             required
             value={formData.phoneNumber || ''}
-            onChange={(e) => onChange('phoneNumber', e.target.value)}
+            onChange={(e) => onChange('phoneNumber', sanitizePhoneInput(e.target.value))}
             onBlur={() => onBlur('phoneNumber')}
+            inputMode="tel"
             aria-invalid={touched.phoneNumber && !!errors.phoneNumber}
             placeholder="0771234567"
             className={`w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm transition-all outline-none ${

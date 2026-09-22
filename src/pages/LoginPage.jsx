@@ -131,12 +131,12 @@ export default function LoginPage({ onLoginSuccess }) {
     try {
       const data = await signInWithGoogleApi(idToken);
       if (data.status === 'AUTHENTICATED') {
-        saveSession(data);
+        saveSession(data.auth);
         onLoginSuccess();
       } else if (data.status === 'REGISTRATION_REQUIRED') {
         setGooglePrefill({
-          email: data.email,
-          fullName: data.fullName,
+          email: data.prefill?.email,
+          fullName: data.prefill?.fullName,
           idToken: idToken,
         });
         setView('register');
@@ -599,12 +599,16 @@ export default function LoginPage({ onLoginSuccess }) {
             </button>
 
             {/* ===================================================
-                GOOGLE SIGN-IN
+                GOOGLE SIGN-IN — hidden when Admin toggle is on
                 =================================================== */}
-            <div className="my-6 flex items-center before:mt-0.5 before:flex-1 before:border-t before:border-[#d6c1c9] after:mt-0.5 after:flex-1 after:border-t after:border-[#d6c1c9]">
-              <span className="px-3 text-xs text-[#94A3B8]">Or continue with</span>
-            </div>
-            <GoogleSignInButton onSuccess={handleGoogleSuccess} />
+            {!isAdmin && (
+              <>
+                <div className="my-6 flex items-center before:mt-0.5 before:flex-1 before:border-t before:border-[#d6c1c9] after:mt-0.5 after:flex-1 after:border-t after:border-[#d6c1c9]">
+                  <span className="px-3 text-xs text-[#94A3B8]">Or continue with</span>
+                </div>
+                <GoogleSignInButton onCredential={handleGoogleSuccess} />
+              </>
+            )}
           </form>
 
           {/* =====================================================
@@ -612,19 +616,20 @@ export default function LoginPage({ onLoginSuccess }) {
               NOTE: This app is Admin/Vendor only (no public signup)
               To change this text or link: edit the button below
               ===================================================== */}
-          <p
-            className="font-sans text-center text-sm text-[#737373] mt-6"
-          >
-            Don&apos;t have an account?{' '}
-            <button
-              type="button"
-              className="text-[#8E406F] font-semibold hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8E406F] rounded"
-              onClick={() => setView('register')}
-              aria-label="Register as a vendor"
-            >
-              Register as Vendor
-            </button>
-          </p>
+          {/* Register link — hidden when Admin toggle is on */}
+          {!isAdmin && (
+            <p className="font-sans text-center text-sm text-[#737373] mt-6">
+              Don&apos;t have an account?{' '}
+              <button
+                type="button"
+                className="text-[#8E406F] font-semibold hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8E406F] rounded"
+                onClick={() => setView('register')}
+                aria-label="Register as a vendor"
+              >
+                Register as Vendor
+              </button>
+            </p>
+          )}
         </div>
       </div>
     </div>

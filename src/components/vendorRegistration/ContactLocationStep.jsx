@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { sanitizePhoneInput } from './validation';
 import { Mail, Phone, Globe, MapPin, Building, Map, CheckSquare, Square } from 'lucide-react';
 import FormField from '../common/FormField';
 import MultiSelect from '../common/MultiSelect';
@@ -135,8 +136,9 @@ export default function ContactLocationStep({
               type="tel"
               required
               value={formData.contactNumber || ''}
-              onChange={(e) => onChange('contactNumber', e.target.value)}
+              onChange={(e) => onChange('contactNumber', sanitizePhoneInput(e.target.value))}
               onBlur={() => onBlur('contactNumber')}
+              inputMode="tel"
               aria-invalid={touched.contactNumber && !!errors.contactNumber}
               placeholder="0771234567"
               className={`w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm transition-all outline-none ${
@@ -164,8 +166,9 @@ export default function ContactLocationStep({
               name="altPhoneNumber"
               type="tel"
               value={formData.altPhoneNumber || ''}
-              onChange={(e) => onChange('altPhoneNumber', e.target.value)}
+              onChange={(e) => onChange('altPhoneNumber', sanitizePhoneInput(e.target.value))}
               onBlur={() => onBlur('altPhoneNumber')}
+              inputMode="tel"
               placeholder="0112345678"
               className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-[#D6C1C9] bg-white text-[#1E293B] text-sm hover:border-[#8E406F]/50 focus:border-[#8E406F] focus:ring-2 focus:ring-[#8E406F]/20 outline-none transition-all"
             />

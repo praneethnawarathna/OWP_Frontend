@@ -16,6 +16,19 @@ export function normalizePhone(phone) {
 }
 
 /**
+ * Sanitizes raw phone input in real-time (use in onChange handlers).
+ * Keeps only digits, preserving one leading '+' if the original started with one.
+ * Does NOT cap length — the existing PHONE_REGEX still enforces format on blur/submit.
+ */
+export function sanitizePhoneInput(value) {
+  if (!value) return '';
+  const str = String(value);
+  const hasPlus = str.startsWith('+');
+  const digits = str.replace(/\D/g, '');
+  return hasPlus ? '+' + digits : digits;
+}
+
+/**
  * Validates Sri Lankan phone number format
  */
 export function isValidPhone(phone) {
