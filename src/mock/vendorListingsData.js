@@ -3,6 +3,7 @@
 // Mock data: Vendor Listings (vendorListingsData.js)
 // Used by VendorListingsPage for local-state CRUD until API is wired.
 // ============================================================
+// ....
 
 /**
  * Category options — kept in sync with the existing VendorContentPage
