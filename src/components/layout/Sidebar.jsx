@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Fragment } from 'react';
 import {
   Activity,
@@ -115,13 +116,22 @@ export default function Sidebar({
 
         {/* ── Brand ── */}
         <div className="px-5 pt-5 pb-4 border-b border-[#F1E5EC]">
-          <p
-            className="text-[#8E406F] font-bold text-base leading-tight"
-            style={{ fontFamily: "'Playfair Display', serif" }}
-          >
-            Wedding Directory
-          </p>
-          <p className="text-[#aaa] text-xs mt-0.5">{isSuperAdmin ? 'Super Admin Dashboard' : 'Admin Dashboard'}</p>
+          <Link to="/" className="flex items-center gap-2.5 group select-none">
+            <img
+              src="/Pink Blue and Yellow Retro Surf Club Logo.jpg"
+              alt="Oleena Logo"
+              className="h-10 w-10 object-contain rounded-full shadow-sm group-hover:scale-105 transition-transform"
+            />
+            <div>
+              <p
+                className="text-[#8E406F] font-bold text-base leading-tight group-hover:text-[#5B1435] transition-colors"
+                style={{ fontFamily: "'Playfair Display', serif" }}
+              >
+                Oleena
+              </p>
+              <p className="text-[#aaa] text-[10px]">{isSuperAdmin ? 'Super Admin' : 'Admin Dashboard'}</p>
+            </div>
+          </Link>
           {/* Mobile close */}
           <button
             onClick={onClose}
@@ -166,7 +176,14 @@ export default function Sidebar({
         </div>
 
         {/* ── Log Out Button ── */}
-        <div className="px-3 pb-2">
+                {/* View Website */}
+        <div className="px-3 pb-1">
+          <a href="/" className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[#555] hover:bg-[#FDF0F4] hover:text-[#8E406F] transition-colors">
+            <svg className="w-4 h-4 shrink-0 text-[#999]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>
+            <span className="text-left whitespace-nowrap">View Website</span>
+          </a>
+        </div>
+<div className="px-3 pb-2">
           <button
             id="sidebar-logout-btn"
             onClick={onLogout}
