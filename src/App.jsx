@@ -18,6 +18,8 @@ import ListingReviewPage from './pages/ListingReviewPage';
 import AdminManagementPage from './pages/AdminManagementPage';
 import AdminSettingsPage from './pages/AdminSettingsPage';
 import ReportAnalyticsPage from './pages/ReportAnalyticsPage';
+import VendorDirectoryPage from './pages/VendorDirectoryPage';
+import AdminNotificationsPage from './pages/AdminNotificationsPage';
 
 // Vendor Pages
 import VendorDashboardPage from './pages/VendorDashboardPage';
@@ -62,14 +64,16 @@ const getUserRole = () => {
 const pathToPageId = (path) => {
   if (path.includes('customer')) return 'customers';
   if (path.includes('listing-review') || path.includes('listings')) return 'listing-review';
+  if (path.includes('all-vendors') || path === '/vendors' || path.startsWith('/vendors/')) return 'all-vendors';
   if (path.includes('admin-management') || path.includes('admins')) return 'admin-management';
   if (path.includes('report-analytics')) return 'analytics';
   if (path.includes('settings')) return 'settings';
+  if (path.includes('vendor-notifications')) return 'vendor-notifications';
+  if (path.includes('notifications') || path.includes('admin-notifications')) return 'notifications';
   if (path.includes('vendor-profile')) return 'vendor-profile';
   if (path.includes('vendor-services')) return 'vendor-services';
   if (path.includes('vendor-listing-editor')) return 'vendor-listing-editor';
   if (path.includes('vendor-ratings') || path.includes('vendor-performance')) return 'vendor-ratings';
-  if (path.includes('vendor-notifications')) return 'vendor-notifications';
   if (path.includes('vendor-dashboard')) return 'vendor-dashboard';
   return 'dashboard';
 };
@@ -80,9 +84,11 @@ const pageIdToPath = {
   'dashboard': '/dashboard',
   'customers': '/customer-management',
   'listing-review': '/listing-review',
+  'all-vendors': '/all-vendors',
   'admin-management': '/admin-management',
   'analytics': '/report-analytics',
   'settings': '/settings',
+  'notifications': '/notifications',
   'vendor-dashboard': '/vendor-dashboard',
   'vendor-profile': '/vendor-profile',
   'vendor-services': '/vendor-services',
@@ -242,6 +248,43 @@ export default function App() {
           }
         />
         <Route path="/admins" element={<Navigate to="/admin-management" replace />} />
+        <Route
+          path="/all-vendors"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminLayout
+                currentPage="all-vendors"
+                onNavigate={handleNavigate}
+                onLogout={handleLogout}
+                userRole={userRole}
+              >
+                <PageTransition>
+                  <VendorDirectoryPage onNavigate={handleNavigate} />
+                </PageTransition>
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/vendors" element={<Navigate to="/all-vendors" replace />} />
+        <Route path="/vendor-directory" element={<Navigate to="/all-vendors" replace />} />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminLayout
+                currentPage="notifications"
+                onNavigate={handleNavigate}
+                onLogout={handleLogout}
+                userRole={userRole}
+              >
+                <PageTransition>
+                  <AdminNotificationsPage onNavigate={handleNavigate} />
+                </PageTransition>
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/admin-notifications" element={<Navigate to="/notifications" replace />} />
         <Route
           path="/settings"
           element={
