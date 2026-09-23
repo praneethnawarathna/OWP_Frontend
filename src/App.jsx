@@ -28,6 +28,19 @@ import VendorProfilePage from './pages/VendorProfilePage';
 import VendorListingsPage from './pages/VendorListingsPage';
 import CreateListingPage from './pages/CreateListingPage';
 import VendorNotificationsPage from './pages/VendorNotificationsPage';
+<<<<<<< Updated upstream
+=======
+import AdminNotificationsPage from './pages/AdminNotificationsPage';
+import ReportAnalyticsPage from './pages/ReportAnalyticsPage';
+
+const getStoredUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem('user') || '{}');
+  } catch {
+    return {};
+  }
+};
+>>>>>>> Stashed changes
 
 const isVendor = (role) => String(role || '').toUpperCase() === 'VENDOR';
 
@@ -60,6 +73,7 @@ const getUserRole = () => {
   }
 };
 
+<<<<<<< Updated upstream
 // Map route path to page ID expected by Sidebar/Header
 const pathToPageId = (path) => {
   if (path.includes('customer')) return 'customers';
@@ -95,6 +109,50 @@ const pageIdToPath = {
   'vendor-listing-editor': '/vendor-listing-editor',
   'vendor-ratings': '/vendor-ratings',
   'vendor-notifications': '/vendor-notifications',
+=======
+// Map browser URL paths to internal page state.
+const pathToPage = (path) => {
+  if (path === '/login') return 'login';
+  if (!isAuthenticated()) return 'login';
+
+  const vendor = isVendor(getUserRole());
+  if (vendor) {
+    if (path === '/vendor-dashboard' || path === '/' || path === '/dashboard') return 'vendor-dashboard';
+    if (path === '/vendor-profile') return 'vendor-profile';
+    if (path === '/vendor-services') return 'vendor-services';
+    if (path === '/vendor-listing-editor') return 'vendor-listing-editor';
+    if (path === '/vendor-ratings' || path === '/vendor-performance') return 'vendor-ratings';
+    if (path === '/vendor-notifications') return 'vendor-notifications';
+    return 'vendor-dashboard';
+  }
+
+  if (path === '/customer-management' || path === '/customers') return 'customers';
+  if (path === '/listing-review' || path === '/listings') return 'listing-review';
+  if (path === '/all-vendors' || path === '/vendor-directory' || path === '/vendors') return 'all-vendors';
+  if (path === '/admin-management' || path === '/admins') return 'admin-management';
+  if (path === '/settings') return 'settings';
+  if (path === '/notifications' || path === '/admin-notifications') return 'notifications';
+  if (path === '/report-analytics' || path === '/analytics') return 'analytics';
+  return 'dashboard'; // Default route for '/' or '/dashboard'
+};
+
+const pageToPath = (page) => {
+  if (page === 'login') return '/login';
+  if (page === 'vendor-dashboard') return '/vendor-dashboard';
+  if (page === 'vendor-profile') return '/vendor-profile';
+  if (page === 'vendor-services') return '/vendor-services';
+  if (page === 'vendor-listing-editor') return '/vendor-listing-editor';
+  if (page === 'vendor-ratings') return '/vendor-ratings';
+  if (page === 'vendor-notifications') return '/vendor-notifications';
+  if (page === 'customers') return '/customer-management';
+  if (page === 'listing-review') return '/listing-review';
+  if (page === 'all-vendors' || page === 'vendor-directory') return '/all-vendors';
+  if (page === 'admin-management') return '/admin-management';
+  if (page === 'settings') return '/settings';
+  if (page === 'notifications') return '/notifications';
+  if (page === 'analytics') return '/report-analytics';
+  return '/';
+>>>>>>> Stashed changes
 };
 
 // Smooth page transition wrapper
@@ -160,6 +218,7 @@ export default function App() {
   const currentPageId = pathToPageId(location.pathname);
 
   return (
+<<<<<<< Updated upstream
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         {/* Public Routes */}
@@ -423,5 +482,22 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AnimatePresence>
+=======
+    <AdminLayout
+      currentPage={currentPage}
+      onNavigate={handleNavigate}
+      onLogout={handleLogout}
+      userRole={userRole}
+    >
+      {currentPage === 'dashboard' && <DashboardPage onNavigate={handleNavigate} />}
+      {currentPage === 'customers' && <CustomerManagementPage />}
+      {currentPage === 'listing-review' && <ListingReviewPage />}
+      {(currentPage === 'all-vendors' || currentPage === 'vendor-directory') && <VendorDirectoryPage />}
+      {currentPage === 'admin-management' && <AdminManagementPage />}
+      {currentPage === 'settings' && <AdminSettingsPage />}
+      {currentPage === 'notifications' && <AdminNotificationsPage onNavigate={handleNavigate} />}
+      {currentPage === 'analytics' && <ReportAnalyticsPage />}
+    </AdminLayout>
+>>>>>>> Stashed changes
   );
 }
