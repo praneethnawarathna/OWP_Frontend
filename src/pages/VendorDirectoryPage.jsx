@@ -25,6 +25,7 @@ import {
 import StatusBadge from '../components/vendorDirectory/StatusBadge';
 import VendorFormModal from '../components/vendorDirectory/VendorFormModal';
 import VendorDetailsModal from '../components/vendorDirectory/VendorDetailsModal';
+import AddVendorWizard from '../components/vendorDirectory/AddVendorWizard';
 
 const CATEGORY_ICON = {
   Photography: Camera,
@@ -57,6 +58,7 @@ export default function VendorDirectoryPage() {
   const [sortDir, setSortDir] = useState('desc');
   const [page, setPage] = useState(1);
 
+  const [isAddOpen, setIsAddOpen] = useState(false);
   const [formModal, setFormModal] = useState({ open: false, vendor: null });
   const [detailsVendor, setDetailsVendor] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -262,11 +264,12 @@ export default function VendorDirectoryPage() {
           </p>
         </div>
         <button
-          onClick={() => setFormModal({ open: true, vendor: null })}
+          id="add-vendor-btn"
+          onClick={() => setIsAddOpen(true)}
           className="inline-flex items-center gap-2 self-start rounded-lg bg-[#8E406F] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#78345c] sm:self-auto"
         >
           <Plus size={16} />
-          Add vendor
+          Add New Vendor
         </button>
       </div>
 
@@ -512,7 +515,25 @@ export default function VendorDirectoryPage() {
         </div>
       </div>
 
-      {/* Modals */}
+      {/* Add New Vendor — 4-step registration wizard */}
+      {isAddOpen && (
+        <div
+          id="add-vendor-modal-backdrop"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setIsAddOpen(false); }}
+        >
+          <div className="relative w-full max-w-2xl max-h-[90vh] bg-white rounded-2xl shadow-2xl
+                          border border-[#F1E5EC] flex flex-col overflow-hidden"
+               onClick={(e) => e.stopPropagation()}>
+            <AddVendorWizard
+              onClose={() => setIsAddOpen(false)}
+              onSuccess={() => { setIsAddOpen(false); fetchVendors(); }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Edit Vendor modal (unchanged) */}
       {formModal.open && (
         <VendorFormModal
           vendor={formModal.vendor}
