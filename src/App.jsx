@@ -17,6 +17,7 @@ import CustomerManagementPage from './pages/CustomerManagementPage';
 import ListingReviewPage from './pages/ListingReviewPage';
 import AdminManagementPage from './pages/AdminManagementPage';
 import AdminSettingsPage from './pages/AdminSettingsPage';
+import ReportAnalyticsPage from './pages/ReportAnalyticsPage';
 
 // Vendor Pages
 import VendorDashboardPage from './pages/VendorDashboardPage';
@@ -62,6 +63,7 @@ const pathToPageId = (path) => {
   if (path.includes('customer')) return 'customers';
   if (path.includes('listing-review') || path.includes('listings')) return 'listing-review';
   if (path.includes('admin-management') || path.includes('admins')) return 'admin-management';
+  if (path.includes('report-analytics')) return 'analytics';
   if (path.includes('settings')) return 'settings';
   if (path.includes('vendor-profile')) return 'vendor-profile';
   if (path.includes('vendor-services')) return 'vendor-services';
@@ -79,6 +81,7 @@ const pageIdToPath = {
   'customers': '/customer-management',
   'listing-review': '/listing-review',
   'admin-management': '/admin-management',
+  'analytics': '/report-analytics',
   'settings': '/settings',
   'vendor-dashboard': '/vendor-dashboard',
   'vendor-profile': '/vendor-profile',
@@ -251,6 +254,23 @@ export default function App() {
               >
                 <PageTransition>
                   <AdminSettingsPage />
+                </PageTransition>
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/report-analytics"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminLayout
+                currentPage="analytics"
+                onNavigate={handleNavigate}
+                onLogout={handleLogout}
+                userRole={userRole}
+              >
+                <PageTransition>
+                  <ReportAnalyticsPage />
                 </PageTransition>
               </AdminLayout>
             </ProtectedRoute>
