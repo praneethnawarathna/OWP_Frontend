@@ -64,7 +64,7 @@ const getUserRole = () => {
 const pathToPageId = (path) => {
   if (path.includes('customer')) return 'customers';
   if (path.includes('listing-review') || path.includes('listings')) return 'listing-review';
-  if (path.includes('all-vendors') || path === '/vendors' || path.startsWith('/vendors/')) return 'all-vendors';
+  if (path.includes('all-vendors') || path.includes('vendor-directory') || path === '/vendors' || path.startsWith('/vendors/')) return 'all-vendors';
   if (path.includes('admin-management') || path.includes('admins')) return 'admin-management';
   if (path.includes('report-analytics')) return 'analytics';
   if (path.includes('settings')) return 'settings';
