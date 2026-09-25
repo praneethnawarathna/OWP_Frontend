@@ -29,6 +29,7 @@ import VendorProfilePage from './pages/VendorProfilePage';
 import VendorListingsPage from './pages/VendorListingsPage';
 import CreateListingPage from './pages/CreateListingPage';
 import VendorNotificationsPage from './pages/VendorNotificationsPage';
+import VendorPerformancePage from './pages/VendorPerformancePage';
 
 const isVendor = (role) => String(role || '').toUpperCase() === 'VENDOR';
 
@@ -74,7 +75,8 @@ const pathToPageId = (path) => {
   if (path.includes('vendor-profile')) return 'vendor-profile';
   if (path.includes('vendor-services')) return 'vendor-services';
   if (path.includes('vendor-listing-editor')) return 'vendor-listing-editor';
-  if (path.includes('vendor-ratings') || path.includes('vendor-performance')) return 'vendor-ratings';
+  if (path.includes('vendor-performance')) return 'vendor-performance';
+  if (path.includes('vendor-ratings')) return 'vendor-ratings';
   if (path.includes('vendor-dashboard')) return 'vendor-dashboard';
   return 'dashboard';
 };
@@ -94,6 +96,7 @@ const pageIdToPath = {
   'vendor-profile': '/vendor-profile',
   'vendor-services': '/vendor-services',
   'vendor-listing-editor': '/vendor-listing-editor',
+  'vendor-performance': '/vendor-performance',
   'vendor-ratings': '/vendor-ratings',
   'vendor-notifications': '/vendor-notifications',
 };
@@ -419,7 +422,22 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/vendor-performance" element={<Navigate to="/vendor-ratings" replace />} />
+        <Route
+          path="/vendor-performance"
+          element={
+            <ProtectedRoute requiredRole="vendor">
+              <VendorLayout
+                currentPage="vendor-performance"
+                onNavigate={handleNavigate}
+                onLogout={handleLogout}
+              >
+                <PageTransition>
+                  <VendorPerformancePage onNavigate={handleNavigate} />
+                </PageTransition>
+              </VendorLayout>
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/vendor-notifications"
           element={
