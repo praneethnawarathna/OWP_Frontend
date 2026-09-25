@@ -60,6 +60,7 @@ export default function VendorDirectoryPage() {
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [formModal, setFormModal] = useState({ open: false, vendor: null });
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [detailsVendor, setDetailsVendor] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
@@ -264,8 +265,12 @@ export default function VendorDirectoryPage() {
           </p>
         </div>
         <button
+          Updated upstream
           id="add-vendor-btn"
           onClick={() => setIsAddOpen(true)}
+
+          onClick={() => setWizardOpen(true)}
+          Stashed changes
           className="inline-flex items-center gap-2 self-start rounded-lg bg-[#8E406F] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#78345c] sm:self-auto"
         >
           <Plus size={16} />
@@ -299,17 +304,15 @@ export default function VendorDirectoryPage() {
                   setStatusTab(tab);
                   resetToFirstPage();
                 }}
-                className={`flex items-center gap-2 border-b-2 px-3 pb-3 text-sm font-medium transition-colors ${
-                  active
+                className={`flex items-center gap-2 border-b-2 px-3 pb-3 text-sm font-medium transition-colors ${active
                     ? 'border-[#8E406F] text-[#8E406F]'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
+                  }`}
               >
                 {tab}
                 <span
-                  className={`rounded-full px-2 py-0.5 text-xs ${
-                    active ? 'bg-[#FDF0F4] text-[#8E406F]' : 'bg-gray-100 text-gray-600'
-                  }`}
+                  className={`rounded-full px-2 py-0.5 text-xs ${active ? 'bg-[#FDF0F4] text-[#8E406F]' : 'bg-gray-100 text-gray-600'
+                    }`}
                 >
                   {count}
                 </span>
@@ -333,11 +336,10 @@ export default function VendorDirectoryPage() {
                     setCategory(cat);
                     resetToFirstPage();
                   }}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                    active
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${active
                       ? 'bg-[#8E406F] text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
+                    }`}
                 >
                   {cat}
                 </button>
@@ -487,9 +489,9 @@ export default function VendorDirectoryPage() {
             {filtered.length === 0
               ? 'Showing 0 vendors'
               : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(
-                  page * PAGE_SIZE,
-                  filtered.length
-                )} of ${filtered.length}`}
+                page * PAGE_SIZE,
+                filtered.length
+              )} of ${filtered.length}`}
           </span>
           <div className="flex items-center gap-2">
             <button
@@ -515,6 +517,7 @@ export default function VendorDirectoryPage() {
         </div>
       </div>
 
+      Updated upstream
       {/* Add New Vendor — 4-step registration wizard */}
       {isAddOpen && (
         <div
@@ -524,7 +527,7 @@ export default function VendorDirectoryPage() {
         >
           <div className="relative w-full max-w-2xl max-h-[90vh] bg-white rounded-2xl shadow-2xl
                           border border-[#F1E5EC] flex flex-col overflow-hidden"
-               onClick={(e) => e.stopPropagation()}>
+            onClick={(e) => e.stopPropagation()}>
             <AddVendorWizard
               onClose={() => setIsAddOpen(false)}
               onSuccess={() => { setIsAddOpen(false); fetchVendors(); }}
@@ -534,6 +537,18 @@ export default function VendorDirectoryPage() {
       )}
 
       {/* Edit Vendor modal (unchanged) */}
+=======
+      {/* Modals */}
+      {wizardOpen && (
+        <AddVendorWizard
+          onClose={() => setWizardOpen(false)}
+          onSuccess={() => {
+            fetchVendors();
+          }}
+        />
+      )}
+
+Stashed changes
       {formModal.open && (
         <VendorFormModal
           vendor={formModal.vendor}
