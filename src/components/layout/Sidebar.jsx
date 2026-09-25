@@ -80,8 +80,17 @@ export default function Sidebar({
     }
   })();
 
+feature/admin-vendor-management
+  const isSuperAdmin =
+    userRole === 'SUPER_ADMIN' ||
+    userRole === 'SUPERADMIN' ||
+    userRole === 'SuperAdmin' ||
+    String(userRole || '').toUpperCase().includes('SUPER') ||
+    String(storedUser.role || '').toUpperCase().includes('SUPER');
+=======
   const effectiveRole = String(userRole || storedUser.role || '').toUpperCase();
   const isSuperAdmin = effectiveRole.includes('SUPER');
+dev
 
   const displayName = storedUser.fullName || 'System Admin';
   const displayRole = storedUser.role || (isSuperAdmin ? 'SUPER_ADMIN' : 'ADMIN');
