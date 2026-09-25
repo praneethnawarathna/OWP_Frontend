@@ -1,33 +1,33 @@
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import './index.css';
+
+// Public Pages
+import LandingPage from './pages/LandingPage';
+import LoginPage from './pages/LoginPage';
+
+// Layouts
 import AdminLayout from './components/layout/AdminLayout';
 import VendorLayout from './components/layout/VendorLayout';
+
+// Admin Pages
 import DashboardPage from './pages/DashboardPage';
 import CustomerManagementPage from './pages/CustomerManagementPage';
 import ListingReviewPage from './pages/ListingReviewPage';
 import AdminManagementPage from './pages/AdminManagementPage';
 import AdminSettingsPage from './pages/AdminSettingsPage';
+import ReportAnalyticsPage from './pages/ReportAnalyticsPage';
 import VendorDirectoryPage from './pages/VendorDirectoryPage';
-import LoginPage from './pages/LoginPage';
+import AdminNotificationsPage from './pages/AdminNotificationsPage';
+
+// Vendor Pages
 import VendorDashboardPage from './pages/VendorDashboardPage';
 import VendorContentPage from './pages/VendorContentPage';
 import VendorProfilePage from './pages/VendorProfilePage';
 import VendorListingsPage from './pages/VendorListingsPage';
 import CreateListingPage from './pages/CreateListingPage';
 import VendorNotificationsPage from './pages/VendorNotificationsPage';
-<<<<<<< Updated upstream
-import AdminNotificationsPage from './pages/AdminNotificationsPage';
-
-const getStoredUser = () => {
-  try {
-    return JSON.parse(localStorage.getItem('user') || '{}');
-  } catch {
-    return {};
-  }
-};
-=======
-
->>>>>>> Stashed changes
 
 const isVendor = (role) => String(role || '').toUpperCase() === 'VENDOR';
 
@@ -52,57 +52,14 @@ const isAuthenticated = () => {
 
 const getUserRole = () => {
   try {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const role = String(user.role || '').toUpperCase();
-    if (role.includes('SUPER')) return 'SUPER_ADMIN';
-    return user.role || 'ADMIN';
+    const raw = localStorage.getItem('user');
+    const user = raw ? JSON.parse(raw) : null;
+    return user?.role || 'ADMIN';
   } catch {
     return 'ADMIN';
   }
 };
 
-<<<<<<< Updated upstream
-// Map browser URL paths to internal page state.
-const pathToPage = (path) => {
-  if (path === '/login') return 'login';
-  if (!isAuthenticated()) return 'login';
-
-  const vendor = isVendor(getUserRole());
-  if (vendor) {
-    if (path === '/vendor-dashboard' || path === '/' || path === '/dashboard') return 'vendor-dashboard';
-    if (path === '/vendor-profile') return 'vendor-profile';
-    if (path === '/vendor-services') return 'vendor-services';
-    if (path === '/vendor-listing-editor') return 'vendor-listing-editor';
-    if (path === '/vendor-ratings' || path === '/vendor-performance') return 'vendor-ratings';
-    if (path === '/vendor-notifications') return 'vendor-notifications';
-    return 'vendor-dashboard';
-  }
-
-  if (path === '/customer-management' || path === '/customers') return 'customers';
-  if (path === '/listing-review' || path === '/listings') return 'listing-review';
-  if (path === '/all-vendors' || path === '/vendor-directory' || path === '/vendors') return 'all-vendors';
-  if (path === '/admin-management' || path === '/admins') return 'admin-management';
-  if (path === '/settings') return 'settings';
-  if (path === '/notifications' || path === '/admin-notifications') return 'notifications';
-  return 'dashboard'; // Default route for '/' or '/dashboard'
-};
-
-const pageToPath = (page) => {
-  if (page === 'login') return '/login';
-  if (page === 'vendor-dashboard') return '/vendor-dashboard';
-  if (page === 'vendor-profile') return '/vendor-profile';
-  if (page === 'vendor-services') return '/vendor-services';
-  if (page === 'vendor-listing-editor') return '/vendor-listing-editor';
-  if (page === 'vendor-ratings') return '/vendor-ratings';
-  if (page === 'vendor-notifications') return '/vendor-notifications';
-  if (page === 'customers') return '/customer-management';
-  if (page === 'listing-review') return '/listing-review';
-  if (page === 'all-vendors' || page === 'vendor-directory') return '/all-vendors';
-  if (page === 'admin-management') return '/admin-management';
-  if (page === 'settings') return '/settings';
-  if (page === 'notifications') return '/notifications';
-  return '/';
-=======
 // Map route path to page ID expected by Sidebar/Header
 const pathToPageId = (path) => {
   if (path.includes('customer')) return 'customers';
@@ -138,105 +95,71 @@ const pageIdToPath = {
   'vendor-listing-editor': '/vendor-listing-editor',
   'vendor-ratings': '/vendor-ratings',
   'vendor-notifications': '/vendor-notifications',
->>>>>>> Stashed changes
 };
 
-// Placeholder for vendor sub-pages not yet built
-function ComingSoon({ title, desc }) {
+// Smooth page transition wrapper
+function PageTransition({ children }) {
   return (
-    <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center px-6">
-      <div className="h-16 w-16 rounded-2xl bg-[#FDF0F4] border border-[#F1E5EC] flex items-center justify-center mb-4">
-        <span className="text-3xl">🚀</span>
-      </div>
-      <h2
-        className="text-xl font-bold text-[#1E293B] mb-1"
-        style={{ fontFamily: "'Playfair Display', serif" }}
-      >
-        {title}
-      </h2>
-      <p className="text-sm text-[#737373] max-w-xs">{desc}</p>
-      <span className="mt-4 inline-flex items-center px-3 py-1 rounded-full border border-[#F1E5EC] bg-[#FDF0F4] text-xs font-medium text-[#8E406F]">
-        Coming soon
-      </span>
-    </div>
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -6 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      className="h-full"
+    >
+      {children}
+    </motion.div>
   );
 }
 
+// Protected Route Guard
+function ProtectedRoute({ children, requiredRole }) {
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" replace />;
+  }
+  const currentRole = getUserRole();
+  if (requiredRole === 'vendor' && !isVendor(currentRole)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  if (requiredRole === 'admin' && isVendor(currentRole)) {
+    return <Navigate to="/vendor-dashboard" replace />;
+  }
+  return children;
+}
+
 export default function App() {
-  const [currentPage, setCurrentPage] = useState(() => pathToPage(window.location.pathname));
+  const location = useLocation();
+  const navigate = useNavigate();
   const [userRole, setUserRole] = useState(() => getUserRole());
 
-  // Sync state if user clicks Browser Back/Forward buttons
   useEffect(() => {
-    const handlePopState = () => {
-      setCurrentPage(pathToPage(window.location.pathname));
-      setUserRole(getUserRole());
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+    setUserRole(getUserRole());
+  }, [location.pathname]);
 
-  const handleNavigate = (page) => {
-    setCurrentPage(page);
-    const newPath = pageToPath(page);
-    if (window.location.pathname !== newPath) {
-      window.history.pushState({}, '', newPath);
+  const handleNavigate = (pageOrPath) => {
+    if (pageOrPath.startsWith('/')) {
+      navigate(pageOrPath);
+    } else {
+      navigate(pageIdToPath[pageOrPath] || `/${pageOrPath}`);
     }
   };
 
   const handleLoginSuccess = () => {
     const role = getUserRole();
     setUserRole(role);
-    handleNavigate(isVendor(role) ? 'vendor-dashboard' : 'dashboard');
+    navigate(isVendor(role) ? '/vendor-dashboard' : '/dashboard');
   };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUserRole('ADMIN');
-    handleNavigate('login');
+    navigate('/login');
   };
 
-  if (currentPage === 'login') {
-    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
-  }
+  const currentPageId = pathToPageId(location.pathname);
 
-  // Vendor users get their own layout shell
-  if (isVendor(userRole)) {
-    return (
-      <VendorLayout
-        currentPage={currentPage}
-        onNavigate={handleNavigate}
-        onLogout={handleLogout}
-      >
-        {currentPage === 'vendor-dashboard' && <VendorDashboardPage onNavigate={handleNavigate} />}
-        {currentPage === 'vendor-profile' && <VendorProfilePage onNavigate={handleNavigate} />}
-        {currentPage === 'vendor-services' && <VendorListingsPage onNavigate={handleNavigate} />}
-        {currentPage === 'vendor-listing-editor' && <CreateListingPage onNavigate={handleNavigate} />}
-        {currentPage === 'vendor-ratings' && <VendorContentPage type="performance" />}
-        {currentPage === 'vendor-notifications' && <VendorNotificationsPage onNavigate={handleNavigate} />}
-      </VendorLayout>
-    );
-  }
-
-  // Admin Portal: Wrapped inside AdminLayout
   return (
-<<<<<<< Updated upstream
-    <AdminLayout
-      currentPage={currentPage}
-      onNavigate={handleNavigate}
-      onLogout={handleLogout}
-      userRole={userRole}
-    >
-      {currentPage === 'dashboard' && <DashboardPage onNavigate={handleNavigate} />}
-      {currentPage === 'customers' && <CustomerManagementPage />}
-      {currentPage === 'listing-review' && <ListingReviewPage />}
-      {(currentPage === 'all-vendors' || currentPage === 'vendor-directory') && <VendorDirectoryPage />}
-      {currentPage === 'admin-management' && <AdminManagementPage />}
-      {currentPage === 'settings' && <AdminSettingsPage />}
-      {currentPage === 'notifications' && <AdminNotificationsPage onNavigate={handleNavigate} />}
-    </AdminLayout>
-=======
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         {/* Public Routes */}
@@ -500,6 +423,5 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AnimatePresence>
->>>>>>> Stashed changes
   );
 }
