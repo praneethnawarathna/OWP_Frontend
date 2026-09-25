@@ -91,7 +91,7 @@ export const sidebarNav = [
   { id: 'analytics',       label: 'Report Analytics',    icon: 'BarChart3',       active: false },
   { id: 'flagged',         label: 'Flagged Content',     icon: 'Flag',            active: false },
   { id: 'notifications',   label: 'Notifications',       icon: 'Bell',            active: false },
-  { id: 'activity-log',    label: 'Activity Log',        icon: 'Activity',        active: false },
+  { id: 'activity-log',    label: 'Activity Log',        icon: 'Activity',        active: true },
   { id: 'category-manager',label: 'Category Manager',   icon: 'Tag',             active: false },
 ];
 
