@@ -21,7 +21,6 @@ import ReportAnalyticsPage from './pages/ReportAnalyticsPage';
 import VendorDirectoryPage from './pages/VendorDirectoryPage';
 import AdminNotificationsPage from './pages/AdminNotificationsPage';
 import ActivityLogPage from './pages/ActivityLogPage';
-import AdminSystemActivityLogPage from './pages/AdminSystemActivityLogPage';
 import FlaggedContentPage from './pages/FlaggedContentPage';
 
 // Vendor Pages
@@ -330,7 +329,6 @@ export default function App() {
           }
         />
         <Route
-          path="/report-analytics"
           path="/flagged-content"
           element={
             <ProtectedRoute requiredRole="admin">
@@ -348,7 +346,7 @@ export default function App() {
           }
         />
         <Route
-          path="/activity-log"
+          path="/report-analytics"
           element={
             <ProtectedRoute requiredRole="admin">
               <AdminLayout

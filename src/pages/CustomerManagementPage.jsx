@@ -471,6 +471,9 @@ export function CustomerManagement() {
     try {
       const res = await fetchWithFallback('');
       if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error('Your session has expired or you are not logged in as an Admin. Please log in.');
+        }
         throw new Error(`Server returned HTTP ${res.status}: ${res.statusText}`);
       }
 
@@ -722,16 +725,25 @@ export function CustomerManagement() {
           <div className="flex items-center gap-3">
             <AlertCircle size={20} className="shrink-0 text-[#D92D20]" />
             <div>
-              <p className="font-semibold">Unable to fetch customers from backend API</p>
+              <p className="font-semibold">{error.includes('log in') ? 'Authentication Required' : 'Unable to fetch customers from backend API'}</p>
               <p className="text-xs text-[#737373] mt-0.5">{error}</p>
             </div>
           </div>
-          <button
-            onClick={fetchCustomers}
-            className="px-3.5 py-1.5 rounded-lg bg-[#D92D20] text-white text-xs font-semibold hover:bg-[#B91C1C] transition-all shrink-0"
-          >
-            Retry Connection
-          </button>
+          {error.includes('log in') ? (
+            <a
+              href="/login"
+              className="px-3.5 py-1.5 rounded-lg bg-[#8E406F] text-white text-xs font-semibold hover:bg-[#723358] transition-all shrink-0"
+            >
+              Go to Login
+            </a>
+          ) : (
+            <button
+              onClick={fetchCustomers}
+              className="px-3.5 py-1.5 rounded-lg bg-[#D92D20] text-white text-xs font-semibold hover:bg-[#B91C1C] transition-all shrink-0"
+            >
+              Retry Connection
+            </button>
+          )}
         </div>
       )}
 
