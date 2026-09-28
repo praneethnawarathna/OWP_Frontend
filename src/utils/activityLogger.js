@@ -3,6 +3,7 @@ export const ACTION_TYPES = {
   VENDOR_REJECTED: 'VendorRejected',
   VENDOR_SUSPENDED: 'VendorSuspended',
   VENDOR_BANNED: 'VendorBanned',
+  VENDOR_UPDATED: 'VendorUpdated',
   SETTINGS_CHANGED: 'SettingsChanged',
   LISTING_REVIEWED: 'ListingReviewed',
   GENERAL_UPDATE: 'GeneralUpdate',

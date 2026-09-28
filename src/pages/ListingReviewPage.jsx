@@ -4,8 +4,22 @@ import {
   Download, Eye, ToggleLeft, ToggleRight, X,
   MapPin, Mail, Phone, Star, Image, Tag,
   DollarSign, Store, CheckCircle2, AlertCircle, Calendar,
-  ThumbsUp, ThumbsDown, Loader2, RefreshCw, Clock,
+  ThumbsUp, ThumbsDown, Loader2, RefreshCw, Clock, Filter,
 } from "lucide-react";
+import {
+  AdminPageHeader,
+  AdminStatCard,
+  AdminTableCard,
+  AdminTableToolbar,
+  AdminTable,
+  AdminTableHeader,
+  AdminTableHead,
+  AdminTableBody,
+  AdminTableRow,
+  AdminTableCell,
+  AdminTablePagination,
+  AdminIconButton,
+} from "../components/common/AdminTableComponents";
 
 const API_BASE = "http://localhost:5131";
 const PAGE_SIZE = 7;
@@ -557,45 +571,68 @@ export default function ListingReviewPage() {
   // Render
   // ─────────────────────────────────────────────────────
   return (
-    <div className="max-w-[1400px] w-full mx-auto space-y-6">
+    <div className="space-y-6">
 
       {/* Page heading */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-[#1E293B]" style={{ fontFamily:"'Playfair Display', serif" }}>
-            Listing Review
-          </h1>
-          <p className="text-sm text-[#8E406F] mt-0.5">
-            Review, approve, or reject vendor listings across all service categories.
-          </p>
-        </div>
-        <button
-          onClick={() => { fetchListings(); fetchMetrics(); }}
-          disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#F6DCE6] text-[#8E406F] text-sm hover:bg-[#FDF0F4] transition-all disabled:opacity-50"
-        >
-          <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
-          Refresh
-        </button>
-      </div>
+      <AdminPageHeader
+        title="Listing Review"
+        subtitle="Review, approve, or reject vendor listings across all service categories."
+        action={
+          <button
+            onClick={() => { fetchListings(); fetchMetrics(); }}
+            disabled={loading}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-lg border border-[#F1E5EC] bg-white text-xs font-semibold text-[#555] hover:bg-[#FDF0F4] hover:text-[#8E406F] hover:border-[#8E406F] transition-all disabled:opacity-50"
+          >
+            <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+            Refresh
+          </button>
+        }
+      />
 
       {/* Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <MetricCard icon={Store}        iconBg="#F6DCE6" iconColor="#8E406F" label="Total Listings"    value={metricsLoad ? "…" : metrics.totalListings} />
-        <MetricCard icon={CheckCircle2} iconBg="#D1FAE5" iconColor="#059669" label="Active Listings"   value={metricsLoad ? "…" : metrics.activeListings} delta="Visible to couples" />
-        <MetricCard icon={Clock}        iconBg="#FEF3C7" iconColor="#D97706" label="Pending Review"    value={metricsLoad ? "…" : metrics.pendingReviews} delta="Awaiting approval" />
-        <MetricCard icon={AlertCircle}  iconBg="#FEF3F2" iconColor="#D92D20" label="Inactive Listings" value={metricsLoad ? "…" : metrics.inactiveListings} delta="Hidden from couples" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <AdminStatCard
+          label="Total Listings"
+          value={metricsLoad ? "…" : metrics.totalListings}
+          icon={Store}
+        />
+        <AdminStatCard
+          label="Active Listings"
+          value={metricsLoad ? "…" : metrics.activeListings}
+          subtext="Visible to couples"
+          icon={CheckCircle2}
+          iconBg="bg-[#D1FAE5]"
+          iconColor="text-[#059669]"
+        />
+        <AdminStatCard
+          label="Pending Review"
+          value={metricsLoad ? "…" : metrics.pendingReviews}
+          subtext="Awaiting approval"
+          icon={Clock}
+          iconBg="bg-[#FEF3C7]"
+          iconColor="text-[#D97706]"
+        />
+        <AdminStatCard
+          label="Inactive Listings"
+          value={metricsLoad ? "…" : metrics.inactiveListings}
+          subtext="Hidden from couples"
+          icon={AlertCircle}
+          iconBg="bg-[#FEF3F2]"
+          iconColor="text-[#D92D20]"
+        />
       </div>
 
       {/* Category tabs */}
       <div className="flex flex-wrap gap-2">
         {CATEGORIES.map(cat => (
-          <button key={cat}
+          <button
+            key={cat}
             onClick={() => { setCategoryTab(cat); resetPage(); }}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold tracking-wide border transition-all ${
               categoryTab === cat
                 ? "bg-[#8E406F] text-white border-[#8E406F] shadow-sm"
-                : "bg-white text-[#555] border-[#F6DCE6] hover:bg-[#FDF0F4] hover:text-[#8E406F] hover:border-[#8E406F]"}`}
+                : "bg-white text-[#737373] border-[#F1E5EC] hover:bg-[#FDF0F4] hover:text-[#8E406F] hover:border-[#8E406F]"
+            }`}
           >
             {cat}
           </button>
@@ -603,12 +640,11 @@ export default function ListingReviewPage() {
       </div>
 
       {/* Table card */}
-      <div className="bg-[#FDF0F4] border border-[#F6DCE6] rounded-2xl shadow-sm overflow-hidden">
-
+      <AdminTableCard>
         {/* Toolbar */}
-        <div className="px-5 py-4 border-b border-[#F6DCE6] flex flex-col sm:flex-row sm:items-center gap-3">
+        <AdminTableToolbar>
           <div className="relative flex-1 max-w-sm">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#aaa] pointer-events-none" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#999] pointer-events-none" />
             <input
               ref={searchRef}
               id="listing-search"
@@ -616,207 +652,170 @@ export default function ListingReviewPage() {
               value={searchQuery}
               onChange={e => { setSearchQuery(e.target.value); resetPage(); }}
               placeholder="Search vendor or location..."
-              className="w-full pl-8 pr-3 py-1.5 text-sm bg-white border border-[#F6DCE6] rounded-lg text-[#333] placeholder:text-[#bbb] focus:outline-none focus:ring-2 focus:ring-[#8E406F]/20 focus:border-[#8E406F] transition-all"
+              className="w-full pl-8 pr-3 py-2 text-xs bg-[#FAFBFC] border border-[#F1E5EC] rounded-lg text-[#333] placeholder:text-[#aaa] focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#8E406F]/20 focus:border-[#8E406F] transition-all"
             />
           </div>
 
-          <div className="relative">
-            <select
-              id="listing-status-filter"
-              value={statusFilter}
-              onChange={e => { setStatusFilter(e.target.value); resetPage(); }}
-              className="appearance-none pl-3 pr-8 py-1.5 text-sm bg-white border border-[#F6DCE6] rounded-lg text-[#333] focus:outline-none focus:ring-2 focus:ring-[#8E406F]/20 focus:border-[#8E406F] transition-all cursor-pointer"
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <select
+                id="listing-status-filter"
+                value={statusFilter}
+                onChange={e => { setStatusFilter(e.target.value); resetPage(); }}
+                className="appearance-none pl-3 pr-8 py-2 text-xs bg-[#FAFBFC] border border-[#F1E5EC] rounded-lg text-[#555] focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#8E406F]/20 focus:border-[#8E406F] transition-all cursor-pointer font-medium"
+              >
+                <option value="All">All Statuses</option>
+                <option value="Active">Active</option>
+                <option value="Pending">Pending</option>
+                <option value="Inactive">Inactive</option>
+                <option value="Draft">Draft</option>
+              </select>
+              <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#999] pointer-events-none" />
+            </div>
+
+            <button
+              id="export-listings-btn"
+              onClick={handleExport}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-lg border border-[#F1E5EC] text-xs font-semibold text-[#555] hover:bg-[#FDF0F4] hover:text-[#8E406F] hover:border-[#8E406F] transition-all whitespace-nowrap"
             >
-              <option value="All">All Statuses</option>
-              <option value="Active">Active</option>
-              <option value="Pending">Pending</option>
-              <option value="Inactive">Inactive</option>
-              <option value="Draft">Draft</option>
-            </select>
-            <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#999] pointer-events-none" />
+              <Download size={14} />Export CSV
+            </button>
           </div>
-
-          <div className="flex-1 hidden sm:block" />
-
-          <button
-            id="export-listings-btn"
-            onClick={handleExport}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-lg border border-[#8E406F] text-[#8E406F] text-sm font-medium hover:bg-[#8E406F] hover:text-white active:scale-95 transition-all whitespace-nowrap"
-          >
-            <Download size={14} />Export CSV
-          </button>
-        </div>
+        </AdminTableToolbar>
 
         {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[#F6DCE6] bg-[#FAE8F0]">
-                {["Vendor","Category","Location","Price","Rating","Listed","Status","Actions"].map(col => (
-                  <th key={col} className="text-left px-5 py-3 text-xs font-semibold text-[#8E406F] uppercase tracking-wide whitespace-nowrap">
-                    {col}
-                  </th>
-                ))}
+        <AdminTable>
+          <AdminTableHeader>
+            <AdminTableHead>Vendor</AdminTableHead>
+            <AdminTableHead>Category</AdminTableHead>
+            <AdminTableHead>Location</AdminTableHead>
+            <AdminTableHead>Price</AdminTableHead>
+            <AdminTableHead>Rating</AdminTableHead>
+            <AdminTableHead>Listed</AdminTableHead>
+            <AdminTableHead>Status</AdminTableHead>
+            <AdminTableHead align="right">Actions</AdminTableHead>
+          </AdminTableHeader>
+          <AdminTableBody>
+            {loading ? (
+              <tr>
+                <td colSpan={8} className="text-center py-16 text-[#aaa] text-sm">
+                  <Loader2 size={28} className="mx-auto mb-3 text-[#8E406F] animate-spin" />
+                  Loading listings…
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-[#F6DCE6]">
-              {loading ? (
-                <tr>
-                  <td colSpan={8} className="text-center py-16 text-[#aaa] text-sm">
-                    <Loader2 size={28} className="mx-auto mb-3 text-[#8E406F] animate-spin" />
-                    Loading listings…
-                  </td>
-                </tr>
-              ) : error ? (
-                <tr>
-                  <td colSpan={8} className="text-center py-12 text-[#D92D20] text-sm">
-                    <AlertCircle size={28} className="mx-auto mb-3 text-[#D92D20]" />
-                    Failed to load listings: {error}
-                  </td>
-                </tr>
-              ) : listings.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-gray-400">
-                    <Store size={36} className="mx-auto mb-3 text-gray-300" />
-                    No vendor listings found in the database.
-                  </td>
-                </tr>
-              ) : paginated.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-gray-400">
-                    <Store size={36} className="mx-auto mb-3 text-gray-300" />
-                    No listings match your filters.
-                  </td>
-                </tr>
-              ) : paginated.map((listing, idx) => {
-                const absIdx   = (currentPage - 1) * PAGE_SIZE + idx;
-                const isActive = listing.status === "Active";
-                return (
-                  <tr key={listing.listingId} className="bg-white hover:bg-[#FDF0F4] transition-colors">
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <Avatar initials={listing.initials} index={absIdx} />
-                        <div className="min-w-0">
-                          <p className="font-semibold text-[#1E293B] truncate">{listing.vendorName}</p>
-                          {listing.location && (
-                            <div className="flex items-center gap-1 text-xs text-[#737373] mt-0.5">
-                              <MapPin size={10} className="shrink-0" />
-                              <span className="truncate">{listing.location}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3.5"><CategoryPill category={listing.category} /></td>
-                    <td className="px-5 py-3.5 whitespace-nowrap text-[#555] text-xs">{listing.location || "—"}</td>
-                    <td className="px-5 py-3.5 whitespace-nowrap">
-                      <span className="flex items-center gap-1 text-[#1E293B] font-medium text-xs">
-                        <Tag size={11} className="text-[#8E406F]" />
-                        {listing.price ? `Rs. ${Number(listing.price).toLocaleString()}` : (listing.priceDisplay || "Contact for pricing")}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5"><StarRating rating={listing.rating} /></td>
-                    <td className="px-5 py-3.5 whitespace-nowrap text-xs text-[#737373]">{listing.listedDate}</td>
-                    <td className="px-5 py-3.5"><StatusBadge status={listing.status} /></td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-1.5">
-                        {/* View details */}
-                        <button
-                          aria-label={`View ${listing.vendorName}`}
-                          onClick={() => handleViewListing(listing, absIdx)}
-                          title="View Details"
-                          className="h-8 w-8 flex items-center justify-center rounded-lg border border-[#F6DCE6] text-[#737373] hover:bg-[#FDF0F4] hover:text-[#8E406F] hover:border-[#8E406F] transition-all"
-                        >
-                          <Eye size={14} />
-                        </button>
-
-                        {/* Approve (only for Pending/Draft) */}
-                        {(listing.status === "Pending" || listing.status === "Draft") && (
-                          <button
-                            aria-label={`Approve ${listing.vendorName}`}
-                            onClick={() => handleApprove(listing.listingId)}
-                            title="Approve Listing"
-                            className="h-8 w-8 flex items-center justify-center rounded-lg border border-[#A3D9B8] text-[#059669] hover:bg-[#E6F4EE] transition-all"
-                          >
-                            <ThumbsUp size={13} />
-                          </button>
+            ) : error ? (
+              <tr>
+                <td colSpan={8} className="text-center py-12 text-[#D92D20] text-sm">
+                  <AlertCircle size={28} className="mx-auto mb-3 text-[#D92D20]" />
+                  Failed to load listings: {error}
+                </td>
+              </tr>
+            ) : listings.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="py-12 text-center text-gray-400 text-sm">
+                  <Store size={36} className="mx-auto mb-3 text-gray-300" />
+                  No vendor listings found in the database.
+                </td>
+              </tr>
+            ) : paginated.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="py-12 text-center text-gray-400 text-sm">
+                  <Store size={36} className="mx-auto mb-3 text-gray-300" />
+                  No listings match your filters.
+                </td>
+              </tr>
+            ) : paginated.map((listing, idx) => {
+              const absIdx   = (currentPage - 1) * PAGE_SIZE + idx;
+              const isActive = listing.status === "Active";
+              return (
+                <AdminTableRow key={listing.listingId}>
+                  <AdminTableCell>
+                    <div className="flex items-center gap-3">
+                      <Avatar initials={listing.initials} index={absIdx} />
+                      <div className="min-w-0">
+                        <p className="font-semibold text-[#333] text-sm truncate">{listing.vendorName}</p>
+                        {listing.location && (
+                          <div className="flex items-center gap-1 text-xs text-[#737373] mt-0.5">
+                            <MapPin size={10} className="shrink-0" />
+                            <span className="truncate">{listing.location}</span>
+                          </div>
                         )}
-
-                        {/* Reject (only for Pending/Draft) */}
-                        {(listing.status === "Pending" || listing.status === "Draft") && (
-                          <button
-                            aria-label={`Reject ${listing.vendorName}`}
-                            onClick={() => setRejectTarget(listing)}
-                            title="Reject Listing"
-                            className="h-8 w-8 flex items-center justify-center rounded-lg border border-[#FECDCA] text-[#D92D20] hover:bg-[#FEF3F2] transition-all"
-                          >
-                            <ThumbsDown size={13} />
-                          </button>
-                        )}
-
-                        {/* Toggle Active/Inactive */}
-                        <button
-                          aria-label={`Toggle status for ${listing.vendorName}`}
-                          onClick={() => handleToggleStatus(listing)}
-                          title={isActive ? "Set Inactive" : "Set Active"}
-                          className={`h-8 w-8 flex items-center justify-center rounded-lg border transition-all ${
-                            isActive
-                              ? "border-[#D1D5DB] text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#374151] hover:border-[#9CA3AF]"
-                              : "border-[#A3D9B8] text-[#1A7F4B] hover:bg-[#E6F4EE] hover:text-[#15653B] hover:border-[#6DC49A]"}`}
-                        >
-                          {isActive ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
-                        </button>
                       </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                  </AdminTableCell>
+                  <AdminTableCell><CategoryPill category={listing.category} /></AdminTableCell>
+                  <AdminTableCell className="text-[#555] text-xs">{listing.location || "—"}</AdminTableCell>
+                  <AdminTableCell>
+                    <span className="flex items-center gap-1 text-[#333] font-medium text-xs">
+                      <Tag size={11} className="text-[#8E406F]" />
+                      {listing.price ? `Rs. ${Number(listing.price).toLocaleString()}` : (listing.priceDisplay || "Contact for pricing")}
+                    </span>
+                  </AdminTableCell>
+                  <AdminTableCell><StarRating rating={listing.rating} /></AdminTableCell>
+                  <AdminTableCell className="text-xs text-[#737373]">{listing.listedDate}</AdminTableCell>
+                  <AdminTableCell><StatusBadge status={listing.status} /></AdminTableCell>
+                  <AdminTableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <AdminIconButton
+                        label="View"
+                        aria-label={`View ${listing.vendorName}`}
+                        onClick={() => handleViewListing(listing, absIdx)}
+                        title="View Details"
+                      >
+                        <Eye size={14} />
+                      </AdminIconButton>
+
+                      {(listing.status === "Pending" || listing.status === "Draft") && (
+                        <AdminIconButton
+                          label="Approve"
+                          aria-label={`Approve ${listing.vendorName}`}
+                          onClick={() => handleApprove(listing.listingId)}
+                          title="Approve Listing"
+                          className="text-[#059669] hover:bg-[#E6F4EE] hover:border-[#A3D9B8]"
+                        >
+                          <ThumbsUp size={14} />
+                        </AdminIconButton>
+                      )}
+
+                      {(listing.status === "Pending" || listing.status === "Draft") && (
+                        <AdminIconButton
+                          label="Reject"
+                          aria-label={`Reject ${listing.vendorName}`}
+                          onClick={() => setRejectTarget(listing)}
+                          title="Reject Listing"
+                          variant="danger"
+                        >
+                          <ThumbsDown size={14} />
+                        </AdminIconButton>
+                      )}
+
+                      <AdminIconButton
+                        label={isActive ? "Deactivate" : "Activate"}
+                        aria-label={`Toggle status for ${listing.vendorName}`}
+                        onClick={() => handleToggleStatus(listing)}
+                        title={isActive ? "Set Inactive" : "Set Active"}
+                        className={isActive ? "text-[#6B7280] hover:bg-[#F3F4F6]" : "text-[#1A7F4B] hover:bg-[#E6F4EE] hover:border-[#6DC49A]"}
+                      >
+                        {isActive ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
+                      </AdminIconButton>
+                    </div>
+                  </AdminTableCell>
+                </AdminTableRow>
+              );
+            })}
+          </AdminTableBody>
+        </AdminTable>
 
         {/* Pagination */}
-        <div className="px-5 py-3 border-t border-[#F6DCE6] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-white">
-          <p className="text-xs text-[#737373]">
-            Showing{" "}
-            <span className="font-semibold text-[#1E293B]">{listings.length === 0 ? 0 : (currentPage-1)*PAGE_SIZE+1}</span>
-            {" "}-{" "}
-            <span className="font-semibold text-[#1E293B]">{Math.min(currentPage*PAGE_SIZE, listings.length)}</span>
-            {" "}of{" "}
-            <span className="font-semibold text-[#1E293B]">{listings.length}</span> listings
-          </p>
-          <div className="flex items-center gap-1">
-            <button
-              id="prev-listing-page"
-              onClick={() => setCurrentPage(p => Math.max(1, p-1))}
-              disabled={currentPage === 1}
-              className="flex items-center justify-center h-7 w-7 rounded-lg border border-[#F6DCE6] text-[#737373] hover:bg-[#FDF0F4] hover:text-[#8E406F] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronLeft size={14} />
-            </button>
-            {Array.from({ length: totalPages }, (_,i) => i+1).map(page => (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={`flex items-center justify-center h-7 w-7 rounded-lg text-xs font-medium transition-colors border ${
-                  page === currentPage
-                    ? "bg-[#8E406F] text-white border-[#8E406F]"
-                    : "border-[#F6DCE6] text-[#737373] hover:bg-[#FDF0F4] hover:text-[#8E406F]"}`}
-              >
-                {page}
-              </button>
-            ))}
-            <button
-              id="next-listing-page"
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p+1))}
-              disabled={currentPage === totalPages}
-              className="flex items-center justify-center h-7 w-7 rounded-lg border border-[#F6DCE6] text-[#737373] hover:bg-[#FDF0F4] hover:text-[#8E406F] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronRight size={14} />
-            </button>
-          </div>
-        </div>
-      </div>
+        <AdminTablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={listings.length}
+          pageSize={PAGE_SIZE}
+          onPageChange={setCurrentPage}
+          itemName="listings"
+        />
+      </AdminTableCard>
 
       {/* View/Detail Modal */}
       {viewTarget && (

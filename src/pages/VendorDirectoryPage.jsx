@@ -27,15 +27,32 @@ import { logActivity, ACTION_TYPES } from '../utils/activityLogger';
 import VendorFormModal from '../components/vendorDirectory/VendorFormModal';
 import VendorDetailsModal from '../components/vendorDirectory/VendorDetailsModal';
 import AddVendorWizard from '../components/vendorDirectory/AddVendorWizard';
+import {
+  AdminPageHeader,
+  AdminStatCard,
+  AdminTableCard,
+  AdminTableToolbar,
+  AdminTable,
+  AdminTableHeader,
+  AdminTableHead,
+  AdminTableBody,
+  AdminTableRow,
+  AdminTableCell,
+  AdminTablePagination,
+  AdminIconButton,
+} from '../components/common/AdminTableComponents';
 
 const CATEGORY_ICON = {
   Photography: Camera,
   Decorations: Sparkles,
   Hotels: Building2,
+  'Hotel / Venue': Building2,
+  Venue: Building2,
+  Catering: Sparkles,
   Music: Music2,
 };
 
-const VENDOR_CATEGORIES = ['Photography', 'Decorations', 'Hotels', 'Music'];
+const VENDOR_CATEGORIES = ['Photography', 'Decorations', 'Hotels', 'Music', 'Catering'];
 const STATUS_TABS = ['All', 'Pending', 'Approved', 'Suspended', 'Banned', 'Rejected'];
 const PAGE_SIZE = 6;
 
@@ -101,7 +118,16 @@ export default function VendorDirectoryPage() {
   const filtered = useMemo(() => {
     let list = vendors;
     if (statusTab !== 'All') list = list.filter((v) => v.status === statusTab);
-    if (category !== 'All') list = list.filter((v) => v.category === category);
+    if (category !== 'All') {
+      const selectedLower = category.trim().toLowerCase();
+      list = list.filter((v) => {
+        if (!v.category) return false;
+        return v.category
+          .split(',')
+          .map((c) => c.trim().toLowerCase())
+          .includes(selectedLower);
+      });
+    }
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       list = list.filter(
@@ -109,7 +135,8 @@ export default function VendorDirectoryPage() {
           (v.businessName && v.businessName.toLowerCase().includes(q)) ||
           (v.ownerName && v.ownerName.toLowerCase().includes(q)) ||
           (v.email && v.email.toLowerCase().includes(q)) ||
-          (v.id && String(v.id).toLowerCase().includes(q))
+          (v.id && String(v.id).toLowerCase().includes(q)) ||
+          (v.category && v.category.toLowerCase().includes(q))
       );
     }
     const sorted = [...list].sort((a, b) => {
@@ -140,7 +167,7 @@ export default function VendorDirectoryPage() {
 
   // ---- CRUD & Status handlers ----
 
-  async function handleSaveVendor(form) {
+  async function handleSaveVendor(form, meta = {}) {
     setActionLoading(true);
     try {
       const numericId = form.vendorId || (form.id ? parseInt(String(form.id).replace(/\D/g, ''), 10) : null);
@@ -148,16 +175,61 @@ export default function VendorDirectoryPage() {
       const url = isEdit ? `${API_BASE}/${numericId}` : API_BASE;
       const method = isEdit ? 'PUT' : 'POST';
 
+      const payload = {
+        ...form,
+        reason: meta.reason || form.reason || undefined,
+      };
+
       const res = await fetch(url, {
         method,
         headers: getAuthHeaders(),
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         alert(errData.detail || errData.title || 'Failed to save vendor');
         return;
+      }
+
+      // Acting admin name from stored auth
+      let actorName = 'System Admin';
+      try {
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        actorName = storedUser.fullName || storedUser.name || storedUser.email || 'System Admin';
+      } catch (e) {
+        actorName = 'System Admin';
+      }
+
+      if (isEdit) {
+        const changedFields = meta.changedFields || [];
+        if (changedFields.length > 0) {
+          const changesSummary = changedFields
+            .map((f) => `${f.label}: "${f.oldValue || 'none'}" → "${f.newValue || 'none'}"`)
+            .join(', ');
+
+          const description = meta.reason
+            ? `Updated Vendor #${numericId} ("${form.businessName || 'Vendor'}") fields [${changesSummary}]. Reason: ${meta.reason}`
+            : `Updated Vendor #${numericId} ("${form.businessName || 'Vendor'}") fields [${changesSummary}]`;
+
+          logActivity(
+            ACTION_TYPES.VENDOR_UPDATED,
+            'Vendor',
+            numericId.toString(),
+            description,
+            actorName
+          );
+        }
+      } else {
+        const data = await res.json().catch(() => ({}));
+        const newId = data.vendorId || 'New';
+        logActivity(
+          ACTION_TYPES.GENERAL_UPDATE,
+          'Vendor',
+          newId.toString(),
+          `Created new vendor "${form.businessName}" (${form.category || 'General'})`,
+          actorName
+        );
       }
 
       await fetchVendors();
@@ -186,12 +258,34 @@ export default function VendorDirectoryPage() {
         return;
       }
 
+      // Acting admin name from stored auth
+      let actorName = 'System Admin';
+      try {
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        actorName = storedUser.fullName || storedUser.name || storedUser.email || 'System Admin';
+      } catch (e) {
+        actorName = 'System Admin';
+      }
+
+      const actionType =
+        newStatus === 'Approved' ? ACTION_TYPES.VENDOR_APPROVED :
+        newStatus === 'Suspended' ? ACTION_TYPES.VENDOR_SUSPENDED :
+        newStatus === 'Banned' ? ACTION_TYPES.VENDOR_BANNED :
+        newStatus === 'Rejected' ? ACTION_TYPES.VENDOR_REJECTED :
+        ACTION_TYPES.GENERAL_UPDATE;
+
+      const oldStatus = vendor.status || 'Pending';
+      const targetLabel = vendor.businessName ? `"${vendor.businessName}" (#${id})` : `Vendor #${id}`;
+      const description = reason && reason.trim()
+        ? `Changed ${targetLabel} status: ${oldStatus} → ${newStatus} (Reason: ${reason.trim()})`
+        : `Changed ${targetLabel} status: ${oldStatus} → ${newStatus}`;
+
       logActivity(
-        newStatus === 'Approved' ? ACTION_TYPES.VENDOR_APPROVED : newStatus === 'Suspended' ? ACTION_TYPES.VENDOR_SUSPENDED : ACTION_TYPES.VENDOR_REJECTED,
+        actionType,
         'Vendor',
         id.toString(),
-        `Changed vendor status to ${newStatus}`,
-        'System Admin'
+        description,
+        actorName
       );
 
       await fetchVendors();
@@ -204,31 +298,43 @@ export default function VendorDirectoryPage() {
   }
 
   function handleApprove(vendor) {
-    updateVendorStatus(vendor, 'Approved');
+    updateVendorStatus(vendor, 'Approved', 'Approved by admin');
   }
 
   function handleReject(vendor, reason) {
-    updateVendorStatus(vendor, 'Rejected', reason);
+    updateVendorStatus(vendor, 'Rejected', reason || 'Application rejected');
   }
 
   function handleRequestInfo(vendor) {
-    updateVendorStatus(vendor, 'Pending', 'Info Requested');
+    updateVendorStatus(vendor, 'Pending', 'Info Requested by admin');
   }
 
   function handleHold(vendor) {
-    updateVendorStatus(vendor, 'Pending', 'On Hold');
+    updateVendorStatus(vendor, 'Pending', 'Placed on hold by admin');
   }
 
-  function handleSuspend(vendor) {
-    updateVendorStatus(vendor, 'Suspended', 'Suspended by admin');
+  function handleSuspend(vendor, reason) {
+    if (reason) {
+      updateVendorStatus(vendor, 'Suspended', reason);
+    } else {
+      const input = window.prompt(`Please enter a reason for suspending "${vendor.businessName}":`, 'Suspended due to compliance review');
+      if (input === null) return;
+      updateVendorStatus(vendor, 'Suspended', input.trim() || 'Suspended by admin');
+    }
   }
 
   function handleBan(vendor, reason) {
-    updateVendorStatus(vendor, 'Banned', reason);
+    if (reason) {
+      updateVendorStatus(vendor, 'Banned', reason);
+    } else {
+      const input = window.prompt(`Please enter a reason for banning "${vendor.businessName}":`, 'Policy violation');
+      if (input === null) return;
+      updateVendorStatus(vendor, 'Banned', input.trim() || 'Banned by admin');
+    }
   }
 
   function handleUnban(vendor) {
-    updateVendorStatus(vendor, 'Approved');
+    updateVendorStatus(vendor, 'Approved', 'Reactivated / Unbanned by admin');
   }
 
   async function confirmDelete() {
@@ -260,41 +366,58 @@ export default function VendorDirectoryPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1
-            className="text-2xl font-bold text-gray-900"
-            style={{ fontFamily: "'Playfair Display', serif" }}
+      <AdminPageHeader
+        title="Vendor Management"
+        subtitle="Manage photography, decorations, hotels and music vendors in one place."
+        action={
+          <button
+            id="add-vendor-btn"
+            onClick={() => setIsAddOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#8E406F] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#78345c] transition-all"
           >
-            Vendor Directory
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Manage photography, decorations, hotels and music vendors in one place.
-          </p>
-        </div>
-        <button
-          id="add-vendor-btn"
-          onClick={() => setIsAddOpen(true)}
-          className="inline-flex items-center gap-2 self-start rounded-lg bg-[#8E406F] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#78345c] sm:self-auto"
-        >
-          <Plus size={16} />
-          Add New Vendor
-        </button>
-      </div>
+            <Plus size={15} />
+            Add New Vendor
+          </button>
+        }
+      />
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-        <StatCard icon={Users} label="Total vendors" value={stats.total} />
-        <StatCard icon={Clock} label="Pending approval" value={stats.pending} tone="amber" />
-        <StatCard icon={ShieldCheck} label="Approved" value={stats.approved} tone="emerald" />
-        <StatCard icon={ShieldAlert} label="Suspended" value={stats.suspended} tone="rose" />
-        <StatCard icon={ShieldOff} label="Banned" value={stats.banned} tone="slate" />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <AdminStatCard icon={Users} label="Total vendors" value={stats.total} />
+        <AdminStatCard
+          icon={Clock}
+          label="Pending approval"
+          value={stats.pending}
+          iconBg="bg-[#FEF3C7]"
+          iconColor="text-[#D97706]"
+        />
+        <AdminStatCard
+          icon={ShieldCheck}
+          label="Approved"
+          value={stats.approved}
+          iconBg="bg-[#D1FAE5]"
+          iconColor="text-[#059669]"
+        />
+        <AdminStatCard
+          icon={ShieldAlert}
+          label="Suspended"
+          value={stats.suspended}
+          iconBg="bg-[#FEF3F2]"
+          iconColor="text-[#D92D20]"
+        />
+        <AdminStatCard
+          icon={ShieldOff}
+          label="Banned"
+          value={stats.banned}
+          iconBg="bg-[#F1F5F9]"
+          iconColor="text-[#475569]"
+        />
       </div>
 
       {/* Main card: tabs, search, filter, table */}
-      <div className="rounded-xl border border-gray-100 bg-white shadow-sm">
+      <AdminTableCard>
         {/* Status Tabs */}
-        <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 px-6 pt-4">
+        <div className="flex flex-wrap items-center gap-2 border-b border-[#F1E5EC] px-6 pt-4">
           {STATUS_TABS.map((tab) => {
             const count =
               tab === 'All'
@@ -308,15 +431,17 @@ export default function VendorDirectoryPage() {
                   setStatusTab(tab);
                   resetToFirstPage();
                 }}
-                className={`flex items-center gap-2 border-b-2 px-3 pb-3 text-sm font-medium transition-colors ${active
+                className={`flex items-center gap-2 border-b-2 px-3 pb-3 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                  active
                     ? 'border-[#8E406F] text-[#8E406F]'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
+                    : 'border-transparent text-[#737373] hover:text-[#333]'
+                }`}
               >
                 {tab}
                 <span
-                  className={`rounded-full px-2 py-0.5 text-xs ${active ? 'bg-[#FDF0F4] text-[#8E406F]' : 'bg-gray-100 text-gray-600'
-                    }`}
+                  className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                    active ? 'bg-[#FDF0F4] text-[#8E406F]' : 'bg-[#F1E5EC]/60 text-[#737373]'
+                  }`}
                 >
                   {count}
                 </span>
@@ -326,9 +451,9 @@ export default function VendorDirectoryPage() {
         </div>
 
         {/* Toolbar: Category filter + search */}
-        <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="p-4 border-b border-[#F1E5EC] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium uppercase tracking-wider text-gray-400">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#999]">
               Category:
             </span>
             {['All', ...VENDOR_CATEGORIES].map((cat) => {
@@ -340,10 +465,11 @@ export default function VendorDirectoryPage() {
                     setCategory(cat);
                     resetToFirstPage();
                   }}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${active
-                      ? 'bg-[#8E406F] text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
+                  className={`rounded-lg px-3 py-1 text-xs font-semibold tracking-wide transition-colors ${
+                    active
+                      ? 'bg-[#8E406F] text-white shadow-sm'
+                      : 'bg-[#FAFBFC] border border-[#F1E5EC] text-[#737373] hover:bg-[#FDF0F4] hover:text-[#8E406F]'
+                  }`}
                 >
                   {cat}
                 </button>
@@ -352,8 +478,8 @@ export default function VendorDirectoryPage() {
           </div>
           <div className="relative">
             <Search
-              size={16}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              size={14}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#999]"
             />
             <input
               type="text"
@@ -363,163 +489,221 @@ export default function VendorDirectoryPage() {
                 resetToFirstPage();
               }}
               placeholder="Search by name, owner or email"
-              className="w-64 rounded-md border border-gray-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-[#8E406F] focus:ring-1 focus:ring-[#8E406F]"
+              className="w-64 rounded-lg border border-[#F1E5EC] bg-[#FAFBFC] py-2 pl-8 pr-3 text-xs text-[#333] placeholder:text-[#aaa] outline-none focus:bg-white focus:border-[#8E406F] focus:ring-2 focus:ring-[#8E406F]/20 transition-all"
             />
           </div>
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 text-xs uppercase tracking-wide text-gray-400">
-                <Th label="Vendor" field="businessName" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-                <th className="px-4 py-3">Category</th>
-                <Th label="Listings" field="listingsCount" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-                <Th label="Rating" field="rating" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-                <Th label="Applied" field="appliedDate" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-right">Actions</th>
+        <AdminTable>
+          <AdminTableHeader>
+            <AdminTableHead className="w-[22%]">
+              <button
+                onClick={() => toggleSort('businessName')}
+                className="inline-flex items-center gap-1 hover:text-[#333] transition-colors"
+              >
+                <span>Vendor</span>
+                <ArrowUpDown size={12} className={sortBy === 'businessName' ? 'text-[#8E406F]' : 'text-[#bbb]'} />
+              </button>
+            </AdminTableHead>
+            <AdminTableHead className="w-[15%]">Category</AdminTableHead>
+            <AdminTableHead align="center" className="w-[8%]">
+              <button
+                onClick={() => toggleSort('listingsCount')}
+                className="inline-flex items-center gap-1 hover:text-[#333] transition-colors"
+              >
+                <span>Listings</span>
+                <ArrowUpDown size={12} className={sortBy === 'listingsCount' ? 'text-[#8E406F]' : 'text-[#bbb]'} />
+              </button>
+            </AdminTableHead>
+            <AdminTableHead align="center" className="w-[8%]">
+              <button
+                onClick={() => toggleSort('rating')}
+                className="inline-flex items-center gap-1 hover:text-[#333] transition-colors"
+              >
+                <span>Rating</span>
+                <ArrowUpDown size={12} className={sortBy === 'rating' ? 'text-[#8E406F]' : 'text-[#bbb]'} />
+              </button>
+            </AdminTableHead>
+            <AdminTableHead className="w-[11%]">
+              <button
+                onClick={() => toggleSort('appliedDate')}
+                className="inline-flex items-center gap-1 hover:text-[#333] transition-colors"
+              >
+                <span>Applied</span>
+                <ArrowUpDown size={12} className={sortBy === 'appliedDate' ? 'text-[#8E406F]' : 'text-[#bbb]'} />
+              </button>
+            </AdminTableHead>
+            <AdminTableHead className="w-[13%]">Status</AdminTableHead>
+            <AdminTableHead align="right" className="w-[23%] text-right">Actions</AdminTableHead>
+          </AdminTableHeader>
+          <AdminTableBody>
+            {loading ? (
+              <tr>
+                <td colSpan={7} className="px-6 py-16 text-center text-sm text-[#aaa]">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <Loader2 size={28} className="animate-spin text-[#8E406F]" />
+                    <span>Loading vendors from database...</span>
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-sm text-gray-500">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <Loader2 size={24} className="animate-spin text-[#8E406F]" />
-                      <span>Loading vendors from database...</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : error ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-sm text-red-600">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <AlertTriangle size={24} className="text-red-500" />
-                      <span>{error}</span>
-                      <button
-                        onClick={fetchVendors}
-                        className="mt-2 rounded bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200"
-                      >
-                        Retry
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ) : pageItems.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-400">
-                    No vendors match these filters.
-                  </td>
-                </tr>
-              ) : (
-                pageItems.map((v) => {
-                  const CategoryIcon = CATEGORY_ICON[v.category] || Building2;
-                  return (
-                    <tr key={v.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-gray-900">{v.businessName}</p>
-                        <p className="text-xs text-gray-400">
-                          {v.id} &middot; {v.ownerName}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-1.5 text-gray-600">
-                          <CategoryIcon size={14} className="text-[#8E406F]" />
-                          {v.category}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-600">{v.listingsCount ?? 0}</td>
-                      <td className="px-4 py-3 text-gray-600">
-                        {v.rating ? `${v.rating} ★` : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-gray-500">{v.appliedDate}</td>
-                      <td className="px-4 py-3">
-                        <StatusBadge status={v.status} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex justify-end gap-1">
-                          <IconButton icon={Eye} label="View" onClick={() => setDetailsVendor(v)} />
-                          <IconButton
-                            icon={Edit2}
-                            label="Edit"
-                            onClick={() => setFormModal({ open: true, vendor: v })}
-                          />
-                          {v.status === 'Approved' && (
-                            <IconButton
-                              icon={ShieldAlert}
-                              label="Suspend"
-                              onClick={() => handleSuspend(v)}
-                            />
-                          )}
-                          {v.status === 'Suspended' && (
-                            <IconButton
-                              icon={RotateCcw}
-                              label="Reactivate"
-                              onClick={() => handleApprove(v)}
-                            />
-                          )}
-                          {v.status === 'Banned' && (
-                            <IconButton icon={RotateCcw} label="Unban" onClick={() => handleUnban(v)} />
-                          )}
-                          {v.status !== 'Banned' && v.status !== 'Pending' && (
-                            <IconButton
-                              icon={Ban}
-                              label="Ban"
-                              tone="danger"
-                              onClick={() => handleBan(v, 'Banned directly from directory')}
-                            />
-                          )}
-                          <IconButton
-                            icon={Trash2}
-                            label="Delete"
-                            tone="danger"
-                            onClick={() => setDeleteTarget(v)}
-                          />
+            ) : error ? (
+              <tr>
+                <td colSpan={7} className="px-6 py-12 text-center text-sm text-[#D92D20]">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <AlertTriangle size={28} className="text-[#D92D20]" />
+                    <span>{error}</span>
+                    <button
+                      onClick={fetchVendors}
+                      className="mt-2 rounded-lg border border-[#F1E5EC] bg-white px-3 py-1.5 text-xs font-semibold text-[#555] hover:bg-[#FDF0F4] hover:text-[#8E406F]"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ) : pageItems.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-6 py-12 text-center text-sm text-[#aaa]">
+                  No vendors match these filters.
+                </td>
+              </tr>
+            ) : (
+              pageItems.map((v) => {
+                const primaryCat = (v.category || '').split(',')[0].trim();
+                const CategoryIcon = CATEGORY_ICON[primaryCat] || CATEGORY_ICON[v.category] || Building2;
+                return (
+                  <AdminTableRow key={v.id}>
+                    <AdminTableCell>
+                      <p className="font-semibold text-[#333] text-sm">{v.businessName}</p>
+                      <p className="text-xs text-[#737373] mt-0.5">
+                        {v.id} &middot; {v.ownerName}
+                      </p>
+                    </AdminTableCell>
+                    <AdminTableCell>
+                      <span className="inline-flex items-center gap-1.5 text-xs text-[#555] font-medium">
+                        <CategoryIcon size={14} className="text-[#8E406F] shrink-0" />
+                        {v.category}
+                      </span>
+                    </AdminTableCell>
+                    <AdminTableCell align="center" className="text-xs text-[#555] font-medium">{v.listingsCount ?? 0}</AdminTableCell>
+                    <AdminTableCell align="center" className="text-xs text-[#555] font-medium">
+                      {v.rating ? `${v.rating} ★` : '—'}
+                    </AdminTableCell>
+                    <AdminTableCell className="text-xs text-[#737373]">{v.appliedDate}</AdminTableCell>
+                    <AdminTableCell>
+                      <div className="flex flex-col gap-0.5">
+                        <div>
+                          <StatusBadge status={v.status} />
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                        {(v.statusChangedAt || v.statusChangeReason) && (
+                          <div className="max-w-[190px] text-[11px] text-[#737373]">
+                            {v.statusChangedAt && (
+                              <span className="block text-[10px] text-[#999]">
+                                {v.statusChangedAt}
+                              </span>
+                            )}
+                            {v.statusChangeReason && (
+                              <span 
+                                className="block truncate text-[#737373] italic" 
+                                title={v.statusChangeReason}
+                              >
+                                &ldquo;{v.statusChangeReason}&rdquo;
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </AdminTableCell>
+                    <AdminTableCell align="right" className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <AdminIconButton
+                          label="View"
+                          ariaLabel="View"
+                          title="View Details"
+                          onClick={() => setDetailsVendor(v)}
+                        >
+                          <Eye size={14} />
+                        </AdminIconButton>
+                        <AdminIconButton
+                          label="Edit"
+                          ariaLabel="Edit"
+                          title="Edit Vendor"
+                          onClick={() => setFormModal({ open: true, vendor: v })}
+                        >
+                          <Edit2 size={14} />
+                        </AdminIconButton>
+                        {v.status === 'Approved' && (
+                          <AdminIconButton
+                            label="Suspend"
+                            ariaLabel="Suspend"
+                            title="Suspend Vendor"
+                            onClick={() => handleSuspend(v)}
+                            variant="danger"
+                          >
+                            <ShieldAlert size={14} />
+                          </AdminIconButton>
+                        )}
+                        {v.status === 'Suspended' && (
+                          <AdminIconButton
+                            label="Reactivate"
+                            ariaLabel="Reactivate"
+                            title="Reactivate Vendor"
+                            onClick={() => updateVendorStatus(v, 'Approved', 'Reactivated by admin')}
+                            className="text-[#059669] hover:bg-[#E6F4EE] hover:border-[#A3D9B8]"
+                          >
+                            <RotateCcw size={14} />
+                          </AdminIconButton>
+                        )}
+                        {v.status === 'Banned' ? (
+                          <AdminIconButton
+                            label="Unban"
+                            ariaLabel="Unban"
+                            title="Unban Vendor"
+                            onClick={() => handleUnban(v)}
+                            className="text-[#059669] hover:bg-[#E6F4EE] hover:border-[#A3D9B8]"
+                          >
+                            <ShieldCheck size={14} />
+                          </AdminIconButton>
+                        ) : (
+                          <AdminIconButton
+                            label="Ban"
+                            ariaLabel="Ban"
+                            title="Ban Vendor"
+                            onClick={() => handleBan(v)}
+                            variant="danger"
+                          >
+                            <Ban size={14} />
+                          </AdminIconButton>
+                        )}
+                        <AdminIconButton
+                          label="Delete"
+                          ariaLabel="Delete"
+                          title="Delete Vendor"
+                          onClick={() => setDeleteTarget(v)}
+                          variant="danger"
+                        >
+                          <Trash2 size={14} />
+                        </AdminIconButton>
+                      </div>
+                    </AdminTableCell>
+                  </AdminTableRow>
+                );
+              })
+            )}
+          </AdminTableBody>
+        </AdminTable>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between border-t border-gray-100 px-6 py-3 text-sm text-gray-500">
-          <span>
-            {filtered.length === 0
-              ? 'Showing 0 vendors'
-              : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(
-                page * PAGE_SIZE,
-                filtered.length
-              )} of ${filtered.length}`}
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-30"
-              aria-label="Previous page"
-            >
-              <ChevronLeft size={18} />
-            </button>
-            <span className="text-xs">
-              Page {page} of {totalPages}
-            </span>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-30"
-              aria-label="Next page"
-            >
-              <ChevronRight size={18} />
-            </button>
-          </div>
-        </div>
-      </div>
+        <AdminTablePagination
+          currentPage={page}
+          totalPages={totalPages}
+          totalItems={filtered.length}
+          pageSize={PAGE_SIZE}
+          onPageChange={setPage}
+          itemName="vendors"
+        />
+      </AdminTableCard>
 
       {/* Add New Vendor — 4-step registration wizard */}
       {isAddOpen && (
@@ -529,7 +713,7 @@ export default function VendorDirectoryPage() {
           onClick={(e) => { if (e.target === e.currentTarget) setIsAddOpen(false); }}
         >
           <div
-            className="relative w-full max-w-2xl max-h-[90vh] bg-white rounded-2xl shadow-2xl border border-[#F1E5EC] flex flex-col overflow-hidden"
+            className="relative w-full max-w-2xl h-[90vh] max-h-[90vh] bg-white rounded-2xl shadow-2xl border border-[#F1E5EC] flex flex-col overflow-hidden min-h-0"
             onClick={(e) => e.stopPropagation()}
           >
             <AddVendorWizard
@@ -546,6 +730,7 @@ export default function VendorDirectoryPage() {
           vendor={formModal.vendor}
           onClose={() => setFormModal({ open: false, vendor: null })}
           onSave={handleSaveVendor}
+          onImageRemoved={fetchVendors}
           loading={actionLoading}
         />
       )}
@@ -599,57 +784,4 @@ export default function VendorDirectoryPage() {
   );
 }
 
-// ── Helpers ──
 
-function StatCard({ icon: Icon, label, value, tone = 'default' }) {
-  const toneClasses = {
-    default: 'bg-[#FDF0F4] text-[#8E406F]',
-    amber: 'bg-amber-50 text-amber-700',
-    emerald: 'bg-emerald-50 text-emerald-700',
-    rose: 'bg-rose-50 text-rose-700',
-    slate: 'bg-slate-100 text-slate-700',
-  };
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-      <div className={`rounded-lg p-2.5 ${toneClasses[tone]}`}>
-        <Icon size={20} />
-      </div>
-      <div>
-        <p className="text-xs text-gray-400">{label}</p>
-        <p className="text-xl font-semibold text-gray-900">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-function Th({ label, field, sortBy, sortDir, onSort }) {
-  const active = sortBy === field;
-  return (
-    <th className="px-4 py-3">
-      <button
-        onClick={() => onSort(field)}
-        className="inline-flex items-center gap-1 hover:text-gray-700"
-      >
-        <span>{label}</span>
-        <ArrowUpDown size={12} className={active ? 'text-[#8E406F]' : 'text-gray-300'} />
-      </button>
-    </th>
-  );
-}
-
-function IconButton({ icon: Icon, label, onClick, tone = 'default' }) {
-  const toneClass =
-    tone === 'danger'
-      ? 'text-gray-400 hover:bg-red-50 hover:text-red-600'
-      : 'text-gray-400 hover:bg-gray-100 hover:text-gray-700';
-  return (
-    <button
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      className={`rounded p-1.5 transition-colors ${toneClass}`}
-    >
-      <Icon size={15} />
-    </button>
-  );
-}

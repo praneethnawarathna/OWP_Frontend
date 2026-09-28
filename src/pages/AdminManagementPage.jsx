@@ -1438,9 +1438,10 @@ export default function AdminManagementPage() {
                             type="button"
                             onClick={() => setViewAdminTarget(admin)}
                             title="View Details"
-                            className="p-1.5 text-gray-500 hover:text-[#8E406F] hover:bg-[#FDF0F4] rounded-lg transition-colors"
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-gray-500 hover:text-[#8E406F] hover:bg-[#FDF0F4] rounded-lg transition-colors"
                           >
-                            <Eye size={16} />
+                            <Eye size={14} />
+                            <span className="text-xs font-medium">View</span>
                           </button>
 
                           {/* Edit */}
@@ -1448,9 +1449,10 @@ export default function AdminManagementPage() {
                             type="button"
                             onClick={() => setEditAdminTarget(admin)}
                             title="Edit Administrator"
-                            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           >
-                            <Pencil size={16} />
+                            <Pencil size={14} />
+                            <span className="text-xs font-medium">Edit</span>
                           </button>
 
                           {/* Regenerate PIN */}
@@ -1458,9 +1460,10 @@ export default function AdminManagementPage() {
                             type="button"
                             onClick={() => handleOpenRegenModal(admin)}
                             title="Regenerate 4-Digit Secure PIN"
-                            className="p-1.5 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
                           >
-                            <KeyRound size={16} />
+                            <KeyRound size={14} />
+                            <span className="text-xs font-medium">Reset PIN</span>
                           </button>
 
                           {/* Delete (Disabled for self) */}
@@ -1470,13 +1473,14 @@ export default function AdminManagementPage() {
                             onClick={() => setDeleteAdminTarget(admin)}
                             title={isSelf ? 'Cannot delete your active account' : 'Deactivate / Delete Administrator'}
                             className={`
-                              p-1.5 rounded-lg transition-colors
+                              flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors
                               ${isSelf
                                 ? 'text-gray-300 cursor-not-allowed'
                                 : 'text-gray-500 hover:text-red-600 hover:bg-red-50'}
                             `}
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={14} />
+                            <span className="text-xs font-medium">Delete</span>
                           </button>
                         </div>
                       </td>

@@ -20,7 +20,7 @@ import AdminSettingsPage from './pages/AdminSettingsPage';
 import ReportAnalyticsPage from './pages/ReportAnalyticsPage';
 import VendorDirectoryPage from './pages/VendorDirectoryPage';
 import AdminNotificationsPage from './pages/AdminNotificationsPage';
-import AdminSystemActivityLogPage from './pages/AdminSystemActivityLogPage';
+import ActivityLogPage from './pages/ActivityLogPage';
 
 // Vendor Pages
 import VendorDashboardPage from './pages/VendorDashboardPage';
@@ -71,6 +71,7 @@ const pathToPageId = (path) => {
   if (path.includes('report-analytics') || path.includes('analytics')) return 'analytics';
   if (path.includes('settings')) return 'settings';
   if (path.includes('vendor-notifications')) return 'vendor-notifications';
+  if (path.includes('activity-log') || path.includes('audit')) return 'activity-log';
   if (path.includes('notifications') || path.includes('admin-notifications')) return 'notifications';
   if (path.includes('vendor-profile')) return 'vendor-profile';
   if (path.includes('vendor-services')) return 'vendor-services';
@@ -91,6 +92,7 @@ const pageIdToPath = {
   'admin-management': '/admin-management',
   'analytics': '/report-analytics',
   'settings': '/settings',
+  'activity-log': '/activity-log',
   'notifications': '/notifications',
   'vendor-dashboard': '/vendor-dashboard',
   'vendor-profile': '/vendor-profile',
@@ -307,6 +309,23 @@ export default function App() {
           }
         />
         <Route
+          path="/activity-log"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminLayout
+                currentPage="activity-log"
+                onNavigate={handleNavigate}
+                onLogout={handleLogout}
+                userRole={userRole}
+              >
+                <PageTransition>
+                  <ActivityLogPage />
+                </PageTransition>
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/report-analytics"
           element={
             <ProtectedRoute requiredRole="admin">
@@ -323,23 +342,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/activity-log"
-          element={
-            <ProtectedRoute requiredRole="admin">
-              <AdminLayout
-                currentPage="activity-log"
-                onNavigate={handleNavigate}
-                onLogout={handleLogout}
-                userRole={userRole}
-              >
-                <PageTransition>
-                  <AdminSystemActivityLogPage />
-                </PageTransition>
-              </AdminLayout>
-            </ProtectedRoute>
-          }
-        />
+
 
         {/* Vendor Protected Routes */}
         <Route

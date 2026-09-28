@@ -1,6 +1,6 @@
 // AdminSettingsPage.jsx — Oleena Wedding Planner Admin Portal
 //
-// Settings page for the Regular Admin role.
+// Settings page for the Regular Admin & Super Admin roles.
 // Renders at path: /settings  (page key: 'settings')
 //
 // Sections (in order):
@@ -8,28 +8,18 @@
 //   2. Change Password
 //   3. Secure PIN Management
 //   4. Notification Preferences
-//   5. Session & Device Management
-//   6. My Activity (PIN Verification History)
-//
-// Does NOT include SuperAdmin-only settings (platform config, commission rates,
-// AI governance, admin management). Those belong to a separate page.
 //
 // Auth: reads logged-in admin identity from localStorage ('user' key),
 //       which is set by LoginPage.jsx on successful authentication.
 //
 // API: raw fetch() with JWT bearer token, matching the pattern used by
 //      AdminManagementPage.jsx and LoginPage.jsx in this codebase.
-//
-// ⚠️  All backend endpoints are marked // TODO where not yet confirmed.
-//     See the "Assumed Backend Endpoints" comment block at the bottom of this file.
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   User,
   Lock,
   Bell,
-  Monitor,
-  Activity,
   Eye,
   EyeOff,
   Save,
@@ -38,9 +28,8 @@ import {
   Shield,
   AlertCircle,
   ChevronRight,
-  Clock,
-  LogOut,
   Upload,
+  Trash2,
   KeyRound,
   RefreshCw,
   Copy,
@@ -57,7 +46,13 @@ const getAuthHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
 });
 
-// TODO: confirm endpoint exists on backend — PUT /api/admin/me
+// GET /api/admin/me
+const getAdminProfile = () =>
+  fetch(`${API_BASE}/admin/me`, {
+    headers: getAuthHeaders(),
+  });
+
+// PUT /api/admin/me
 const updateAdminProfile = (payload) =>
   fetch(`${API_BASE}/admin/me`, {
     method: 'PUT',
@@ -65,7 +60,27 @@ const updateAdminProfile = (payload) =>
     body: JSON.stringify(payload),
   });
 
-// TODO: confirm endpoint exists on backend — POST /api/admin/me/change-password
+// POST /api/admin/me/photo
+const uploadAdminPhoto = (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return fetch(`${API_BASE}/admin/me/photo`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+    },
+    body: formData,
+  });
+};
+
+// DELETE /api/admin/me/photo
+const removeAdminPhoto = () =>
+  fetch(`${API_BASE}/admin/me/photo`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+
+// POST /api/admin/me/change-password
 const changeAdminPassword = (payload) =>
   fetch(`${API_BASE}/admin/me/change-password`, {
     method: 'POST',
@@ -103,28 +118,18 @@ const saveAdminPin = (payload) =>
     body: JSON.stringify(payload),
   });
 
-// TODO: confirm endpoint exists on backend — PUT /api/admin/me/notifications
+// GET /api/admin/me/notifications
+const getNotificationPrefs = () =>
+  fetch(`${API_BASE}/admin/me/notifications`, {
+    headers: getAuthHeaders(),
+  });
+
+// PUT /api/admin/me/notifications
 const updateNotificationPrefs = (payload) =>
   fetch(`${API_BASE}/admin/me/notifications`, {
     method: 'PUT',
     headers: getAuthHeaders(),
     body: JSON.stringify(payload),
-  });
-
-// TODO: confirm endpoint exists on backend — POST /api/admin/me/sessions/revoke-others
-const revokeOtherSessions = () =>
-  fetch(`${API_BASE}/admin/me/sessions/revoke-others`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-  });
-
-// TODO: confirm endpoint exists on backend — GET /api/admin/me/activity
-// This should be the same audit log the Activity Log sidebar page uses,
-// filtered to actions performed by the currently logged-in admin (adminId=self).
-// If the Activity Log page doesn't support filtering yet, flag as a backend gap.
-const getMyRecentActivity = () =>
-  fetch(`${API_BASE}/admin/me/activity`, {
-    headers: getAuthHeaders(),
   });
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -146,26 +151,7 @@ function getUserInitials(fullName) {
     .toUpperCase() || 'A';
 }
 
-// Parse browser/device info from navigator.userAgent (best-effort, client-side only)
-function parseBrowserInfo() {
-  const ua = navigator.userAgent;
-  let browser = 'Unknown Browser';
-  let os = 'Unknown OS';
 
-  if (/Edg\//.test(ua)) browser = 'Microsoft Edge';
-  else if (/Chrome\//.test(ua) && !/Chromium/.test(ua)) browser = 'Google Chrome';
-  else if (/Firefox\//.test(ua)) browser = 'Mozilla Firefox';
-  else if (/Safari\//.test(ua) && !/Chrome/.test(ua)) browser = 'Apple Safari';
-  else if (/Opera|OPR\//.test(ua)) browser = 'Opera';
-
-  if (/Windows NT/.test(ua)) os = 'Windows';
-  else if (/Mac OS X/.test(ua)) os = 'macOS';
-  else if (/Linux/.test(ua)) os = 'Linux';
-  else if (/Android/.test(ua)) os = 'Android';
-  else if (/iPhone|iPad/.test(ua)) os = 'iOS';
-
-  return { browser, os };
-}
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
@@ -408,8 +394,37 @@ function ConfirmDialog({ title, message, onConfirm, onCancel, confirmLabel = 'Co
 
 function ProfileSection({ user, onShowToast }) {
   const [fullName, setFullName] = useState(user.fullName || '');
+  const [photoUrl, setPhotoUrl] = useState(user.profilePictureUrl || '');
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [removingPhoto, setRemovingPhoto] = useState(false);
+  const fileInputRef = useRef(null);
+
   const isDirty = fullName.trim() !== (user.fullName || '').trim();
+
+  // Load fresh profile details from backend on mount
+  useEffect(() => {
+    let cancelled = false;
+    getAdminProfile()
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data) {
+          if (data.fullName) setFullName(data.fullName);
+          if (data.profilePictureUrl) setPhotoUrl(data.profilePictureUrl);
+
+          const stored = getStoredUser();
+          const updated = {
+            ...stored,
+            fullName: data.fullName || stored.fullName,
+            profilePictureUrl: data.profilePictureUrl !== undefined ? data.profilePictureUrl : stored.profilePictureUrl,
+          };
+          localStorage.setItem('user', JSON.stringify(updated));
+          window.dispatchEvent(new Event('user-profile-updated'));
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   const handleSave = async () => {
     if (!fullName.trim()) return;
@@ -424,6 +439,7 @@ function ProfileSection({ user, onShowToast }) {
       // Update localStorage so sidebar name refreshes on next render
       const stored = getStoredUser();
       localStorage.setItem('user', JSON.stringify({ ...stored, fullName: fullName.trim() }));
+      window.dispatchEvent(new Event('user-profile-updated'));
       onShowToast('Profile updated successfully.', 'success');
     } catch {
       onShowToast('Unable to connect to the server.', 'error');
@@ -432,25 +448,118 @@ function ProfileSection({ user, onShowToast }) {
     }
   };
 
+  const handlePhotoSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Reset input so re-selecting same file triggers onChange
+    e.target.value = '';
+
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+    const ext = '.' + (file.name.split('.').pop() || '').toLowerCase();
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+
+    if (!allowedExtensions.includes(ext) && !allowedTypes.includes(file.type)) {
+      onShowToast('Unsupported file format. Please upload a JPG, JPEG, PNG, or WebP image.', 'error');
+      return;
+    }
+
+    const maxSizeBytes = 5 * 1024 * 1024; // 5 MB limit
+    if (file.size > maxSizeBytes) {
+      onShowToast('Image size exceeds the 5 MB limit. Please select a smaller image.', 'error');
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const res = await uploadAdminPhoto(file);
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        onShowToast(data?.detail || data?.message || 'Failed to upload photo.', 'error');
+        return;
+      }
+
+      const newPhotoUrl = data.photoUrl;
+      setPhotoUrl(newPhotoUrl);
+
+      const stored = getStoredUser();
+      const updated = { ...stored, profilePictureUrl: newPhotoUrl };
+      localStorage.setItem('user', JSON.stringify(updated));
+      window.dispatchEvent(new Event('user-profile-updated'));
+
+      onShowToast('Profile photo updated successfully.', 'success');
+    } catch {
+      onShowToast('Unable to connect to the server.', 'error');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    setRemovingPhoto(true);
+    try {
+      const res = await removeAdminPhoto();
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        onShowToast(data?.detail || data?.message || 'Failed to remove photo.', 'error');
+        return;
+      }
+
+      setPhotoUrl('');
+
+      const stored = getStoredUser();
+      const updated = { ...stored, profilePictureUrl: null };
+      localStorage.setItem('user', JSON.stringify(updated));
+      window.dispatchEvent(new Event('user-profile-updated'));
+
+      onShowToast('Profile photo removed.', 'success');
+    } catch {
+      onShowToast('Unable to connect to the server.', 'error');
+    } finally {
+      setRemovingPhoto(false);
+    }
+  };
+
   const initials = getUserInitials(fullName || user.fullName);
+  const displayAvatarSrc = photoUrl
+    ? (photoUrl.startsWith('http') || photoUrl.startsWith('data:') || photoUrl.startsWith('blob:')
+        ? photoUrl
+        : `http://localhost:5131${photoUrl}`)
+    : null;
 
   return (
     <SettingsCard
       title="My Profile"
-      description="Update your display name shown across the admin portal."
+      description="Update your display name and profile photo shown across the admin portal."
       icon={User}
     >
       <div className="space-y-5">
         {/* Avatar + identity */}
         <div className="flex items-center gap-4">
-          <div className="h-16 w-16 rounded-full bg-[#8E406F]/10 border-2 border-[#e8c4d8] flex items-center justify-center shrink-0">
-            <span className="text-[#8E406F] text-lg font-bold">{initials}</span>
+          <div className="relative h-16 w-16 rounded-full overflow-hidden bg-[#8E406F]/10 border-2 border-[#e8c4d8] flex items-center justify-center shrink-0 shadow-sm">
+            {displayAvatarSrc ? (
+              <img
+                src={displayAvatarSrc}
+                alt={fullName || user.fullName || 'Admin'}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <span className="text-[#8E406F] text-lg font-bold">{initials}</span>
+            )}
+
+            {uploadingPhoto && (
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                <span className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
           </div>
+
           <div>
-            <p className="text-base font-semibold text-[#1E293B]">{user.fullName || 'Admin'}</p>
+            <p className="text-base font-semibold text-[#1E293B]">{fullName || user.fullName || 'Admin'}</p>
             <p className="text-xs text-[#737373]">{user.email || '—'}</p>
             <span className="inline-flex items-center mt-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#FDF0F4] text-[#8E406F] border border-[#e8c4d8]">
-              Admin
+              {user.role ? (user.role.includes('SUPER') ? 'Super Admin' : 'Admin') : 'Admin'}
             </span>
           </div>
         </div>
@@ -486,26 +595,52 @@ function ProfileSection({ user, onShowToast }) {
           </p>
         </div>
 
-        {/* Photo upload — stubbed, no upload backend exists yet */}
+        {/* Profile Photo Upload / Update */}
         <div>
           <FieldLabel>Profile Photo</FieldLabel>
-          <div className="relative inline-block">
+          <div className="flex flex-wrap items-center gap-3">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".jpg,.jpeg,.png,.webp"
+              onChange={handlePhotoSelect}
+              className="hidden"
+              id="profile-photo-file-input"
+            />
             <button
               type="button"
-              disabled
-              title="Photo upload coming soon"
-              aria-label="Upload profile photo — coming soon"
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-[#e8c4d8] bg-[#FDF0F4] text-sm text-[#aaa] cursor-not-allowed opacity-60"
+              id="profile-photo-upload-btn"
+              disabled={uploadingPhoto || removingPhoto}
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#e8c4d8] bg-[#FDF0F4] text-sm font-semibold text-[#8E406F] hover:bg-[#8E406F] hover:text-white transition-all shadow-sm disabled:opacity-50"
             >
-              <Upload size={15} />
-              Upload Photo
+              {uploadingPhoto ? (
+                <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Upload size={15} />
+              )}
+              {displayAvatarSrc ? 'Change Photo' : 'Upload Photo'}
             </button>
-            <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-[#8E406F] text-white text-[9px] font-bold rounded-full leading-none">
-              Soon
-            </span>
+
+            {displayAvatarSrc && (
+              <button
+                type="button"
+                id="profile-photo-remove-btn"
+                disabled={uploadingPhoto || removingPhoto}
+                onClick={handleRemovePhoto}
+                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-rose-200 bg-rose-50 text-xs font-medium text-rose-600 hover:bg-rose-100 transition-colors disabled:opacity-50"
+              >
+                {removingPhoto ? (
+                  <span className="h-3 w-3 border-2 border-rose-600 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Trash2 size={13} />
+                )}
+                Remove
+              </button>
+            )}
           </div>
-          <p className="text-xs text-[#bbb] mt-1.5">
-            Photo upload will be available in a future update.
+          <p className="text-xs text-[#737373] mt-1.5">
+            Accepts JPG, JPEG, PNG, or WebP. Max 5MB.
           </p>
         </div>
 
@@ -1068,9 +1203,6 @@ const DEFAULT_NOTIFICATIONS = {
   newVendorPending: true,
   flaggedContent: true,
   customerComplaint: true,
-  // TODO: This toggle depends on a backend `hasApprovalPermissions` field in the
-  // admin profile. Until that field exists on GET /api/admin/me, the toggle is
-  // shown to all admins unconditionally as a best-effort placeholder.
   aiWorkflowApproval: false,
   weeklySummary: true,
 };
@@ -1079,15 +1211,41 @@ const NOTIFICATION_DEFS = [
   { id: 'newVendorPending', label: 'New vendor pending review', description: 'Notify me when a new vendor listing is submitted for approval.' },
   { id: 'flaggedContent', label: 'Flagged content reported', description: 'Notify me when content is flagged by users or automated systems.' },
   { id: 'customerComplaint', label: 'Customer complaint submitted', description: 'Notify me when a customer files a complaint through the portal.' },
-  { id: 'aiWorkflowApproval', label: 'AI workflow requires my approval', description: 'Notify me when an AI-moderated action needs human confirmation. (Depends on approval permission — see code comment).' },
+  { id: 'aiWorkflowApproval', label: 'AI workflow requires my approval', description: 'Notify me when an AI-moderated action needs human confirmation.' },
   { id: 'weeklySummary', label: 'Weekly summary email', description: 'Receive a weekly digest of key metrics and activity on Mondays.' },
 ];
 
 function NotificationsSection({ onShowToast }) {
   const [prefs, setPrefs] = useState(DEFAULT_NOTIFICATIONS);
+  const [loading, setLoading] = useState(true);
   // Per-toggle saving & saved flash state
   const [saving, setSaving] = useState({});
   const [saved, setSaved] = useState({});
+
+  // Fetch persisted preferences from backend on mount
+  useEffect(() => {
+    let cancelled = false;
+    getNotificationPrefs()
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data) {
+          setPrefs({
+            newVendorPending: data.newVendorPending ?? DEFAULT_NOTIFICATIONS.newVendorPending,
+            flaggedContent: data.flaggedContent ?? DEFAULT_NOTIFICATIONS.flaggedContent,
+            customerComplaint: data.customerComplaint ?? DEFAULT_NOTIFICATIONS.customerComplaint,
+            aiWorkflowApproval: data.aiWorkflowApproval ?? DEFAULT_NOTIFICATIONS.aiWorkflowApproval,
+            weeklySummary: data.weeklySummary ?? DEFAULT_NOTIFICATIONS.weeklySummary,
+          });
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load notification preferences:', err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   const handleToggle = useCallback(async (id, value) => {
     // Optimistic update
@@ -1101,6 +1259,17 @@ function NotificationsSection({ onShowToast }) {
         setPrefs((p) => ({ ...p, [id]: !value }));
         onShowToast('Failed to save notification preference.', 'error');
         return;
+      }
+      const data = await res.json().catch(() => ({}));
+      if (data && typeof data === 'object') {
+        setPrefs((p) => ({
+          ...p,
+          ...(data.newVendorPending !== undefined ? { newVendorPending: data.newVendorPending } : {}),
+          ...(data.flaggedContent !== undefined ? { flaggedContent: data.flaggedContent } : {}),
+          ...(data.customerComplaint !== undefined ? { customerComplaint: data.customerComplaint } : {}),
+          ...(data.aiWorkflowApproval !== undefined ? { aiWorkflowApproval: data.aiWorkflowApproval } : {}),
+          ...(data.weeklySummary !== undefined ? { weeklySummary: data.weeklySummary } : {}),
+        }));
       }
       // Show "Saved ✓" flash for 2s
       setSaved((s) => ({ ...s, [id]: true }));
@@ -1116,217 +1285,29 @@ function NotificationsSection({ onShowToast }) {
   return (
     <SettingsCard
       title="Notification Preferences"
-      description="Control which events send you personal notifications. These are your preferences only and do not affect other admins."
+      description="Control which events send you personal notifications. These settings are persisted to your administrator account."
       icon={Bell}
     >
-      <div className="-mt-1">
-        {NOTIFICATION_DEFS.map((def) => (
-          <NotificationToggle
-            key={def.id}
-            id={def.id}
-            label={def.label}
-            description={def.description}
-            checked={prefs[def.id]}
-            onChange={(val) => handleToggle(def.id, val)}
-            saving={saving[def.id]}
-            saved={saved[def.id]}
-          />
-        ))}
-      </div>
-    </SettingsCard>
-  );
-}
-
-// ─── Section: Session & Device Management ────────────────────────────────────
-
-function SessionSection({ onShowToast }) {
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [revoking, setRevoking] = useState(false);
-  const { browser, os } = parseBrowserInfo();
-  const loginTime = new Date().toLocaleString('en-US', {
-    year: 'numeric', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  });
-
-  const handleRevoke = async () => {
-    setShowConfirm(false);
-    setRevoking(true);
-    try {
-      const res = await revokeOtherSessions();
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        onShowToast(data?.detail || 'Failed to revoke sessions.', 'error');
-        return;
-      }
-      onShowToast('All other sessions have been revoked.', 'success');
-    } catch {
-      onShowToast('Unable to connect to the server.', 'error');
-    } finally {
-      setRevoking(false);
-    }
-  };
-
-  return (
-    <>
-      {showConfirm && (
-        <ConfirmDialog
-          title="Log out all other sessions?"
-          message="This will immediately invalidate all active sessions on other devices or browsers. You will remain logged in here."
-          confirmLabel="Yes, revoke all"
-          danger
-          onConfirm={handleRevoke}
-          onCancel={() => setShowConfirm(false)}
-        />
-      )}
-
-      <SettingsCard
-        title="Session & Device Management"
-        description="Your current active session. Real-time session data requires the sessions API endpoint."
-        icon={Monitor}
-      >
-        <div className="space-y-4">
-          {/* Current session card */}
-          <div className="border border-[#F1E5EC] rounded-xl overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 bg-[#FDF0F4] border-b border-[#F1E5EC]">
-              <p className="text-xs font-semibold text-[#8E406F] uppercase tracking-wider">Current Session</p>
-              <span className="flex items-center gap-1.5 text-xs text-emerald-600 font-semibold">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                Active now
-              </span>
-            </div>
-            <div className="px-4 py-4 space-y-2.5">
-              <div className="flex items-center gap-2 text-sm text-[#333]">
-                <Monitor size={14} className="text-[#aaa] shrink-0" />
-                <span className="font-medium">{browser}</span>
-                <span className="text-[#bbb]">·</span>
-                <span className="text-[#737373]">{os}</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-[#737373]">
-                <Clock size={13} className="text-[#aaa] shrink-0" />
-                <span>Signed in: {loginTime}</span>
-              </div>
-              <p className="text-[10px] text-[#bbb] pt-1">
-                ⓘ Device info is best-effort browser detection and is not server-verified.
-              </p>
-            </div>
-          </div>
-
-          {/* Other sessions — not rendered because no real backend sessions list is available.
-              Rendering fake sessions would misrepresent real security data. */}
-          <p className="text-xs text-[#999] italic">
-            Only your current session is shown. A full session history requires
-            <code className="mx-1 px-1.5 py-0.5 rounded bg-[#F3F4F6] text-[#666] font-mono text-[10px]">GET /api/admin/me/sessions</code>
-            to be implemented on the backend.
-          </p>
-
-          <DangerButton
-            id="revoke-sessions-btn"
-            onClick={() => setShowConfirm(true)}
-            disabled={revoking}
-          >
-            <LogOut size={14} />
-            {revoking ? 'Revoking…' : 'Log out of all other sessions'}
-          </DangerButton>
+      {loading ? (
+        <div className="flex items-center gap-2 text-sm text-[#737373] py-4">
+          <span className="h-4 w-4 border-2 border-[#e8c4d8] border-t-[#8E406F] rounded-full animate-spin" />
+          Loading notification preferences…
         </div>
-      </SettingsCard>
-    </>
-  );
-}
-
-// ─── Section: My Activity ─────────────────────────────────────────────────────
-
-function ActivitySection() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    // TODO: This queries GET /api/admin/me/activity — the same endpoint the Activity Log
-    // sidebar page should use, filtered to the currently logged-in admin (adminId=self).
-    // If the Activity Log page doesn't yet support per-admin filtering,
-    // flag this as a backend gap rather than returning an unfiltered log.
-    let cancelled = false;
-    setLoading(true);
-    getMyRecentActivity()
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then((data) => {
-        if (!cancelled) setItems(Array.isArray(data) ? data : []);
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(
-            err.message.includes('fetch')
-              ? 'Unable to connect to the server. Is the backend running?'
-              : `Activity log unavailable (${err.message}). The backend endpoint GET /api/admin/me/activity may not be implemented yet.`,
-          );
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, []);
-
-  return (
-    <SettingsCard
-      title="My Activity"
-      description="High-impact actions you have personally authorized, in reverse chronological order."
-      icon={Activity}
-    >
-      {loading && (
-        <div className="flex items-center gap-2 text-sm text-[#999] py-4">
-          <span className="h-4 w-4 border-2 border-[#e2e8f0] border-t-[#8E406F] rounded-full animate-spin" />
-          Loading activity…
-        </div>
-      )}
-
-      {!loading && error && (
-        <div className="rounded-xl bg-rose-50 border border-rose-200 px-4 py-3">
-          <p className="text-xs text-rose-700 flex items-start gap-2">
-            <AlertCircle size={14} className="mt-0.5 shrink-0" />
-            {error}
-          </p>
-        </div>
-      )}
-
-      {!loading && !error && items.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-10 text-center">
-          <div className="h-12 w-12 rounded-full bg-[#FDF0F4] flex items-center justify-center mb-3">
-            <Activity size={22} className="text-[#e8c4d8]" />
-          </div>
-          <p className="text-sm font-medium text-[#555]">No high-impact actions yet</p>
-          <p className="text-xs text-[#999] mt-1">
-            Actions you authorize (vendor approvals, rejections, etc.) will appear here.
-          </p>
-        </div>
-      )}
-
-      {!loading && !error && items.length > 0 && (
-        <ul className="divide-y divide-[#F1E5EC]">
-          {items.map((item, i) => (
-            <li key={item.id ?? i} className="py-3.5 flex items-start gap-3">
-              <div className="h-8 w-8 rounded-full bg-[#FDF0F4] border border-[#e8c4d8] flex items-center justify-center shrink-0 mt-0.5">
-                <Activity size={14} className="text-[#8E406F]" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm text-[#1E293B] font-medium leading-snug">
-                  {item.action || item.description || 'Action performed'}
-                </p>
-                <p className="text-xs text-[#999] mt-0.5">
-                  {item.timestamp
-                    ? new Date(item.timestamp).toLocaleString('en-US', {
-                      year: 'numeric', month: 'short', day: 'numeric',
-                      hour: '2-digit', minute: '2-digit',
-                    })
-                    : '—'}
-                </p>
-              </div>
-            </li>
+      ) : (
+        <div className="-mt-1">
+          {NOTIFICATION_DEFS.map((def) => (
+            <NotificationToggle
+              key={def.id}
+              id={def.id}
+              label={def.label}
+              description={def.description}
+              checked={prefs[def.id]}
+              onChange={(val) => handleToggle(def.id, val)}
+              saving={saving[def.id]}
+              saved={saved[def.id]}
+            />
           ))}
-        </ul>
+        </div>
       )}
     </SettingsCard>
   );
@@ -1339,8 +1320,6 @@ const TABS = [
   { id: 'password', label: 'Change Password', icon: Lock },
   { id: 'pin', label: 'Secure PIN', icon: KeyRound },
   { id: 'notifications', label: 'Notifications', icon: Bell },
-  { id: 'sessions', label: 'Sessions', icon: Monitor },
-  { id: 'activity', label: 'My Activity', icon: Activity },
 ];
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
@@ -1420,8 +1399,6 @@ export default function AdminSettingsPage() {
             {activeTab === 'password' && <PasswordSection />}
             {activeTab === 'pin' && <PinSection />}
             {activeTab === 'notifications' && <NotificationsSection onShowToast={showToast} />}
-            {activeTab === 'sessions' && <SessionSection onShowToast={showToast} />}
-            {activeTab === 'activity' && <ActivitySection />}
           </div>
 
         </div>
@@ -1429,44 +1406,3 @@ export default function AdminSettingsPage() {
     </>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ASSUMED BACKEND ENDPOINTS (unverified — hand this list to the ASP.NET Core owner)
-//
-// 1. PUT  /api/admin/me
-//    Body: { fullName: string }
-//    Updates the currently logged-in admin's profile fields.
-//    Should return 200 OK on success; 400/409 with ProblemDetails on error.
-//
-// 2. POST /api/admin/me/change-password
-//    Body: { currentPassword: string, newPassword: string }
-//    Changes the admin's login password.
-//    Should return 200 OK; 400 if currentPassword is wrong.
-//
-// 3. POST /api/admin/me/pin
-//    Body: { currentPin: string (4 digits), newPin: string (4 digits) }
-//    Changes the admin's secure PIN.
-//    Should return 200 OK; 400 if currentPin is wrong.
-//    Never expose the PIN value in any response body.
-//
-// 4. PUT  /api/admin/me/notifications
-//    Body: { newVendorPending: bool, flaggedContent: bool, customerComplaint: bool,
-//            aiWorkflowApproval: bool, weeklySummary: bool }
-//    Persists this admin's notification preferences.
-//    Should also expose GET /api/admin/me/notifications to load existing prefs on mount.
-//
-// 5. POST /api/admin/me/sessions/revoke-others
-//    No body required (token identifies the caller).
-//    Invalidates all active JWT tokens for this admin except the one making the request.
-//
-// 6. GET  /api/admin/me/activity
-//    Returns reverse-chronological list of high-impact actions by this admin.
-//    Expected shape: [{ id, action, timestamp, details? }, ...]
-//    This should reuse / filter the existing audit log that the "Activity Log"
-//    sidebar page already uses. If that page doesn't support per-admin filtering,
-//    add an optional ?adminId=me query param to the audit log endpoint.
-//
-// 7. (Nice to have) GET /api/admin/me
-//    Should include a `pinLastChangedAt` ISO date field so the PIN section
-//    can display "PIN last changed: [date]". Currently stubbed as null.
-// ─────────────────────────────────────────────────────────────────────────────

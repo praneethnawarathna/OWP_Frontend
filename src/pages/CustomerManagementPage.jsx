@@ -21,7 +21,22 @@ import {
   Clock,
   DollarSign,
   ShieldAlert,
+  Filter,
 } from 'lucide-react';
+import {
+  AdminPageHeader,
+  AdminStatCard,
+  AdminTableCard,
+  AdminTableToolbar,
+  AdminTable,
+  AdminTableHeader,
+  AdminTableHead,
+  AdminTableBody,
+  AdminTableRow,
+  AdminTableCell,
+  AdminTablePagination,
+  AdminIconButton,
+} from '../components/common/AdminTableComponents';
 
 // ============================================================
 // API Configuration
@@ -536,6 +551,39 @@ export function CustomerManagement() {
     }
   };
 
+  // ── Toggle Customer Status (Active / Inactive) ───────────────
+  const handleToggleStatus = async (customer) => {
+    const customerId = customer.customerId || customer.id;
+    const isCurrentlyActive = (customer.status || 'Active').toLowerCase() === 'active';
+    const nextActive = !isCurrentlyActive;
+    try {
+      const res = await fetchWithFallback(`/${customerId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          isActive: nextActive,
+          reason: `Admin toggled status to ${nextActive ? 'Active' : 'Inactive'}`,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Failed to update status (HTTP ${res.status})`);
+      }
+
+      setCustomers(prev =>
+        prev.map(c => {
+          if ((c.customerId || c.id) === customerId) {
+            return { ...c, status: nextActive ? 'Active' : 'Inactive' };
+          }
+          return c;
+        })
+      );
+      showToast(`Customer status set to ${nextActive ? 'Active' : 'Inactive'}.`);
+    } catch (err) {
+      console.error('Status toggle error:', err);
+      showToast(err.message || 'Failed to update status.', 'error');
+    }
+  };
+
   // ── Metric Calculations from Real Database Data ──────────────
   const liveMetrics = useMemo(() => {
     return {
@@ -606,74 +654,71 @@ export function CustomerManagement() {
   };
 
   return (
-    <div className="max-w-[1400px] w-full mx-auto space-y-6 pb-10">
+    <div className="space-y-6">
       {/* ── Page Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1
-            className="text-2xl sm:text-3xl font-bold text-[#1E293B]"
-            style={{ fontFamily: "'Playfair Display', serif" }}
-          >
-            Customer Management
-          </h1>
-          <p className="text-sm text-[#8E406F] mt-1 font-medium">
-            Mobile-registered couples from Neon PostgreSQL database. View activity and manage access.
-          </p>
-        </div>
+      <AdminPageHeader
+        title="Customer Management"
+        subtitle="Mobile-registered couples from Neon PostgreSQL database. View activity and manage access."
+        action={
+          <div className="flex items-center gap-3">
+            <button
+              onClick={fetchCustomers}
+              disabled={loading}
+              title="Refresh List"
+              className="p-2 text-[#8E406F] hover:bg-[#FDF0F4] rounded-lg transition-colors border border-[#F1E5EC] flex items-center gap-1.5 text-xs font-semibold"
+            >
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={fetchCustomers}
-            disabled={loading}
-            title="Refresh List"
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#F6DCE6] bg-[#FDF0F4] text-[#8E406F] text-xs font-semibold hover:bg-[#F6DCE6] active:scale-95 transition-all shadow-xs"
-          >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-            <span>Refresh</span>
-          </button>
-
-          <button
-            onClick={handleExportCSV}
-            disabled={filteredCustomers.length === 0}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[#8E406F] text-[#8E406F] text-xs font-semibold hover:bg-[#8E406F] hover:text-white active:scale-95 transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <Download size={14} />
-            <span>Export CSV</span>
-          </button>
-        </div>
-      </div>
+            <button
+              onClick={handleExportCSV}
+              disabled={filteredCustomers.length === 0}
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#8E406F] text-white text-sm font-semibold hover:bg-[#73325A] active:scale-95 transition-all shadow-md disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+            >
+              <Download size={15} />
+              <span>Export CSV</span>
+            </button>
+          </div>
+        }
+      />
 
       {/* ── Summary Metric Cards ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <MetricCard
-          icon={Users}
-          iconBg="#F6DCE6"
-          iconColor="#8E406F"
+        <AdminStatCard
           label="Registered Mobile Couples"
           value={liveMetrics.totalCouples}
+          icon={Users}
+          iconBg="bg-[#8E406F]/10"
+          iconColor="#8E406F"
+          valueColor="text-[#333]"
           delta={loading ? 'Loading...' : `${liveMetrics.totalCouples} couples in DB`}
         />
-        <MetricCard
-          icon={MessageSquare}
-          iconBg="#E6F4EE"
-          iconColor="#1A7F4B"
+        <AdminStatCard
           label="Total Inquiries Submitted"
           value={liveMetrics.totalInquiries}
+          icon={MessageSquare}
+          iconBg="bg-emerald-50"
+          iconColor="#059669"
+          valueColor="text-emerald-600"
           delta="Across all vendors"
+          deltaColor="text-emerald-700"
         />
-        <MetricCard
-          icon={AlertTriangle}
-          iconBg="#FEF3F2"
-          iconColor="#D92D20"
+        <AdminStatCard
           label="Inactive Customer Accounts"
           value={liveMetrics.inactiveCount}
+          icon={AlertTriangle}
+          iconBg="bg-red-50"
+          iconColor="#DC2626"
+          valueColor="text-red-500"
           delta="Deactivated couples"
+          deltaColor="text-red-600"
         />
       </div>
 
       {/* ── Error Banner if API Call Failed ── */}
       {error && (
-        <div className="bg-[#FEF3F2] border border-[#FECDCA] rounded-2xl p-4 flex items-center justify-between gap-4 text-sm text-[#B42318]">
+        <div className="bg-[#FEF3F2] border border-[#FECDCA] rounded-xl p-4 flex items-center justify-between gap-4 text-sm text-[#B42318]">
           <div className="flex items-center gap-3">
             <AlertCircle size={20} className="shrink-0 text-[#D92D20]" />
             <div>
@@ -683,7 +728,7 @@ export function CustomerManagement() {
           </div>
           <button
             onClick={fetchCustomers}
-            className="px-3.5 py-1.5 rounded-xl bg-[#D92D20] text-white text-xs font-semibold hover:bg-[#B91C1C] transition-all shrink-0"
+            className="px-3.5 py-1.5 rounded-lg bg-[#D92D20] text-white text-xs font-semibold hover:bg-[#B91C1C] transition-all shrink-0"
           >
             Retry Connection
           </button>
@@ -691,272 +736,215 @@ export function CustomerManagement() {
       )}
 
       {/* ── Data Table Card ── */}
-      <div className="bg-[#FDF0F4] border border-[#F6DCE6] rounded-2xl shadow-sm overflow-hidden">
+      <AdminTableCard>
         {/* Table Controls (Search & Status Filter) */}
-        <div className="px-5 py-4 border-b border-[#F6DCE6] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/60">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
-            {/* Search Bar */}
-            <div className="relative w-full sm:w-80">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#999] pointer-events-none" />
-              <input
-                id="customer-search-input"
-                type="search"
-                value={searchQuery}
-                onChange={handleSearchChange}
-                placeholder="Search by couple name, email, phone..."
-                className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-[#F6DCE6] rounded-xl text-[#1E293B] placeholder:text-[#aaa] focus:outline-none focus:ring-2 focus:ring-[#8E406F]/25 focus:border-[#8E406F] transition-all"
-              />
-            </div>
-
-            {/* Status Filter Dropdown */}
-            <div className="relative w-full sm:w-48">
+        <AdminTableToolbar
+          searchProps={{
+            id: 'customer-search-input',
+            type: 'search',
+            value: searchQuery,
+            onChange: handleSearchChange,
+            placeholder: 'Search by couple name, email, phone...',
+          }}
+          filters={
+            <div className="flex items-center gap-1.5 text-xs text-[#666]">
+              <Filter size={13} className="text-[#8E406F]" />
               <select
                 id="customer-status-filter"
                 value={statusFilter}
                 onChange={handleStatusFilterChange}
-                className="w-full appearance-none pl-3.5 pr-8 py-2 text-sm bg-white border border-[#F6DCE6] rounded-xl text-[#333] font-medium focus:outline-none focus:ring-2 focus:ring-[#8E406F]/25 focus:border-[#8E406F] transition-all cursor-pointer"
+                className="py-1.5 px-2.5 text-xs border border-[#e2e8f0] rounded-lg bg-[#F8FAFC] text-[#333] focus:outline-none focus:border-[#8E406F]"
               >
                 <option value="All">All Statuses</option>
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
               </select>
-              <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#888] pointer-events-none" />
             </div>
-          </div>
-
-          <div className="text-xs text-[#737373] self-end sm:self-center font-medium">
-            Showing <strong className="text-[#1E293B]">{filteredCustomers.length}</strong> of{' '}
-            <strong className="text-[#1E293B]">{customers.length}</strong> registered couples
-          </div>
-        </div>
+          }
+          actions={
+            <span className="text-xs text-[#737373]">
+              Showing <strong className="font-semibold text-[#333]">{filteredCustomers.length}</strong> of{' '}
+              <strong className="font-semibold text-[#333]">{customers.length}</strong> couples
+            </span>
+          }
+        />
 
         {/* Data Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[#F6DCE6] bg-[#FAE8F0]">
-                <th className="text-left px-5 py-3.5 text-xs font-bold text-[#8E406F] uppercase tracking-wider">
-                  COUPLE NAME
-                </th>
-                <th className="text-left px-5 py-3.5 text-xs font-bold text-[#8E406F] uppercase tracking-wider">
-                  CONTACT INFO
-                </th>
-                <th className="text-left px-5 py-3.5 text-xs font-bold text-[#8E406F] uppercase tracking-wider whitespace-nowrap">
-                  WEDDING DATE
-                </th>
-                <th className="text-center px-5 py-3.5 text-xs font-bold text-[#8E406F] uppercase tracking-wider whitespace-nowrap">
-                  INQUIRIES SENT
-                </th>
-                <th className="text-center px-5 py-3.5 text-xs font-bold text-[#8E406F] uppercase tracking-wider">
-                  STATUS
-                </th>
-                <th className="text-right px-5 py-3.5 text-xs font-bold text-[#8E406F] uppercase tracking-wider">
-                  ACTIONS
-                </th>
-              </tr>
-            </thead>
+        <AdminTable>
+          <AdminTableHeader>
+            <AdminTableHead>Couple Name</AdminTableHead>
+            <AdminTableHead>Contact Info</AdminTableHead>
+            <AdminTableHead>Wedding Date</AdminTableHead>
+            <AdminTableHead align="center">Inquiries Sent</AdminTableHead>
+            <AdminTableHead align="center">Status</AdminTableHead>
+            <AdminTableHead align="right">Actions</AdminTableHead>
+          </AdminTableHeader>
 
-            <tbody className="divide-y divide-[#F6DCE6] bg-white">
-              {loading ? (
-                // Elegant Loading Skeleton Rows
-                Array.from({ length: 4 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-full bg-gray-200" />
-                        <div className="space-y-1.5 flex-1 max-w-[160px]">
-                          <div className="h-3.5 bg-gray-200 rounded w-3/4" />
-                          <div className="h-2.5 bg-gray-100 rounded w-1/2" />
-                        </div>
+          <AdminTableBody>
+            {loading ? (
+              // Loading Skeleton Rows matching Admin Management
+              Array.from({ length: 4 }).map((_, i) => (
+                <tr key={i} className="animate-pulse">
+                  <td className="px-6 py-3.5">
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-full bg-gray-200" />
+                      <div className="space-y-1.5 flex-1 max-w-[160px]">
+                        <div className="h-3.5 bg-gray-200 rounded w-3/4" />
+                        <div className="h-2.5 bg-gray-100 rounded w-1/2" />
                       </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="space-y-1.5 max-w-[140px]">
-                        <div className="h-3 bg-gray-200 rounded w-full" />
-                        <div className="h-2.5 bg-gray-100 rounded w-2/3" />
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="h-3 bg-gray-200 rounded w-20" />
-                    </td>
-                    <td className="px-5 py-4 text-center">
-                      <div className="h-6 w-8 bg-gray-200 rounded-full mx-auto" />
-                    </td>
-                    <td className="px-5 py-4 text-center">
-                      <div className="h-5 w-16 bg-gray-200 rounded-full mx-auto" />
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <div className="h-7 w-28 bg-gray-200 rounded-lg ml-auto" />
-                    </td>
-                  </tr>
-                ))
-              ) : paginatedCustomers.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-16 text-center text-[#737373]">
-                    <Users size={36} className="mx-auto mb-2 text-[#e8c4d8]" />
-                    <p className="text-base font-semibold text-[#1E293B]">No customer records found</p>
-                    <p className="text-xs text-[#888] mt-1 max-w-sm mx-auto">
-                      {searchQuery || statusFilter !== 'All'
-                        ? 'No couples match your search filter.'
-                        : 'No registered couples found in the database. When mobile app users sign up, they will appear here.'}
-                    </p>
+                    </div>
+                  </td>
+                  <td className="px-6 py-3.5">
+                    <div className="space-y-1.5 max-w-[140px]">
+                      <div className="h-3 bg-gray-200 rounded w-full" />
+                      <div className="h-2.5 bg-gray-100 rounded w-2/3" />
+                    </div>
+                  </td>
+                  <td className="px-6 py-3.5">
+                    <div className="h-3 bg-gray-200 rounded w-20" />
+                  </td>
+                  <td className="px-6 py-3.5 text-center">
+                    <div className="h-6 w-8 bg-gray-200 rounded-full mx-auto" />
+                  </td>
+                  <td className="px-6 py-3.5 text-center">
+                    <div className="h-5 w-16 bg-gray-200 rounded-full mx-auto" />
+                  </td>
+                  <td className="px-6 py-3.5 text-right">
+                    <div className="h-7 w-20 bg-gray-200 rounded-lg ml-auto" />
                   </td>
                 </tr>
-              ) : (
-                paginatedCustomers.map((cust, idx) => {
-                  const customerId = cust.customerId || cust.id;
-                  const coupleDisplayName =
-                    cust.coupleName ||
-                    cust.coupleNames ||
-                    `${cust.firstName || ''} ${cust.lastName || ''}`.trim() ||
-                    'N/A';
+              ))
+            ) : paginatedCustomers.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="py-16 text-center text-[#737373]">
+                  <Users size={32} className="mx-auto mb-2 text-[#ccc]" />
+                  <p className="text-sm font-semibold text-[#333]">No customer records found</p>
+                  <p className="text-xs text-[#888] mt-1 max-w-sm mx-auto">
+                    {searchQuery || statusFilter !== 'All'
+                      ? 'No couples match your search filter.'
+                      : 'No registered couples found in the database.'}
+                  </p>
+                </td>
+              </tr>
+            ) : (
+              paginatedCustomers.map((cust, idx) => {
+                const customerId = cust.customerId || cust.id;
+                const coupleDisplayName =
+                  cust.coupleName ||
+                  cust.coupleNames ||
+                  `${cust.firstName || ''} ${cust.lastName || ''}`.trim() ||
+                  'N/A';
 
-                  const email = cust.email || 'N/A';
-                  const phone = cust.phone || cust.phoneNumber || 'N/A';
-                  const weddingDate = cust.weddingDate || 'N/A';
-                  const inquiriesSent = cust.inquiriesSent ?? cust.inquiriesCount ?? 0;
-                  const status = cust.status || 'Active';
+                const email = cust.email || '—';
+                const phone = cust.phone || cust.phoneNumber || '';
+                const weddingDate = cust.weddingDate || '—';
+                const inquiriesSent = cust.inquiriesSent ?? cust.inquiriesCount ?? 0;
+                const status = cust.status || 'Active';
 
-                  return (
-                    <tr
-                      key={customerId}
-                      className="hover:bg-[#FDF0F4]/60 transition-colors"
-                    >
-                      {/* 1. COUPLE NAME */}
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <Avatar
-                            initials={cust.avatarInitials}
-                            name={coupleDisplayName}
-                            index={idx}
-                          />
-                          <div className="min-w-0">
-                            <p className="font-semibold text-[#1E293B] text-sm leading-snug truncate">
-                              {coupleDisplayName}
-                            </p>
-                            <div className="flex items-center gap-1 text-xs text-[#737373] mt-0.5">
-                              <MapPin size={11} className="shrink-0 text-[#8E406F]" />
-                              <span className="truncate">{cust.location || 'Mobile App User'}</span>
-                            </div>
+                const initials = (coupleDisplayName || 'CU')
+                  .split(' ')
+                  .map((n) => n[0])
+                  .join('')
+                  .substring(0, 2)
+                  .toUpperCase();
+
+                return (
+                  <AdminTableRow key={customerId}>
+                    {/* 1. COUPLE NAME */}
+                    <AdminTableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-full bg-[#8E406F]/10 border border-[#e8c4d8] flex items-center justify-center shrink-0">
+                          <span className="text-[#8E406F] text-xs font-bold">
+                            {initials}
+                          </span>
+                        </div>
+                        <div className="min-w-0">
+                          <span className="font-semibold text-[#333] block truncate">
+                            {coupleDisplayName}
+                          </span>
+                          <span className="text-[11px] text-[#888] block truncate">
+                            {cust.location || 'Mobile Registered'}
+                          </span>
+                        </div>
+                      </div>
+                    </AdminTableCell>
+
+                    {/* 2. CONTACT INFO */}
+                    <AdminTableCell>
+                      <div className="space-y-0.5">
+                        <div className="text-sm text-[#555] truncate max-w-[220px]">
+                          {email}
+                        </div>
+                        {phone && (
+                          <div className="font-mono text-xs text-[#888]">
+                            {phone}
                           </div>
-                        </div>
-                      </td>
+                        )}
+                      </div>
+                    </AdminTableCell>
 
-                      {/* 2. CONTACT INFO */}
-                      <td className="px-5 py-4">
-                        <div className="space-y-0.5">
-                          <div className="flex items-center gap-1.5 text-xs text-[#1E293B] font-medium">
-                            <Mail size={12} className="text-[#8E406F] shrink-0" />
-                            <span className="truncate max-w-[200px]">{email}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-xs text-[#737373]">
-                            <Phone size={12} className="text-[#8E406F] shrink-0" />
-                            <span>{phone}</span>
-                          </div>
-                        </div>
-                      </td>
+                    {/* 3. WEDDING DATE */}
+                    <AdminTableCell className="whitespace-nowrap text-xs text-[#888]">
+                      {weddingDate}
+                    </AdminTableCell>
 
-                      {/* 3. WEDDING DATE */}
-                      <td className="px-5 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5 text-xs font-medium text-[#1E293B]">
-                          <Calendar size={13} className="text-[#8E406F] shrink-0" />
-                          <span>{weddingDate}</span>
-                        </div>
-                      </td>
+                    {/* 4. INQUIRIES SENT */}
+                    <AdminTableCell align="center">
+                      <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full bg-[#8E406F]/10 text-[#8E406F] text-xs font-semibold">
+                        {inquiriesSent}
+                      </span>
+                    </AdminTableCell>
 
-                      {/* 4. INQUIRIES SENT */}
-                      <td className="px-5 py-4 text-center">
-                        <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-[#F6DCE6] text-[#8E406F] text-xs font-bold">
-                          {inquiriesSent}
-                        </span>
-                      </td>
+                    {/* 5. STATUS */}
+                    <AdminTableCell align="center" className="whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleStatus(cust)}
+                        title={`Click to switch to ${status === 'Active' ? 'Inactive' : 'Active'}`}
+                        className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full transition-all hover:opacity-80 ${
+                          status === 'Active' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${status === 'Active' ? 'bg-emerald-500' : 'bg-red-400'}`} />
+                        {status}
+                      </button>
+                    </AdminTableCell>
 
-                      {/* 5. STATUS */}
-                      <td className="px-5 py-4 text-center whitespace-nowrap">
-                        <StatusBadge status={status} />
-                      </td>
+                    {/* 6. ACTIONS */}
+                    <AdminTableCell align="right" className="whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <AdminIconButton
+                          icon={Eye}
+                          label="View"
+                          title={`View Details for ${coupleDisplayName}`}
+                          onClick={() => handleOpenView(cust, idx)}
+                        />
+                        <AdminIconButton
+                          icon={Trash2}
+                          label="Remove"
+                          variant="danger"
+                          title={`Remove ${coupleDisplayName}`}
+                          onClick={() => setDeleteTarget(cust)}
+                        />
+                      </div>
+                    </AdminTableCell>
+                  </AdminTableRow>
+                );
+              })
+            )}
+          </AdminTableBody>
+        </AdminTable>
 
-                      {/* 6. ACTIONS (Tied to real customerId) */}
-                      <td className="px-5 py-4 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-2">
-                          {/* View Button */}
-                          <button
-                            type="button"
-                            onClick={() => handleOpenView(cust, idx)}
-                            title={`View Details for ${coupleDisplayName} (#${customerId})`}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#F6DCE6] bg-[#FDF0F4] text-[#8E406F] text-xs font-semibold hover:bg-[#8E406F] hover:text-white active:scale-95 transition-all shadow-xs"
-                          >
-                            <Eye size={13} />
-                            <span>View</span>
-                          </button>
-
-                          {/* Remove Button (Red / Warning Style) */}
-                          <button
-                            type="button"
-                            onClick={() => setDeleteTarget(cust)}
-                            title={`Remove ${coupleDisplayName} (#${customerId})`}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#FECDCA] bg-[#FEF3F2] text-[#D92D20] text-xs font-semibold hover:bg-[#D92D20] hover:text-white active:scale-95 transition-all shadow-xs"
-                          >
-                            <Trash2 size={13} />
-                            <span>Remove</span>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination Controls */}
-        <div className="px-5 py-3.5 border-t border-[#F6DCE6] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white">
-          <p className="text-xs text-[#737373]">
-            Showing{' '}
-            <span className="font-semibold text-[#1E293B]">
-              {filteredCustomers.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}
-            </span>{' '}
-            to{' '}
-            <span className="font-semibold text-[#1E293B]">
-              {Math.min(currentPage * PAGE_SIZE, filteredCustomers.length)}
-            </span>{' '}
-            of <span className="font-semibold text-[#1E293B]">{filteredCustomers.length}</span> couples
-          </p>
-
-          <div className="flex items-center gap-1 self-end sm:self-center">
-            <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="flex items-center justify-center h-8 w-8 rounded-lg border border-[#F6DCE6] text-[#737373] hover:bg-[#FDF0F4] hover:text-[#8E406F] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-            >
-              <ChevronLeft size={15} />
-            </button>
-
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={`flex items-center justify-center h-8 w-8 rounded-lg text-xs font-bold transition-all border ${
-                  page === currentPage
-                    ? 'bg-[#8E406F] text-white border-[#8E406F] shadow-xs'
-                    : 'border-[#F6DCE6] text-[#737373] hover:bg-[#FDF0F4] hover:text-[#8E406F]'
-                }`}
-              >
-                {page}
-              </button>
-            ))}
-
-            <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="flex items-center justify-center h-8 w-8 rounded-lg border border-[#F6DCE6] text-[#737373] hover:bg-[#FDF0F4] hover:text-[#8E406F] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-            >
-              <ChevronRight size={15} />
-            </button>
-          </div>
-        </div>
-      </div>
+        {/* Standard Pagination Controls */}
+        <AdminTablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredCustomers.length}
+          pageSize={PAGE_SIZE}
+          onPageChange={setCurrentPage}
+          showingLabel="couples"
+        />
+      </AdminTableCard>
 
       {/* ── Modals ── */}
       {viewTarget && (

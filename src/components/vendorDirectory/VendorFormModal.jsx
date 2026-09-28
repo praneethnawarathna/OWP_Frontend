@@ -1,8 +1,8 @@
-import { useState, useRef } from 'react';
-import { X, ImagePlus, Trash2, AlertCircle } from 'lucide-react';
+import { useState } from 'react';
+import { X, Image, Trash2, AlertCircle } from 'lucide-react';
 import { VENDOR_CATEGORIES } from '../../mock/vendorDirectoryData';
+import VendorDocumentsSection from './VendorDocumentsSection';
 
-const MAX_IMAGE_MB = 5;
 const MAX_DESCRIPTION = 600;
 
 const emptyVendor = {
@@ -16,55 +16,106 @@ const emptyVendor = {
   taxId: '',
   yearsInBusiness: '',
   description: '',
-  imageFile: null,
-  imagePreviewUrl: '',
 };
 
 // Sri Lankan mobile format: +94 7XXXXXXXX (9 digits after country code, starts with 7)
 const PHONE_PATTERN = /^\+94\s?7\d{8}$/;
-// e.g. BR/2026/001
-const TAX_ID_PATTERN = /^[A-Za-z]{2,4}\/\d{4}\/[A-Za-z0-9]{1,6}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const FIELD_DEFINITIONS = [
+  { key: 'businessName', label: 'Business Name', isIdentity: true, getOld: (v) => v.businessName },
+  { key: 'ownerName', label: 'Owner Name', isIdentity: true, getOld: (v) => v.ownerName },
+  { key: 'category', label: 'Category', isIdentity: true, getOld: (v) => v.category },
+  { key: 'email', label: 'Email', isIdentity: true, getOld: (v) => v.email },
+  { key: 'phone', label: 'Phone', isIdentity: true, getOld: (v) => v.phone },
+  { key: 'businessAddress', label: 'Business Address', isIdentity: true, getOld: (v) => v.businessAddress || v.address },
+  { key: 'description', label: 'Description', isIdentity: true, getOld: (v) => v.description },
+  { key: 'yearsInBusiness', label: 'Years in Business', isIdentity: false, getOld: (v) => (v.yearsInBusiness !== null && v.yearsInBusiness !== undefined ? String(v.yearsInBusiness) : '') },
+  { key: 'status', label: 'Status', isIdentity: false, getOld: (v) => v.status || 'Pending' },
+];
+
+function getFieldDiffs(originalVendor, currentForm) {
+  if (!originalVendor) return [];
+  const diffs = [];
+  for (const def of FIELD_DEFINITIONS) {
+    const oldVal = (def.getOld(originalVendor) ?? '').toString().trim();
+    const newVal = (currentForm[def.key] ?? '').toString().trim();
+    if (oldVal !== newVal) {
+      diffs.push({
+        key: def.key,
+        label: def.label,
+        isIdentity: def.isIdentity,
+        oldValue: oldVal,
+        newValue: newVal,
+      });
+    }
+  }
+  return diffs;
+}
+
 // vendor: existing vendor object to edit, or null to create a new one
-export default function VendorFormModal({ vendor, onClose, onSave }) {
+export default function VendorFormModal({ vendor, onClose, onSave, onImageRemoved, loading = false }) {
   const isEdit = Boolean(vendor);
   const [form, setForm] = useState(
-    vendor ? { imageFile: null, imagePreviewUrl: vendor.imagePreviewUrl || '', description: '', ...vendor } : emptyVendor
+    vendor ? { description: '', ...vendor } : emptyVendor
   );
+  const [reason, setReason] = useState('');
   const [errors, setErrors] = useState({});
-  const fileInputRef = useRef(null);
+
+  const initialImg = vendor?.imageUrl || vendor?.imagePreviewUrl || vendor?.logoUrl || vendor?.coverImageUrl || '';
+  const [currentImage, setCurrentImage] = useState(initialImg);
+  const [isRemovingImage, setIsRemovingImage] = useState(false);
 
   function update(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
   }
 
-  function handleImageSelect(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const isJpg = file.type === 'image/jpeg' || file.type === 'image/jpg';
-    if (!isJpg) {
-      setErrors((prev) => ({ ...prev, image: 'Only .jpg / .jpeg images are allowed' }));
-      e.target.value = '';
-      return;
-    }
-    if (file.size > MAX_IMAGE_MB * 1024 * 1024) {
-      setErrors((prev) => ({ ...prev, image: `Image must be under ${MAX_IMAGE_MB}MB` }));
-      e.target.value = '';
+  async function handleRemoveImage() {
+    const id = vendor?.vendorId || (vendor?.id ? parseInt(String(vendor.id).replace(/\D/g, ''), 10) : null);
+    if (!id) {
+      setCurrentImage('');
+      setForm((prev) => ({ ...prev, imageUrl: null, logoUrl: null, coverImageUrl: null, imagePreviewUrl: '' }));
       return;
     }
 
-    setErrors((prev) => ({ ...prev, image: undefined }));
-    const previewUrl = URL.createObjectURL(file);
-    setForm((prev) => ({ ...prev, imageFile: file, imagePreviewUrl: previewUrl }));
-  }
+    if (!window.confirm(`Are you sure you want to remove the image for "${form.businessName || 'this vendor'}"?`)) {
+      return;
+    }
 
-  function removeImage() {
-    if (form.imagePreviewUrl) URL.revokeObjectURL(form.imagePreviewUrl);
-    setForm((prev) => ({ ...prev, imageFile: null, imagePreviewUrl: '' }));
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    setIsRemovingImage(true);
+    try {
+      const res = await fetch(`http://localhost:5131/api/admin/vendors/${id}/image`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+        },
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        alert(errData.detail || errData.title || 'Failed to remove vendor image.');
+        return;
+      }
+
+      setCurrentImage('');
+      setForm((prev) => ({
+        ...prev,
+        imageUrl: null,
+        logoUrl: null,
+        coverImageUrl: null,
+        imagePreviewUrl: '',
+      }));
+
+      if (onImageRemoved) {
+        onImageRemoved();
+      }
+    } catch (err) {
+      alert(err.message || 'Error removing vendor image.');
+    } finally {
+      setIsRemovingImage(false);
+    }
   }
 
   function validate() {
@@ -86,12 +137,6 @@ export default function VendorFormModal({ vendor, onClose, onSave }) {
       next.phone = 'Use the format +94 7XXXXXXXX';
     }
 
-    if (!form.taxId.trim()) {
-      next.taxId = 'Tax ID is required';
-    } else if (!TAX_ID_PATTERN.test(form.taxId.trim())) {
-      next.taxId = 'Use the format BR/2026/XXX';
-    }
-
     if (form.yearsInBusiness === '' || form.yearsInBusiness === null) {
       next.yearsInBusiness = 'Years in business is required';
     } else {
@@ -111,14 +156,31 @@ export default function VendorFormModal({ vendor, onClose, onSave }) {
       next.description = `Description must be under ${MAX_DESCRIPTION} characters`;
     }
 
+    const currentDiffs = isEdit ? getFieldDiffs(vendor, form) : [];
+    const hasIdentity = isEdit && currentDiffs.some((d) => d.isIdentity);
+    if (isEdit && hasIdentity && !reason.trim()) {
+      next.reason = 'Please enter a reason for modifying identity fields';
+    }
+
     setErrors(next);
     return Object.keys(next).length === 0;
   }
 
+  const diffs = isEdit ? getFieldDiffs(vendor, form) : [];
+  const hasIdentityChanges = isEdit && diffs.some((d) => d.isIdentity);
+  const changedIdentityLabels = diffs
+    .filter((d) => d.isIdentity)
+    .map((d) => d.label)
+    .join(', ');
+
   function handleSubmit(e) {
     e.preventDefault();
     if (!validate()) return;
-    onSave(form);
+    onSave(form, {
+      changedFields: diffs,
+      reason: reason.trim(),
+      hasIdentityChanges,
+    });
   }
 
   const isFormFilled =
@@ -126,7 +188,6 @@ export default function VendorFormModal({ vendor, onClose, onSave }) {
     form.ownerName.trim() &&
     form.email.trim() &&
     form.phone.trim() &&
-    form.taxId.trim() &&
     form.yearsInBusiness !== '' &&
     form.description.trim();
 
@@ -135,7 +196,7 @@ export default function VendorFormModal({ vendor, onClose, onSave }) {
       <div className="w-full max-w-2xl rounded-lg bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
           <h2 className="text-lg font-semibold text-gray-900">
-            {isEdit ? 'Edit vendor' : 'Add vendor'}
+            {isEdit ? 'Edit Vendor' : 'Add Vendor'}
           </h2>
           <button
             onClick={onClose}
@@ -147,62 +208,55 @@ export default function VendorFormModal({ vendor, onClose, onSave }) {
         </div>
 
         <form onSubmit={handleSubmit} className="max-h-[75vh] overflow-y-auto px-6 py-5">
-          {/* Image upload */}
+          {/* Vendor Image Management */}
           <div className="mb-5">
             <span className="mb-1 block text-sm font-medium text-gray-700">
-              Vendor image <span className="font-normal text-gray-400">(.jpg, optional)</span>
+              Vendor image
             </span>
-            <div className="flex items-center gap-4">
-              {form.imagePreviewUrl ? (
-                <div className="relative h-24 w-24 overflow-hidden rounded-md border border-gray-200">
+            {currentImage ? (
+              <div className="flex items-center gap-4 rounded-lg border border-gray-200 bg-gray-50/50 p-3">
+                <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md border border-gray-200 bg-white shadow-sm">
                   <img
-                    src={form.imagePreviewUrl}
-                    alt="Vendor preview"
+                    src={currentImage}
+                    alt={form.businessName || 'Vendor image'}
                     className="h-full w-full object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=200&q=80';
+                    }}
                   />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-gray-800">
+                    Active vendor profile image
+                  </p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    Images are uploaded directly by vendors via their portal. Admins can remove inappropriate or outdated images.
+                  </p>
                   <button
                     type="button"
-                    onClick={removeImage}
-                    className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
-                    aria-label="Remove image"
+                    onClick={handleRemoveImage}
+                    disabled={isRemovingImage}
+                    className="mt-2.5 inline-flex items-center gap-1.5 rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 transition"
                   >
-                    <Trash2 size={12} />
+                    <Trash2 size={13} />
+                    {isRemovingImage ? 'Removing image...' : 'Remove image'}
                   </button>
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed border-gray-200 text-gray-400 hover:border-[#8E406F] hover:text-[#8E406F]"
-                >
-                  <ImagePlus size={20} />
-                  <span className="text-[11px]">Upload</span>
-                </button>
-              )}
-
-              <div className="text-xs text-gray-500">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="font-medium text-[#8E406F] hover:underline"
-                >
-                  {form.imagePreviewUrl ? 'Replace image' : 'Choose a .jpg file'}
-                </button>
-                <p className="mt-1">JPG only, up to {MAX_IMAGE_MB}MB</p>
-                {errors.image && (
-                  <p className="mt-1 flex items-center gap-1 text-red-600">
-                    <AlertCircle size={12} /> {errors.image}
-                  </p>
-                )}
               </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/jpg,.jpg,.jpeg"
-                onChange={handleImageSelect}
-                className="hidden"
-              />
-            </div>
+            ) : (
+              <div className="flex items-center gap-3 rounded-lg border border-dashed border-gray-200 bg-gray-50/60 p-3.5 text-xs text-gray-500">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-400 shadow-sm">
+                  <Image size={22} />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-700">No vendor image set</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    Vendor images are uploaded and managed directly by the vendor through their vendor portal.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -259,14 +313,19 @@ export default function VendorFormModal({ vendor, onClose, onSave }) {
               />
             </Field>
 
-            <Field label="Tax ID" error={errors.taxId}>
-              <input
-                type="text"
-                value={form.taxId}
-                onChange={(e) => update('taxId', e.target.value)}
-                className={inputClass(errors.taxId)}
-                placeholder="BR/2026/XXX"
-              />
+            {/* Tax ID — Read-only / Sourced from verified vendor documents */}
+            <Field label="Tax ID / Business Registration">
+              <div className="flex items-center justify-between rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                <span className="font-mono text-xs font-semibold text-gray-800">
+                  {form.taxId || vendor?.taxId || 'Pending document verification'}
+                </span>
+                <span className="rounded bg-gray-200 px-2 py-0.5 text-[10px] font-medium text-gray-500 uppercase tracking-wide">
+                  Read-only
+                </span>
+              </div>
+              <p className="mt-1 text-[11px] text-gray-400">
+                Identity & legal data is verified from vendor-uploaded business documents.
+              </p>
             </Field>
 
             <Field label="Years in business" error={errors.yearsInBusiness}>
@@ -323,6 +382,50 @@ export default function VendorFormModal({ vendor, onClose, onSave }) {
             </Field>
           </div>
 
+          {isEdit && (
+            <VendorDocumentsSection
+              vendorId={vendor?.vendorId || vendor?.id}
+              initialDocs={vendor?.verificationDocs}
+            />
+          )}
+
+          {/* Mandatory Reason for Identity/Profile Field Changes */}
+          {isEdit && hasIdentityChanges && (
+            <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50/70 p-4">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <label htmlFor="identity-change-reason" className="block text-sm font-semibold text-amber-900">
+                    Reason for identity changes <span className="text-red-500">*</span>
+                  </label>
+                  <p className="mt-0.5 text-xs text-amber-700">
+                    Modifying identity data ({changedIdentityLabels}) requires an audit reason for the activity log.
+                  </p>
+                  <input
+                    id="identity-change-reason"
+                    type="text"
+                    value={reason}
+                    onChange={(e) => {
+                      setReason(e.target.value);
+                      if (errors.reason) setErrors((prev) => ({ ...prev, reason: undefined }));
+                    }}
+                    placeholder="e.g. Updated legal business name per revised registration certificate"
+                    className={`mt-2 w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:ring-1 ${
+                      errors.reason
+                        ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
+                        : 'border-amber-300 focus:border-[#8E406F] focus:ring-[#8E406F]'
+                    }`}
+                  />
+                  {errors.reason && (
+                    <span className="mt-1 flex items-center gap-1 text-xs text-red-600">
+                      <AlertCircle size={12} /> {errors.reason}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="mt-6 flex justify-end gap-3">
             <button
               type="button"
@@ -333,10 +436,10 @@ export default function VendorFormModal({ vendor, onClose, onSave }) {
             </button>
             <button
               type="submit"
-              disabled={!isFormFilled}
-              className="rounded-md bg-[#8E406F] px-4 py-2 text-sm font-medium text-white hover:bg-[#75325a] disabled:cursor-not-allowed disabled:opacity-40"
+              disabled={!isFormFilled || loading || (isEdit && hasIdentityChanges && !reason.trim())}
+              className="rounded-md bg-[#8E406F] px-4 py-2 text-sm font-medium text-white hover:bg-[#75325a] disabled:cursor-not-allowed disabled:opacity-40 transition"
             >
-              {isEdit ? 'Save changes' : 'Add vendor'}
+              {loading ? 'Saving...' : isEdit ? 'Save changes' : 'Add vendor'}
             </button>
           </div>
         </form>

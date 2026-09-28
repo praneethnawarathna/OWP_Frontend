@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Fragment } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import {
   Activity,
   BarChart3,
@@ -32,7 +32,7 @@ const iconMap = {
 };
 
 // IDs that map to real pages
-const ROUTABLE_IDS = new Set(['dashboard', 'customers', 'listing-review', 'all-vendors', 'admin-management', 'analytics', 'settings', 'notifications', 'activity-log']);
+const ROUTABLE_IDS = new Set(['dashboard', 'customers', 'listing-review', 'all-vendors', 'admin-management', 'analytics', 'settings', 'notifications']);
 
 function NavItem({ item, isActive, onNavigate }) {
   const Icon = iconMap[item.icon] ?? LayoutDashboard;
@@ -71,14 +71,27 @@ export default function Sidebar({
   userRole,
   onLogout,
 }) {
-  // Retrieve authenticated user data from localStorage
-  const storedUser = (() => {
+  const readStoredUser = () => {
     try {
       return JSON.parse(localStorage.getItem('user') || '{}');
     } catch {
       return {};
     }
-  })();
+  };
+
+  const [storedUser, setStoredUser] = useState(readStoredUser);
+
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      setStoredUser(readStoredUser());
+    };
+    window.addEventListener('user-profile-updated', handleProfileUpdate);
+    window.addEventListener('storage', handleProfileUpdate);
+    return () => {
+      window.removeEventListener('user-profile-updated', handleProfileUpdate);
+      window.removeEventListener('storage', handleProfileUpdate);
+    };
+  }, []);
 
   const effectiveRole = String(userRole || storedUser.role || '').toUpperCase();
   const isSuperAdmin = effectiveRole.includes('SUPER');
@@ -91,6 +104,11 @@ export default function Sidebar({
     .join('')
     .substring(0, 2)
     .toUpperCase() || 'SA';
+  const avatarUrl = storedUser.profilePictureUrl
+    ? (storedUser.profilePictureUrl.startsWith('http') || storedUser.profilePictureUrl.startsWith('blob:') || storedUser.profilePictureUrl.startsWith('data:')
+        ? storedUser.profilePictureUrl
+        : `http://localhost:5131${storedUser.profilePictureUrl}`)
+    : null;
 
   return (
     <>
@@ -198,8 +216,16 @@ export default function Sidebar({
         {/* ── User Profile ── */}
         <div className="border-t border-[#F1E5EC] px-4 py-3 flex items-center gap-2.5">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="h-8 w-8 rounded-full bg-[#8E406F]/10 border border-[#e8c4d8] flex items-center justify-center shrink-0">
-              <span className="text-[#8E406F] text-xs font-bold">{userInitials}</span>
+            <div className="h-8 w-8 rounded-full bg-[#8E406F]/10 border border-[#e8c4d8] flex items-center justify-center shrink-0 overflow-hidden">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={displayName}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span className="text-[#8E406F] text-xs font-bold">{userInitials}</span>
+              )}
             </div>
             <div className="min-w-0">
               <p className="text-[#333] text-xs font-semibold leading-tight truncate">{displayName}</p>

@@ -55,16 +55,6 @@ export default function Header({ onMenuClick, userRole, onNavigate, onLogout, cu
       {/* ── Actions ── */}
       <div className="flex items-center gap-3">
 
-        {/* Add New Vendor — always visible */}
-        <button
-          id="add-new-vendor-btn"
-          aria-label="Add new vendor"
-          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[#8E406F] text-white text-sm font-medium hover:bg-[#73325A] active:scale-95 transition-all shadow-sm"
-        >
-          <Plus size={14} />
-          Add New Vendor
-        </button>
-
 
         {/* Bell */}
         <button
