@@ -21,6 +21,8 @@ import ReportAnalyticsPage from './pages/ReportAnalyticsPage';
 import VendorDirectoryPage from './pages/VendorDirectoryPage';
 import AdminNotificationsPage from './pages/AdminNotificationsPage';
 import ActivityLogPage from './pages/ActivityLogPage';
+import AdminSystemActivityLogPage from './pages/AdminSystemActivityLogPage';
+import FlaggedContentPage from './pages/FlaggedContentPage';
 
 // Vendor Pages
 import VendorDashboardPage from './pages/VendorDashboardPage';
@@ -69,6 +71,7 @@ const pathToPageId = (path) => {
   if (path.includes('all-vendors') || path.includes('vendor-directory') || path === '/vendors' || path.startsWith('/vendors/')) return 'all-vendors';
   if (path.includes('admin-management') || path.includes('admins')) return 'admin-management';
   if (path.includes('report-analytics') || path.includes('analytics')) return 'analytics';
+  if (path.includes('flagged-content') || path.includes('flagged')) return 'flagged';
   if (path.includes('settings')) return 'settings';
   if (path.includes('vendor-notifications')) return 'vendor-notifications';
   if (path.includes('activity-log') || path.includes('audit')) return 'activity-log';
@@ -91,6 +94,7 @@ const pageIdToPath = {
   'all-vendors': '/all-vendors',
   'admin-management': '/admin-management',
   'analytics': '/report-analytics',
+  'flagged': '/flagged-content',
   'settings': '/settings',
   'activity-log': '/activity-log',
   'notifications': '/notifications',
@@ -327,6 +331,24 @@ export default function App() {
         />
         <Route
           path="/report-analytics"
+          path="/flagged-content"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminLayout
+                currentPage="flagged"
+                onNavigate={handleNavigate}
+                onLogout={handleLogout}
+                userRole={userRole}
+              >
+                <PageTransition>
+                  <FlaggedContentPage />
+                </PageTransition>
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/activity-log"
           element={
             <ProtectedRoute requiredRole="admin">
               <AdminLayout
