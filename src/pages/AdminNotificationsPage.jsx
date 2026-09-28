@@ -23,6 +23,7 @@ import {
   markAllNotificationsAsRead,
   deleteNotification,
 } from '../services/notificationsApi';
+import NotificationDetailModal from '../components/notifications/NotificationDetailModal';
 
 function PageShell({ title, description, icon: Icon, children }) {
   return (
@@ -100,6 +101,7 @@ export default function AdminNotificationsPage({ onNavigate }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all'); // 'all' | 'unread' | 'read'
+  const [selectedNotification, setSelectedNotification] = useState(null);
 
   const loadNotifications = async () => {
     const token = localStorage.getItem('token');
@@ -133,11 +135,19 @@ export default function AdminNotificationsPage({ onNavigate }) {
   }, []);
 
   const handleMarkAsRead = async (id, isRead) => {
-    if (isRead) return;
+    if (isRead || id == null) return;
     // Optimistic update
     setNotifications((prev) =>
-      prev.map((n) => (n.notificationId === id ? { ...n, isRead: true } : n))
+      prev.map((n) => {
+        const nid = n.notificationId ?? n.id ?? n.NotificationId;
+        return nid == id ? { ...n, isRead: true } : n;
+      })
     );
+    setSelectedNotification((prev) => {
+      if (!prev) return null;
+      const prevId = prev.notificationId ?? prev.id ?? prev.NotificationId;
+      return prevId == id ? { ...prev, isRead: true } : prev;
+    });
     try {
       await markNotificationAsRead(id);
     } catch (err) {
@@ -148,6 +158,9 @@ export default function AdminNotificationsPage({ onNavigate }) {
   const handleMarkAllAsRead = async () => {
     // Optimistic update
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    setSelectedNotification((prev) =>
+      prev ? { ...prev, isRead: true } : null
+    );
     try {
       await markAllNotificationsAsRead();
     } catch (err) {
@@ -156,9 +169,20 @@ export default function AdminNotificationsPage({ onNavigate }) {
   };
 
   const handleDelete = async (e, id) => {
-    e.stopPropagation();
+    if (e && e.stopPropagation) e.stopPropagation();
+    if (id == null) return;
     // Optimistic removal
-    setNotifications((prev) => prev.filter((n) => n.notificationId !== id));
+    setNotifications((prev) =>
+      prev.filter((n) => {
+        const nid = n.notificationId ?? n.id ?? n.NotificationId;
+        return nid != id;
+      })
+    );
+    setSelectedNotification((curr) => {
+      if (!curr) return null;
+      const currId = curr.notificationId ?? curr.id ?? curr.NotificationId;
+      return currId == id ? null : curr;
+    });
     try {
       await deleteNotification(id);
     } catch (err) {
@@ -320,7 +344,7 @@ export default function AdminNotificationsPage({ onNavigate }) {
               return (
                 <article
                   key={item.notificationId}
-                  onClick={() => handleMarkAsRead(item.notificationId, item.isRead)}
+                  onClick={() => setSelectedNotification(item)}
                   className={`group relative flex items-start justify-between gap-4 rounded-2xl border p-5 shadow-sm transition cursor-pointer ${
                     isAiApproval
                       ? isUnread
@@ -412,6 +436,17 @@ export default function AdminNotificationsPage({ onNavigate }) {
         )}
 
       </div>
+
+      {/* Detail Popup Modal */}
+      {selectedNotification && (
+        <NotificationDetailModal
+          notification={selectedNotification}
+          onClose={() => setSelectedNotification(null)}
+          onMarkAsRead={(id) => handleMarkAsRead(id, false)}
+          onDelete={(id) => handleDelete(null, id)}
+          getTypeIcon={getTypeIcon}
+        />
+      )}
     </PageShell>
   );
 }

@@ -160,7 +160,7 @@ export default function ReportAnalyticsPage() {
       {/* ── Page header ── */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>Executive Dashboard</h1>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>Report and Analytic Dashboard</h1>
           <p className="mt-1 flex items-center gap-2 text-sm text-gray-500">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>

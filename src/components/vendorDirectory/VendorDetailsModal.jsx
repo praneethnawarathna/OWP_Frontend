@@ -12,6 +12,7 @@ import {
   Star,
 } from 'lucide-react';
 import StatusBadge from './StatusBadge';
+import VendorDocumentsSection from './VendorDocumentsSection';
 
 export default function VendorDetailsModal({
   vendor,
@@ -28,6 +29,8 @@ export default function VendorDetailsModal({
   const [showRejectBox, setShowRejectBox] = useState(false);
   const [banReason, setBanReason] = useState('');
   const [showBanBox, setShowBanBox] = useState(false);
+  const [suspendReason, setSuspendReason] = useState('');
+  const [showSuspendBox, setShowSuspendBox] = useState(false);
 
   const isPending = vendor.status === 'Pending';
   const isApproved = vendor.status === 'Approved';
@@ -54,15 +57,22 @@ export default function VendorDetailsModal({
         </div>
 
         <div className="max-h-[70vh] overflow-y-auto px-6 py-5">
-          <div className="mb-4 flex items-center gap-2">
-            <StatusBadge status={vendor.status} />
-            {vendor.businessLicenseVerified ? (
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
-                <ShieldCheck size={14} /> License verified
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600">
-                <ShieldAlert size={14} /> License not verified
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <StatusBadge status={vendor.status} />
+              {vendor.businessLicenseVerified ? (
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
+                  <ShieldCheck size={14} /> License verified
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600">
+                  <ShieldAlert size={14} /> License not verified
+                </span>
+              )}
+            </div>
+            {vendor.statusChangedAt && (
+              <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+                <Clock size={13} /> Updated: {vendor.statusChangedAt}
               </span>
             )}
           </div>
@@ -74,6 +84,12 @@ export default function VendorDetailsModal({
             <Detail label="Tax ID" value={vendor.taxId} />
             <Detail label="Years in business" value={vendor.yearsInBusiness} />
             <Detail label="Applied" value={vendor.appliedDate} />
+            {vendor.statusChangedAt && (
+              <Detail label="Status Changed At" value={vendor.statusChangedAt} />
+            )}
+            {(vendor.statusChangeReason || vendor.suspendReason || vendor.banReason || vendor.rejectReason) && (
+              <Detail label="Status Change Reason" value={vendor.statusChangeReason || vendor.suspendReason || vendor.banReason || vendor.rejectReason} span={!vendor.statusChangedAt} />
+            )}
             <Detail label="Address" value={vendor.businessAddress} span />
           </dl>
 
@@ -84,29 +100,10 @@ export default function VendorDetailsModal({
             </div>
           )}
 
-          {vendor.verificationDocs?.length > 0 && (
-            <div className="mt-4">
-              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
-                Verification documents
-              </p>
-              <ul className="space-y-1">
-                {vendor.verificationDocs.map((doc) => (
-                  <li
-                    key={doc.name}
-                    className="flex items-center justify-between rounded-md border border-gray-100 px-3 py-2 text-sm"
-                  >
-                    <span className="flex items-center gap-2 text-gray-700">
-                      <FileText size={14} className="text-gray-400" />
-                      {doc.name}
-                    </span>
-                    <button className="text-xs font-medium text-[#8E406F] hover:underline">
-                      View
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <VendorDocumentsSection
+            vendorId={vendor.vendorId || vendor.id}
+            initialDocs={vendor.verificationDocs}
+          />
 
           {isApproved && (
             <div className="mt-4 grid grid-cols-3 gap-3 text-center">
@@ -122,19 +119,34 @@ export default function VendorDetailsModal({
             </div>
           )}
 
-          {isBanned && vendor.banReason && (
-            <div className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700">
-              <p className="font-medium">Banned {vendor.banDate && `on ${vendor.banDate}`}</p>
-              <p>{vendor.banReason}</p>
-            </div>
-          )}
-
-          {isSuspended && vendor.suspendReason && (
-            <div className="mt-4 rounded-md bg-amber-50 p-3 text-sm text-amber-700">
-              <p className="font-medium">
-                Suspended {vendor.suspendedDate && `on ${vendor.suspendedDate}`}
-              </p>
-              <p>{vendor.suspendReason}</p>
+          {(vendor.statusChangeReason || vendor.statusChangedAt || vendor.banReason || vendor.suspendReason || vendor.rejectReason) && (
+            <div className={`mt-4 rounded-md p-3 text-sm border ${
+              isBanned
+                ? 'bg-red-50 text-red-800 border-red-200'
+                : isSuspended
+                ? 'bg-amber-50 text-amber-800 border-amber-200'
+                : vendor.status === 'Rejected'
+                ? 'bg-rose-50 text-rose-800 border-rose-200'
+                : vendor.status === 'Approved'
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                : 'bg-gray-50 text-gray-800 border-gray-200'
+            }`}>
+              <div className="flex items-center justify-between font-medium">
+                <span className="flex items-center gap-1.5">
+                  <Clock size={14} /> Status History ({vendor.status})
+                </span>
+                {(vendor.statusChangedAt || vendor.banDate || vendor.suspendedDate) && (
+                  <span className="text-xs font-normal opacity-80">
+                    {vendor.statusChangedAt || vendor.banDate || vendor.suspendedDate}
+                  </span>
+                )}
+              </div>
+              {(vendor.statusChangeReason || vendor.banReason || vendor.suspendReason || vendor.rejectReason) && (
+                <p className="mt-1 text-xs">
+                  <span className="font-semibold">Reason: </span>
+                  <span className="italic">{vendor.statusChangeReason || vendor.banReason || vendor.suspendReason || vendor.rejectReason}</span>
+                </p>
+              )}
             </div>
           )}
 
@@ -149,6 +161,21 @@ export default function VendorDetailsModal({
                 rows={2}
                 className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#8E406F] focus:ring-1 focus:ring-[#8E406F]"
                 placeholder="Explain why this application is being rejected..."
+              />
+            </div>
+          )}
+
+          {showSuspendBox && (
+            <div className="mt-4">
+              <label className="mb-1 block text-xs font-medium text-amber-800">
+                Reason for suspension
+              </label>
+              <textarea
+                value={suspendReason}
+                onChange={(e) => setSuspendReason(e.target.value)}
+                rows={2}
+                className="w-full rounded-md border border-amber-300 px-3 py-2 text-sm outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-600"
+                placeholder="Explain why this vendor is being suspended..."
               />
             </div>
           )}
@@ -211,15 +238,33 @@ export default function VendorDetailsModal({
             </>
           )}
 
-          {isApproved && (
+          {isApproved && !showSuspendBox && !showBanBox && (
             <>
-              <ActionButton icon={ShieldAlert} label="Suspend" onClick={() => onSuspend(vendor)} />
+              <ActionButton icon={ShieldAlert} label="Suspend" onClick={() => setShowSuspendBox(true)} />
               <ActionButton
                 icon={Ban}
                 label="Ban vendor"
                 tone="danger"
                 onClick={() => setShowBanBox(true)}
               />
+            </>
+          )}
+
+          {showSuspendBox && (
+            <>
+              <button
+                onClick={() => setShowSuspendBox(false)}
+                className="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => onSuspend(vendor, suspendReason)}
+                disabled={!suspendReason.trim()}
+                className="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-40"
+              >
+                Confirm suspension
+              </button>
             </>
           )}
 

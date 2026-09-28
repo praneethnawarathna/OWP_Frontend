@@ -1,4 +1,4 @@
-﻿/**
+/**
  * AddVendorWizard.jsx
  * Thin orchestrator that wires together the four step components built by the
  * registration team (AccountStep → BusinessStep → ContactLocationStep → ReviewStep)
@@ -70,25 +70,23 @@ export default function AddVendorWizard({ onClose, onSuccess }) {
     return () => { alive = false; };
   }, []);
 
-  // onChange — one handler for all steps
-  const handleChange = useCallback((field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear field error on change
-    setErrors((prev) => ({ ...prev, [field]: undefined }));
-  }, []);
-
-  // onBlur — mark field as touched, run step validation
-  const handleBlur = useCallback((field) => {
-    setTouched((prev) => ({ ...prev, [field]: true }));
-  }, []);
-
   // Validate current step; returns true if valid
-  const validateStep = useCallback((targetStep = step) => {
+  const validateStep = useCallback((targetStep = step, markAllTouched = true, dataToValidate = formData) => {
     const validate = VALIDATORS[targetStep];
     if (!validate) return true;
-    const { isValid, errors: errs } = validate(formData, options);
-    if (!isValid) {
-      setErrors((prev) => ({ ...prev, ...errs }));
+    const { isValid, errors: errs } = targetStep === 0
+      ? validate(dataToValidate, false)
+      : validate(dataToValidate, options);
+    setErrors((prev) => {
+      const next = { ...prev };
+      Object.keys(next).forEach((key) => {
+        if (getStepForField(key) === targetStep) {
+          delete next[key];
+        }
+      });
+      return { ...next, ...errs };
+    });
+    if (!isValid && markAllTouched) {
       // Mark all errored fields as touched so messages show
       const touchAll = {};
       Object.keys(errs).forEach((k) => { touchAll[k] = true; });
@@ -97,9 +95,33 @@ export default function AddVendorWizard({ onClose, onSuccess }) {
     return isValid;
   }, [step, formData, options]);
 
+  // onChange — one handler for all steps
+  const handleChange = useCallback((field, value) => {
+    setFormData((prev) => {
+      const updated = { ...prev, [field]: value };
+      if (touched[field]) {
+        validateStep(step, false, updated);
+      } else {
+        setErrors((errs) => {
+          if (!errs[field]) return errs;
+          const next = { ...errs };
+          delete next[field];
+          return next;
+        });
+      }
+      return updated;
+    });
+  }, [step, touched, validateStep]);
+
+  // onBlur — mark field as touched, run step validation
+  const handleBlur = useCallback((field) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+    validateStep(step, false);
+  }, [step, validateStep]);
+
   // Next step
   const handleNext = () => {
-    if (!validateStep(step)) return;
+    if (!validateStep(step, true)) return;
     const nextStep = step + 1;
     setStep(nextStep);
     setMaxStep((m) => Math.max(m, nextStep));
@@ -115,11 +137,51 @@ export default function AddVendorWizard({ onClose, onSuccess }) {
 
   // Submit
   const handleSubmit = async () => {
-    if (!validateStep(3)) return;
+    // Validate all 4 steps to ensure complete data integrity
+    for (let s = 0; s <= 3; s++) {
+      if (!validateStep(s, true)) {
+        setStep(s);
+        return;
+      }
+    }
+
     setSubmitting(true);
     setSubmitError(null);
+
+    // Build properly typed and trimmed payload
+    const payload = {
+      fullName: (formData.fullName || '').trim(),
+      email: (formData.email || '').trim().toLowerCase(),
+      phoneNumber: (formData.phoneNumber || '').trim(),
+      password: formData.password || '',
+      googleIdToken: null,
+
+      businessName: (formData.businessName || '').trim(),
+      businessType: (formData.businessType || '').trim(),
+      category: (formData.category || '').trim(),
+      tagline: (formData.tagline || '').trim() || null,
+      description: (formData.description || '').trim(),
+      yearsInBusiness:
+        formData.yearsInBusiness !== '' && formData.yearsInBusiness !== null && formData.yearsInBusiness !== undefined
+          ? Number(formData.yearsInBusiness)
+          : null,
+      businessRegistrationNumber: (formData.businessRegistrationNumber || '').trim() || null,
+
+      businessEmail: (formData.businessEmail || '').trim().toLowerCase(),
+      contactNumber: (formData.contactNumber || '').trim(),
+      altPhoneNumber: (formData.altPhoneNumber || '').trim() || null,
+      websiteUrl: (formData.websiteUrl || '').trim() || null,
+      address: (formData.address || '').trim(),
+      city: (formData.city || '').trim(),
+      district: (formData.district || '').trim(),
+      postalCode: (formData.postalCode || '').trim() || null,
+      serviceAreas: Array.isArray(formData.serviceAreas) ? formData.serviceAreas : [],
+
+      acceptTerms: !!formData.acceptTerms,
+    };
+
     try {
-      const result = await submitRegistration(formData);
+      const result = await submitRegistration(payload);
       if (result.ok) {
         setSuccess(true);
         // Auto-close and refresh after 2 s
@@ -165,7 +227,7 @@ export default function AddVendorWizard({ onClose, onSuccess }) {
   const STEP_LABELS = ["Account", "Business", "Contact & Location", "Review & Submit"];
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-[#F1E5EC] shrink-0">
         <div>
@@ -196,7 +258,7 @@ export default function AddVendorWizard({ onClose, onSuccess }) {
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto px-6 py-4">
+      <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
         {optionsLoading ? (
           <div className="flex items-center justify-center py-16 gap-2 text-[#8E406F]">
             <Loader2 size={20} className="animate-spin" />

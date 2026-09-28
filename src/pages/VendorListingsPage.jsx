@@ -605,7 +605,13 @@ export default function VendorListingsPage({ onNavigate }) {
     const q = search.toLowerCase().trim();
     return listings.filter((l) => {
       const matchSearch = !q || (l.title || '').toLowerCase().includes(q) || (l.description || '').toLowerCase().includes(q);
-      const matchCat = categoryFilter === 'All' || l.category === categoryFilter;
+      const matchCat =
+        categoryFilter === 'All' ||
+        (l.category &&
+          l.category
+            .split(',')
+            .map((c) => c.trim().toLowerCase())
+            .includes(categoryFilter.trim().toLowerCase()));
       return matchSearch && matchCat;
     });
   }, [listings, search, categoryFilter]);
