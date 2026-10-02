@@ -27,6 +27,7 @@ import {
   Trash2,
   Star,
   Plus,
+  MapPin,
 } from 'lucide-react';
 import Toggle from '../components/common/Toggle';
 import MultiSelect from '../components/common/MultiSelect';
@@ -39,6 +40,7 @@ import MusicDetails from '../components/listing-form/MusicDetails';
 import DecorationsDetails from '../components/listing-form/DecorationsDetails';
 import CateringDetails from '../components/listing-form/CateringDetails';
 import PendingApprovalModal from '../components/vendor/PendingApprovalModal';
+import LocationPicker from '../components/listings/LocationPicker';
 
 export const LISTING_CATEGORIES = [
   'Hotel / Venue',
@@ -118,6 +120,12 @@ function buildInitialFormData(existingListing = null) {
     // Full Description shown on the dedicated listing detail page
     fullDescription: existingListing?.fullDescription || existingListing?.description || '',
     status: existingListing?.status || 'Active',
+    // Location & Geo fields
+    latitude: existingListing?.latitude !== null && existingListing?.latitude !== undefined ? existingListing.latitude : null,
+    longitude: existingListing?.longitude !== null && existingListing?.longitude !== undefined ? existingListing.longitude : null,
+    locationAddress: existingListing?.locationAddress || '',
+    googlePlaceId: existingListing?.googlePlaceId || '',
+    serviceRadiusKm: existingListing?.serviceRadiusKm !== null && existingListing?.serviceRadiusKm !== undefined ? existingListing.serviceRadiusKm : null,
     // Media & Photos state
     images: (existingListing?.images || []).length
       ? existingListing.images.map((img, idx) => ({
@@ -546,6 +554,19 @@ export default function CreateListingPage({ onNavigate }) {
       if (!formData.fullDescription?.trim()) {
         newErrors.fullDescription = 'Full detailed description is required for the detail page.';
       }
+
+      if (!formData.locationAddress?.trim()) {
+        newErrors.locationAddress = 'Location address or venue name is required.';
+      }
+
+      if (
+        formData.latitude === null ||
+        formData.latitude === undefined ||
+        formData.longitude === null ||
+        formData.longitude === undefined
+      ) {
+        newErrors.location = 'Please pin your location on the map or enter GPS coordinates.';
+      }
     }
 
     if (step === 2) {
@@ -596,7 +617,7 @@ export default function CreateListingPage({ onNavigate }) {
         if (res.ok) {
           const uploaded = await res.json();
           img.imageId = uploaded.imageId;
-          img.url = `http://localhost:5131${uploaded.imageUrl}`;
+          img.url = uploaded.imageUrl.startsWith('http') ? uploaded.imageUrl : `http://localhost:5131${uploaded.imageUrl}`;
           delete img.file;
         }
       } catch (uploadErr) {
@@ -635,9 +656,19 @@ export default function CreateListingPage({ onNavigate }) {
       fullDescription: formData.fullDescription?.trim() || formData.description.trim(),
       status: 'Draft',
       coverImageUrl,
+      latitude: formData.latitude !== null && formData.latitude !== undefined && formData.latitude !== '' ? Number(formData.latitude) : null,
+      longitude: formData.longitude !== null && formData.longitude !== undefined && formData.longitude !== '' ? Number(formData.longitude) : null,
+      locationAddress: formData.locationAddress?.trim() || null,
+      googlePlaceId: formData.googlePlaceId || null,
+      serviceRadiusKm: formData.serviceRadiusKm !== null && formData.serviceRadiusKm !== undefined && formData.serviceRadiusKm !== '' ? Number(formData.serviceRadiusKm) : null,
       spaces: formattedSpaces,
       details: {
         ...formData.details,
+        latitude: formData.latitude !== null && formData.latitude !== undefined && formData.latitude !== '' ? Number(formData.latitude) : null,
+        longitude: formData.longitude !== null && formData.longitude !== undefined && formData.longitude !== '' ? Number(formData.longitude) : null,
+        locationAddress: formData.locationAddress?.trim() || null,
+        googlePlaceId: formData.googlePlaceId || null,
+        serviceRadiusKm: formData.serviceRadiusKm !== null && formData.serviceRadiusKm !== undefined && formData.serviceRadiusKm !== '' ? Number(formData.serviceRadiusKm) : null,
         spaces: formattedSpaces
       }
     };
@@ -716,9 +747,19 @@ export default function CreateListingPage({ onNavigate }) {
         fullDescription: formData.fullDescription?.trim() || formData.description.trim(),
         status: formData.status || 'Active',
         coverImageUrl,
+        latitude: formData.latitude !== null && formData.latitude !== undefined && formData.latitude !== '' ? Number(formData.latitude) : null,
+        longitude: formData.longitude !== null && formData.longitude !== undefined && formData.longitude !== '' ? Number(formData.longitude) : null,
+        locationAddress: formData.locationAddress?.trim() || null,
+        googlePlaceId: formData.googlePlaceId || null,
+        serviceRadiusKm: formData.serviceRadiusKm !== null && formData.serviceRadiusKm !== undefined && formData.serviceRadiusKm !== '' ? Number(formData.serviceRadiusKm) : null,
         spaces: formattedSpaces,
         details: {
           ...formData.details,
+          latitude: formData.latitude !== null && formData.latitude !== undefined && formData.latitude !== '' ? Number(formData.latitude) : null,
+          longitude: formData.longitude !== null && formData.longitude !== undefined && formData.longitude !== '' ? Number(formData.longitude) : null,
+          locationAddress: formData.locationAddress?.trim() || null,
+          googlePlaceId: formData.googlePlaceId || null,
+          serviceRadiusKm: formData.serviceRadiusKm !== null && formData.serviceRadiusKm !== undefined && formData.serviceRadiusKm !== '' ? Number(formData.serviceRadiusKm) : null,
           spaces: formattedSpaces
         }
       };
@@ -1095,6 +1136,110 @@ export default function CreateListingPage({ onNavigate }) {
                 className={`${inputCls} resize-y min-h-[110px] ${errors.fullDescription ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/15' : ''}`}
               />
             </FormField>
+
+            {/* Divider */}
+            <div className="pt-2 border-t border-[#F1E5EC]" />
+
+            {/* Location & Map Picker */}
+            <LocationPicker
+              latitude={formData.latitude}
+              longitude={formData.longitude}
+              locationAddress={formData.locationAddress}
+              googlePlaceId={formData.googlePlaceId}
+              radiusKm={formData.serviceRadiusKm}
+              onChange={({ latitude, longitude, locationAddress, googlePlaceId }) => {
+                setFormData((prev) => ({
+                  ...prev,
+                  latitude,
+                  longitude,
+                  locationAddress,
+                  googlePlaceId,
+                }));
+                clearError('location');
+                clearError('locationAddress');
+              }}
+              error={errors.location || errors.locationAddress}
+              required
+            />
+
+            {/* Service Coverage Radius (for mobile service categories) */}
+            {['Music', 'Decorations', 'Photography', 'Catering'].includes(formData.category) && (
+              <div className="rounded-2xl border border-[#F1E5EC] bg-[#FCF8FA] p-4 sm:p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-xs font-semibold text-[#1E293B] block">
+                      Service Coverage Radius (Travel Distance)
+                    </label>
+                    <p className="text-[11px] text-[#737373]">
+                      How far are you willing to travel from your base location for an event?
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="inline-block px-2.5 py-1 rounded-lg bg-[#8E406F]/10 text-[#8E406F] text-xs font-bold font-mono">
+                      {formData.serviceRadiusKm ? `${formData.serviceRadiusKm} km` : 'Islandwide / Any'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Preset distance pills */}
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {[
+                    { label: 'Within City (15 km)', val: 15 },
+                    { label: 'Regional (30 km)', val: 30 },
+                    { label: 'Province (60 km)', val: 60 },
+                    { label: 'Extended (100 km)', val: 100 },
+                    { label: 'Islandwide (Unlimited)', val: null },
+                  ].map((preset) => {
+                    const isSelected =
+                      preset.val === null
+                        ? formData.serviceRadiusKm === null || formData.serviceRadiusKm === undefined
+                        : Number(formData.serviceRadiusKm) === preset.val;
+                    return (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => handleFieldChange('serviceRadiusKm', preset.val)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition ${
+                          isSelected
+                            ? 'bg-[#8E406F] text-white border-[#8E406F] shadow-sm'
+                            : 'bg-white text-slate-700 border-[#E8DDE4] hover:bg-[#FAF5F8]'
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Custom radius slider / input */}
+                <div className="pt-1 flex items-center gap-3">
+                  <input
+                    type="range"
+                    min="5"
+                    max="150"
+                    step="5"
+                    value={formData.serviceRadiusKm || 50}
+                    onChange={(e) => handleFieldChange('serviceRadiusKm', Number(e.target.value))}
+                    className="flex-1 accent-[#8E406F] h-1.5 bg-[#E8DDE4] rounded-lg cursor-pointer"
+                  />
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min="1"
+                      max="500"
+                      value={formData.serviceRadiusKm ?? ''}
+                      placeholder="Custom"
+                      onChange={(e) => {
+                        const val = e.target.value ? Number(e.target.value) : null;
+                        handleFieldChange('serviceRadiusKm', val);
+                      }}
+                      className="w-20 rounded-lg border border-[#E8DDE4] bg-white px-2 py-1 text-xs text-center text-[#1E293B] outline-none focus:border-[#8E406F]"
+                    />
+                    <span className="text-xs text-[#737373]">km</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1428,6 +1573,32 @@ export default function CreateListingPage({ onNavigate }) {
                   </p>
                 </div>
               </div>
+
+              {/* Service Location Review Summary */}
+              {(formData.locationAddress || formData.latitude) && (
+                <div className="rounded-xl border border-[#E8DDE4] bg-white p-4 space-y-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
+                    Service Location & Coverage
+                  </span>
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-2 text-[#1E293B]">
+                      <MapPin className="h-4 w-4 text-[#8E406F] shrink-0" />
+                      <span className="font-medium">{formData.locationAddress || 'Pinned on map'}</span>
+                    </div>
+                    {formData.latitude && formData.longitude && (
+                      <span className="font-mono text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                        {Number(formData.latitude).toFixed(4)}, {Number(formData.longitude).toFixed(4)}
+                      </span>
+                    )}
+                  </div>
+                  {formData.serviceRadiusKm && (
+                    <div className="text-[11px] text-[#737373] pt-1 border-t border-slate-100">
+                      Coverage Radius:{' '}
+                      <span className="font-semibold text-[#8E406F]">{formData.serviceRadiusKm} km</span> from base location
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* ───────────────────────────────────────────────────────────
                   CATEGORY 1: Hotel / Venue Review Summary
