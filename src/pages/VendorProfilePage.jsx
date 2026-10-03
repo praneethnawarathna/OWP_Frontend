@@ -614,8 +614,8 @@ export default function VendorProfilePage() {
     );
   }
 
-  const coverUrl = profile?.coverImageUrl ? `${FILE_HOST}${profile.coverImageUrl}` : null;
-  const logoUrl = profile?.logoUrl ? `${FILE_HOST}${profile.logoUrl}` : null;
+  const coverUrl = profile?.coverImageUrl ? (profile.coverImageUrl.startsWith('http') ? profile.coverImageUrl : `${FILE_HOST}${profile.coverImageUrl}`) : null;
+  const logoUrl = profile?.logoUrl ? (profile.logoUrl.startsWith('http') ? profile.logoUrl : `${FILE_HOST}${profile.logoUrl}`) : null;
   const verificationStatus = profile?.verificationStatus || 'Pending';
 
   return (
@@ -1424,7 +1424,7 @@ export default function VendorProfilePage() {
                 className="group relative rounded-2xl overflow-hidden border border-[#F1E5EC] bg-slate-50 shadow-sm aspect-square"
               >
                 <img
-                  src={`${FILE_HOST}${img.imageUrl}`}
+                  src={img.imageUrl.startsWith('http') ? img.imageUrl : `${FILE_HOST}${img.imageUrl}`}
                   alt={img.caption || 'Gallery photo'}
                   className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
@@ -1449,7 +1449,7 @@ export default function VendorProfilePage() {
                   <div className="flex justify-end gap-1.5">
                     <button
                       type="button"
-                      onClick={() => setPreviewImage(`${FILE_HOST}${img.imageUrl}`)}
+                      onClick={() => setPreviewImage(img.imageUrl.startsWith('http') ? img.imageUrl : `${FILE_HOST}${img.imageUrl}`)}
                       className="p-1.5 rounded-lg bg-white/90 text-slate-800 hover:bg-white transition"
                       title="Preview"
                     >
@@ -1551,7 +1551,7 @@ export default function VendorProfilePage() {
 
                 <div className="flex items-center gap-2">
                   <a
-                    href={`${FILE_HOST}${doc.fileUrl}`}
+                    href={doc.fileUrl.startsWith('http') ? doc.fileUrl : `${FILE_HOST}${doc.fileUrl}`}
                     target="_blank"
                     rel="noreferrer"
                     className="p-2 rounded-xl text-[#737373] hover:text-[#8E406F] hover:bg-white transition"
