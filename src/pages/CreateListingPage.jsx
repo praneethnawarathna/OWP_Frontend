@@ -40,7 +40,7 @@ import MusicDetails from '../components/listing-form/MusicDetails';
 import DecorationsDetails from '../components/listing-form/DecorationsDetails';
 import CateringDetails from '../components/listing-form/CateringDetails';
 import PendingApprovalModal from '../components/vendor/PendingApprovalModal';
-import LocationPicker from '../components/listings/LocationPicker';
+import LocationPicker from '../components/maps/LocationPicker';
 
 export const LISTING_CATEGORIES = [
   'Hotel / Venue',
