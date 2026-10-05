@@ -1,6 +1,30 @@
+import { useEffect, useState } from 'react';
 import { Bell, Menu, Plus, Search } from 'lucide-react';
+import { getNotifications } from '../../services/notificationsApi';
 
-export default function Header({ onMenuClick }) {
+export default function Header({ onMenuClick, userRole, onNavigate, onLogout, currentPage }) {
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    getNotifications()
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setUnreadCount(data.filter((n) => !n.isRead).length);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch notifications for bell badge:', err);
+      });
+  }, [currentPage]);
+
+  const handleNotificationsClick = () => {
+    onNavigate?.('notifications');
+  };
+
   return (
     <header className="h-14 shrink-0 w-full bg-white border-b border-[#F1E5EC] flex items-center px-6 gap-4">
 
@@ -28,35 +52,26 @@ export default function Header({ onMenuClick }) {
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Actions */}
+      {/* ── Actions ── */}
       <div className="flex items-center gap-3">
 
-        {/* Add New Vendor — solid mauve primary */}
-        <button
-          aria-label="Add new vendor"
-          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[#8E406F] text-white text-sm font-medium hover:bg-[#73325A] active:scale-95 transition-all shadow-sm"
-        >
-          <Plus size={14} />
-          Add New Vendor
-        </button>
 
         {/* Bell */}
         <button
-          aria-label="Notifications"
-          className="relative flex items-center justify-center h-8 w-8 rounded-full bg-[#F8FAFC] border border-[#F1E5EC] text-[#737373] hover:bg-[#FDF0F4] hover:text-[#8E406F] transition-colors"
+          onClick={handleNotificationsClick}
+          aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
+          className="relative flex items-center justify-center h-8 w-8 rounded-full bg-[#F8FAFC] border border-[#F1E5EC] text-[#737373] hover:bg-[#FDF0F4] hover:text-[#8E406F] transition-colors cursor-pointer"
         >
           <Bell size={16} />
-        </button>
-
-        {/* Avatar */}
-        <button
-          aria-label="Profile"
-          className="h-8 w-8 rounded-full bg-[#8E406F]/10 border border-[#e8c4d8] flex items-center justify-center hover:bg-[#FDF0F4] transition-colors"
-        >
-          <span className="text-[#8E406F] text-xs font-bold">PN</span>
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#8E406F] px-1 text-[10px] font-bold text-white ring-2 ring-white">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
         </button>
 
       </div>
     </header>
   );
 }
+

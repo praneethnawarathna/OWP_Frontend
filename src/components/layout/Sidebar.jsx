@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+import { Fragment, useState, useEffect } from 'react';
 import {
   Activity,
   BarChart3,
@@ -5,7 +7,9 @@ import {
   ClipboardList,
   Flag,
   LayoutDashboard,
+  LogOut,
   Settings,
+  ShieldCheck,
   Store,
   Tag,
   Users,
@@ -24,10 +28,11 @@ const iconMap = {
   Activity,
   Tag,
   Settings,
+  ShieldCheck,
 };
 
-// IDs that map to real pages; others are future nav items
-const ROUTABLE_IDS = new Set(['dashboard', 'customers', 'listing-review']);
+// IDs that map to real pages
+const ROUTABLE_IDS = new Set(['dashboard', 'customers', 'listing-review', 'all-vendors', 'admin-management', 'analytics', 'settings', 'notifications', 'activity-log', 'flagged']);
 
 function NavItem({ item, isActive, onNavigate }) {
   const Icon = iconMap[item.icon] ?? LayoutDashboard;
@@ -58,7 +63,53 @@ function NavItem({ item, isActive, onNavigate }) {
   );
 }
 
-export default function Sidebar({ mobileOpen = false, onClose, currentPage = 'dashboard', onNavigate }) {
+export default function Sidebar({
+  mobileOpen = false,
+  onClose,
+  currentPage = 'dashboard',
+  onNavigate,
+  userRole,
+  onLogout,
+}) {
+  const readStoredUser = () => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || '{}');
+    } catch {
+      return {};
+    }
+  };
+
+  const [storedUser, setStoredUser] = useState(readStoredUser);
+
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      setStoredUser(readStoredUser());
+    };
+    window.addEventListener('user-profile-updated', handleProfileUpdate);
+    window.addEventListener('storage', handleProfileUpdate);
+    return () => {
+      window.removeEventListener('user-profile-updated', handleProfileUpdate);
+      window.removeEventListener('storage', handleProfileUpdate);
+    };
+  }, []);
+
+  const effectiveRole = String(userRole || storedUser.role || '').toUpperCase();
+  const isSuperAdmin = effectiveRole.includes('SUPER');
+
+  const displayName = storedUser.fullName || 'System Admin';
+  const displayRole = storedUser.role || (isSuperAdmin ? 'SUPER_ADMIN' : 'ADMIN');
+  const userInitials = displayName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase() || 'SA';
+  const avatarUrl = storedUser.profilePictureUrl
+    ? (storedUser.profilePictureUrl.startsWith('http') || storedUser.profilePictureUrl.startsWith('blob:') || storedUser.profilePictureUrl.startsWith('data:')
+        ? storedUser.profilePictureUrl
+        : `http://localhost:5131${storedUser.profilePictureUrl}`)
+    : null;
+
   return (
     <>
       {/* Mobile backdrop */}
@@ -84,13 +135,22 @@ export default function Sidebar({ mobileOpen = false, onClose, currentPage = 'da
 
         {/* ── Brand ── */}
         <div className="px-5 pt-5 pb-4 border-b border-[#F1E5EC]">
-          <p
-            className="text-[#8E406F] font-bold text-base leading-tight"
-            style={{ fontFamily: "'Playfair Display', serif" }}
-          >
-            Wedding Directory
-          </p>
-          <p className="text-[#aaa] text-xs mt-0.5">Admin Dashboard</p>
+          <Link to="/" className="flex items-center gap-2.5 group select-none">
+            <img
+              src="/Pink Blue and Yellow Retro Surf Club Logo.jpg"
+              alt="Oleena Logo"
+              className="h-10 w-10 object-contain rounded-full shadow-sm group-hover:scale-105 transition-transform"
+            />
+            <div>
+              <p
+                className="text-[#8E406F] font-bold text-base leading-tight group-hover:text-[#5B1435] transition-colors"
+                style={{ fontFamily: "'Playfair Display', serif" }}
+              >
+                Oleena
+              </p>
+              <p className="text-[#aaa] text-[10px]">{isSuperAdmin ? 'Super Admin' : 'Admin Dashboard'}</p>
+            </div>
+          </Link>
           {/* Mobile close */}
           <button
             onClick={onClose}
@@ -105,40 +165,76 @@ export default function Sidebar({ mobileOpen = false, onClose, currentPage = 'da
         <nav className="flex-1 px-3 py-4">
           <ul className="space-y-0.5">
             {sidebarNav.map((item) => (
-              <NavItem
-                key={item.id}
-                item={item}
-                isActive={currentPage === item.id}
-                onNavigate={onNavigate}
-              />
+              <Fragment key={item.id}>
+                <NavItem
+                  item={item}
+                  isActive={currentPage === item.id}
+                  onNavigate={onNavigate}
+                />
+                {item.id === 'all-vendors' && isSuperAdmin && (
+                  <NavItem
+                    item={{ id: 'admin-management', label: 'Admin Management', icon: 'ShieldCheck' }}
+                    isActive={currentPage === 'admin-management'}
+                    onNavigate={onNavigate}
+                  />
+                )}
+              </Fragment>
             ))}
           </ul>
         </nav>
 
-        {/* ── Admin Roles — view-only ── */}
-        <div className="px-3 pb-1">
-          <div className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[#bbb] cursor-not-allowed">
-            <Users size={16} className="text-[#ccc] shrink-0" aria-hidden="true" />
-            <span className="text-left whitespace-nowrap">Admin Roles</span>
-          </div>
-        </div>
-
         {/* ── Settings ── */}
         <div className="px-3 pb-2">
-          <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[#555] hover:bg-[#FDF0F4] hover:text-[#8E406F] transition-colors">
+          <button
+            onClick={() => onNavigate?.('settings')}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[#555] hover:bg-[#FDF0F4] hover:text-[#8E406F] transition-colors"
+          >
             <Settings size={16} className="text-[#999] shrink-0" aria-hidden="true" />
             <span className="text-left whitespace-nowrap">Settings</span>
           </button>
         </div>
 
+        {/* ── Log Out Button ── */}
+                {/* View Website */}
+        <div className="px-3 pb-1">
+          <a href="/" className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[#555] hover:bg-[#FDF0F4] hover:text-[#8E406F] transition-colors">
+            <svg className="w-4 h-4 shrink-0 text-[#999]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>
+            <span className="text-left whitespace-nowrap">View Website</span>
+          </a>
+        </div>
+<div className="px-3 pb-2">
+          <button
+            id="sidebar-logout-btn"
+            onClick={onLogout}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-colors"
+          >
+            <LogOut size={16} className="shrink-0 text-rose-500" aria-hidden="true" />
+            <span className="text-left whitespace-nowrap">Sign Out</span>
+          </button>
+        </div>
+
         {/* ── User Profile ── */}
         <div className="border-t border-[#F1E5EC] px-4 py-3 flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-full bg-[#8E406F]/10 border border-[#e8c4d8] flex items-center justify-center shrink-0">
-            <span className="text-[#8E406F] text-xs font-bold">PN</span>
-          </div>
-          <div className="min-w-0">
-            <p className="text-[#333] text-xs font-semibold leading-tight truncate">Praneeth N</p>
-            <p className="text-[#999] text-[10px] leading-tight">Admin</p>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="h-8 w-8 rounded-full bg-[#8E406F]/10 border border-[#e8c4d8] flex items-center justify-center shrink-0 overflow-hidden">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={displayName}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span className="text-[#8E406F] text-xs font-bold">{userInitials}</span>
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[#333] text-xs font-semibold leading-tight truncate">{displayName}</p>
+              <p className="text-[#999] text-[10px] leading-tight flex items-center gap-1">
+                {displayRole.includes('SUPER')
+                  ? <><ShieldCheck size={9} className="text-[#8E406F]" /> Super Admin</>
+                  : 'Admin'}
+              </p>
+            </div>
           </div>
         </div>
 

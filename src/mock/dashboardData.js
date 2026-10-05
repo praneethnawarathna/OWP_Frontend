@@ -86,12 +86,12 @@ export const adminTeam = [
 export const sidebarNav = [
   { id: 'dashboard',       label: 'Dashboard',           icon: 'LayoutDashboard', active: true  },
   { id: 'listing-review',  label: 'Listing Review',      icon: 'ClipboardList',   active: false },
-  { id: 'all-vendors',     label: 'All Vendors',         icon: 'Store',           active: false },
+  { id: 'all-vendors',     label: 'Vendor Management',   icon: 'Store',           active: false },
   { id: 'customers',       label: 'Customer Management', icon: 'Users',           active: false },
   { id: 'analytics',       label: 'Report Analytics',    icon: 'BarChart3',       active: false },
+  { id: 'activity-log',    label: 'Activity Log',        icon: 'Activity',        active: false },
   { id: 'flagged',         label: 'Flagged Content',     icon: 'Flag',            active: false },
   { id: 'notifications',   label: 'Notifications',       icon: 'Bell',            active: false },
-  { id: 'activity-log',    label: 'Activity Log',        icon: 'Activity',        active: false },
   { id: 'category-manager',label: 'Category Manager',   icon: 'Tag',             active: false },
 ];
 
