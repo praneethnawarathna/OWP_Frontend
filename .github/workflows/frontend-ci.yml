@@ -1,0 +1,32 @@
+name: Oleena Frontend CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-frontend:
+    name: Build & Lint Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install Dependencies
+      run: npm install
+
+    - name: Build Application
+      run: npm run build
+      env:
+        # Provide dummy env vars so Vite doesn't fail on missing build keys
+        VITE_API_URL: "http://localhost:5131"
+        VITE_GOOGLE_MAPS_API_KEY: "dummy_key_for_ci_build"
