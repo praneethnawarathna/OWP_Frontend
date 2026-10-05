@@ -44,6 +44,7 @@ export function saveSession(data) {
     email: data.email ?? data.Email ?? '',
     fullName: data.fullName ?? data.FullName ?? '',
     role: resolvedRole,
+    profilePictureUrl: data.profilePictureUrl ?? data.ProfilePictureUrl ?? null,
   };
 
   localStorage.setItem('user', JSON.stringify(user));

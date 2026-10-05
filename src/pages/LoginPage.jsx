@@ -225,6 +225,7 @@ export default function LoginPage({ onLoginSuccess }) {
         email: data.email || formData.email,
         fullName: data.fullName || (resolvedRole === 'VENDOR' ? 'Lumina Photography' : 'System Admin'),
         role: resolvedRole,
+        profilePictureUrl: data.profilePictureUrl || null,
       }));
 
       // Navigate to the dashboard
