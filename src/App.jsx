@@ -31,6 +31,7 @@ import VendorListingsPage from './pages/VendorListingsPage';
 import CreateListingPage from './pages/CreateListingPage';
 import VendorNotificationsPage from './pages/VendorNotificationsPage';
 import VendorPerformancePage from './pages/VendorPerformancePage';
+import VendorInquiriesPage from './pages/VendorInquiriesPage';
 
 const isVendor = (role) => String(role || '').toUpperCase() === 'VENDOR';
 
@@ -77,6 +78,7 @@ const pathToPageId = (path) => {
   if (path.includes('notifications') || path.includes('admin-notifications')) return 'notifications';
   if (path.includes('vendor-profile')) return 'vendor-profile';
   if (path.includes('vendor-services')) return 'vendor-services';
+  if (path.includes('vendor-inquiries') || path.includes('inquiries')) return 'vendor-inquiries';
   if (path.includes('vendor-listing-editor')) return 'vendor-listing-editor';
   if (path.includes('vendor-performance')) return 'vendor-performance';
   if (path.includes('vendor-ratings')) return 'vendor-ratings';
@@ -100,6 +102,7 @@ const pageIdToPath = {
   'vendor-dashboard': '/vendor-dashboard',
   'vendor-profile': '/vendor-profile',
   'vendor-services': '/vendor-services',
+  'vendor-inquiries': '/vendor-inquiries',
   'vendor-listing-editor': '/vendor-listing-editor',
   'vendor-performance': '/vendor-performance',
   'vendor-ratings': '/vendor-ratings',
@@ -408,6 +411,22 @@ export default function App() {
               >
                 <PageTransition>
                   <VendorListingsPage onNavigate={handleNavigate} />
+                </PageTransition>
+              </VendorLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/vendor-inquiries"
+          element={
+            <ProtectedRoute requiredRole="vendor">
+              <VendorLayout
+                currentPage="vendor-inquiries"
+                onNavigate={handleNavigate}
+                onLogout={handleLogout}
+              >
+                <PageTransition>
+                  <VendorInquiriesPage onNavigate={handleNavigate} />
                 </PageTransition>
               </VendorLayout>
             </ProtectedRoute>

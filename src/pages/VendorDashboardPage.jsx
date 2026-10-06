@@ -762,10 +762,10 @@ function InquiriesWidget({ onViewInquiry, onReplyInquiry, onNavigate, inquiries 
 
         <button
           type="button"
-          onClick={() => onNavigate?.('vendor-performance')}
+          onClick={() => onNavigate?.('vendor-inquiries')}
           className="group flex items-center gap-1 text-xs font-semibold text-[#8E406F] transition-all hover:text-[#73325A]"
         >
-          <span>View Analytics</span>
+          <span>View All Inquiries</span>
           <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
         </button>
       </div>
@@ -839,12 +839,12 @@ function InquiriesWidget({ onViewInquiry, onReplyInquiry, onNavigate, inquiries 
 // QUICK ACTIONS SECTION
 // ============================================================
 const QUICK_ACTIONS = [
+  { id: 'inquiries', label: 'Client Inquiries', icon: MessageCircle, desc: 'Review quote requests & send replies', route: 'vendor-inquiries' },
   { id: 'add-listing', label: 'Add New Listing', icon: Plus, desc: 'Create a new package or service hall', route: 'vendor-listing-editor' },
   { id: 'manage-listings', label: 'Manage Listings', icon: Package, desc: 'Review, edit, or publish services', route: 'vendor-services' },
   { id: 'notifications', label: 'Notifications', icon: Bell, desc: 'Alerts, review notices & updates', route: 'vendor-notifications' },
   { id: 'business-profile', label: 'Business Profile', icon: Store, desc: 'Update profile details & branding', route: 'vendor-profile' },
   { id: 'performance', label: 'Performance Analytics', icon: BarChart3, desc: 'Track traffic & client interest', route: 'vendor-performance' },
-  { id: 'ratings', label: 'Client Reviews', icon: Star, desc: 'Check feedback & ratings', route: 'vendor-ratings' },
 ];
 
 function QuickActionsSection({ onNavigate }) {
