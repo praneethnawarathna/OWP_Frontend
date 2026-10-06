@@ -219,9 +219,12 @@ export default function LoginPage({ onLoginSuccess }) {
       }
 
       // Store JWT token and user profile for subsequent authenticated requests
+      const resolvedVendorId = data.vendorId || data.VendorId || data.userId || null;
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify({
         userId: data.userId || 'user-1',
+        id: resolvedVendorId || data.userId || 'user-1',
+        vendorId: resolvedVendorId,
         email: data.email || formData.email,
         fullName: data.fullName || (resolvedRole === 'VENDOR' ? 'Lumina Photography' : 'System Admin'),
         role: resolvedRole,

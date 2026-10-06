@@ -56,9 +56,13 @@ export async function updateFlagStatus(id, status, resolutionNote = '') {
 
 /**
  * Fetch all flags targeting a specific vendor's listings.
- * @param {number} vendorId
+ * Falls back to /vendor/my-flags if vendorId is omitted.
+ * @param {number} [vendorId]
  * @returns {Promise<FlaggedItemDto[]>}
  */
 export async function fetchVendorFlags(vendorId) {
-  return flagsFetch(`/vendor/${vendorId}`);
+  if (vendorId) {
+    return flagsFetch(`/vendor/${vendorId}`);
+  }
+  return flagsFetch('/vendor/my-flags');
 }

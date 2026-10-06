@@ -8,18 +8,39 @@ export default function VendorFlaggedListingsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Derive vendor ID from current session
-  const storedUser = (() => {
+  // Derive vendor ID and authentication status from current session
+  const getSessionVendor = () => {
+    let storedUser = {};
     try {
-      return JSON.parse(localStorage.getItem('user') || '{}');
-    } catch {
-      return {};
+      storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+    } catch {}
+
+    const token = localStorage.getItem('token');
+    let tokenPayload = {};
+    if (token) {
+      try {
+        tokenPayload = JSON.parse(atob(token.split('.')[1])) || {};
+      } catch {}
     }
-  })();
-  const vendorId = storedUser?.id || storedUser?.vendorId; // depending on the exact auth object shape
+
+    const resolvedVendorId =
+      storedUser?.vendorId ||
+      storedUser?.userId ||
+      storedUser?.id ||
+      tokenPayload?.vendorId ||
+      tokenPayload?.nameid ||
+      tokenPayload?.sub ||
+      tokenPayload?.['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] ||
+      null;
+
+    const hasSession = Boolean(token || resolvedVendorId);
+    return { vendorId: resolvedVendorId, hasSession };
+  };
+
+  const { vendorId, hasSession } = getSessionVendor();
 
   const loadFlags = useCallback(async () => {
-    if (!vendorId) {
+    if (!hasSession && !vendorId) {
       setError('Vendor session not found. Please log out and back in.');
       setLoading(false);
       return;
@@ -34,7 +55,7 @@ export default function VendorFlaggedListingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [vendorId]);
+  }, [vendorId, hasSession]);
 
   useEffect(() => {
     loadFlags();

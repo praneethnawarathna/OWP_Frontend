@@ -38,9 +38,12 @@ export function saveSession(data) {
     localStorage.setItem('token', token);
   }
 
+  const resolvedVendorId = data.vendorId ?? data.VendorId ?? data.userId ?? data.UserId ?? null;
   // Store user details with UPPERCASED role
   const user = {
     userId: data.userId ?? data.UserId ?? null,
+    id: data.id ?? data.Id ?? resolvedVendorId,
+    vendorId: resolvedVendorId,
     email: data.email ?? data.Email ?? '',
     fullName: data.fullName ?? data.FullName ?? '',
     role: resolvedRole,
