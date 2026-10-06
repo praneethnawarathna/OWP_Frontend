@@ -28,6 +28,7 @@ import VendorDashboardPage from './pages/VendorDashboardPage';
 import VendorContentPage from './pages/VendorContentPage';
 import VendorProfilePage from './pages/VendorProfilePage';
 import VendorListingsPage from './pages/VendorListingsPage';
+import VendorFlaggedListingsPage from './pages/VendorFlaggedListingsPage';
 import CreateListingPage from './pages/CreateListingPage';
 import VendorNotificationsPage from './pages/VendorNotificationsPage';
 import VendorPerformancePage from './pages/VendorPerformancePage';
@@ -408,6 +409,22 @@ export default function App() {
               >
                 <PageTransition>
                   <VendorListingsPage onNavigate={handleNavigate} />
+                </PageTransition>
+              </VendorLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/vendor-flagged"
+          element={
+            <ProtectedRoute requiredRole="vendor">
+              <VendorLayout
+                currentPage="vendor-flagged"
+                onNavigate={handleNavigate}
+                onLogout={handleLogout}
+              >
+                <PageTransition>
+                  <VendorFlaggedListingsPage />
                 </PageTransition>
               </VendorLayout>
             </ProtectedRoute>
