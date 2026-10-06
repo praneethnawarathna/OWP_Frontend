@@ -9,6 +9,7 @@ import {
   Star,
   Store,
   X,
+  Flag,
 } from 'lucide-react';
 import { vendorSidebarNav } from '../../mock/vendorData';
 
@@ -21,6 +22,7 @@ const iconMap = {
   Store,
   Star,
   Layers,
+  Flag,
 };
 
 function NavItem({ item, isActive, onNavigate, badgeCount = 0 }) {

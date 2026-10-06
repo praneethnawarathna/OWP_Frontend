@@ -10,4 +10,5 @@ export const vendorSidebarNav = [
   { id: 'vendor-ratings',       label: 'Add Ratings',       icon: 'Star',            routable: true },
   { id: 'vendor-performance',   label: 'Performance',       icon: 'BarChart3',       routable: true },
   { id: 'vendor-notifications', label: 'Notifications',     icon: 'Bell',            routable: true },
+  { id: 'vendor-flagged',       label: 'Flagged Listings',  icon: 'Flag',            routable: true },
 ];
