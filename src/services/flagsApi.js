@@ -56,11 +56,20 @@ export async function updateFlagStatus(id, status, resolutionNote = '') {
 
 /**
  * Fetch all flags targeting a specific vendor's listings.
- * Falls back to /vendor/my-flags if vendorId is omitted.
+ * Prioritizes /vendor/my-flags when authenticated token exists.
  * @param {number} [vendorId]
  * @returns {Promise<FlaggedItemDto[]>}
  */
 export async function fetchVendorFlags(vendorId) {
+  const token = localStorage.getItem('token');
+  if (token) {
+    try {
+      const myFlags = await flagsFetch('/vendor/my-flags');
+      if (Array.isArray(myFlags)) return myFlags;
+    } catch {
+      // Fallback to explicit vendorId path
+    }
+  }
   if (vendorId) {
     return flagsFetch(`/vendor/${vendorId}`);
   }

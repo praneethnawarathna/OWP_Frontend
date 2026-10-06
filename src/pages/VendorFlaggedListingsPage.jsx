@@ -141,15 +141,17 @@ export default function VendorFlaggedListingsPage() {
                     </span>
                   </div>
                   <div className="mb-3">
-                    <span className="text-sm font-medium text-gray-700">Issue: </span>
-                    <span className="text-sm text-gray-600">{flag.reason}</span>
+                    <span className="text-sm font-medium text-gray-700">Issue Reported: </span>
+                    <span className="text-sm font-semibold text-rose-600">{flag.reason}</span>
                   </div>
-                  {flag.comments && (
-                    <div className="mb-4 rounded-md bg-gray-50 p-3 text-sm text-gray-600 border border-gray-100">
-                      <span className="font-medium text-gray-700 mb-1 block">Customer Comment:</span>
-                      "{flag.comments}"
-                    </div>
-                  )}
+                  <div className="mb-4 rounded-md bg-gray-50 p-3 text-sm text-gray-600 border border-gray-100">
+                    <span className="font-medium text-gray-700 mb-1 block">Customer Report Message:</span>
+                    {flag.comments ? (
+                      <p className="text-gray-800">"{flag.comments}"</p>
+                    ) : (
+                      <p className="text-gray-400 italic">No additional note provided by customer (Report reason: {flag.reason}).</p>
+                    )}
+                  </div>
                   {flag.resolutionNote && (
                     <div className="mt-3 text-sm border-l-2 border-[#8E406F] pl-3 py-1">
                       <span className="font-medium text-[#8E406F]">Admin Resolution: </span>
