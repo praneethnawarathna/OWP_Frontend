@@ -1,8 +1,4 @@
-<<<<<<< Updated upstream
-import { useEffect, useMemo, useState } from 'react';
-=======
 import { useEffect, useMemo, useState, useCallback } from 'react';
->>>>>>> Stashed changes
 import {
   Search,
   Eye,
@@ -12,18 +8,11 @@ import {
   Flag,
   Clock,
   ShieldCheck,
-<<<<<<< Updated upstream
-  AlertTriangle,
-} from 'lucide-react';
-import { CONTENT_TYPES } from '../mock/flaggedContentData';
-import { getFlags, updateFlagStatus } from '../services/flaggedContentApi';
-=======
   RefreshCw,
   AlertTriangle,
 } from 'lucide-react';
 import { fetchAdminFlags, updateFlagStatus } from '../services/flagsApi';
 import { CONTENT_TYPES } from '../mock/flaggedContentData';
->>>>>>> Stashed changes
 import { FlagStatusBadge, SeverityBadge } from '../components/flaggedContent/FlagBadges';
 import FlagDetailsModal from '../components/flaggedContent/FlagDetailsModal';
 
@@ -64,19 +53,9 @@ function normaliseFlag(f) {
 }
 
 export default function FlaggedContentPage() {
-<<<<<<< Updated upstream
-  // ── Real data state ────────────────────────────────────────────────────────
-  const [flags, setFlags] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // ── UI / filter state ──────────────────────────────────────────────────────
-=======
   const [flags, setFlags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
->>>>>>> Stashed changes
   const [statusTab, setStatusTab] = useState('All');
   const [typeFilter, setTypeFilter] = useState('All');
   const [search, setSearch] = useState('');
@@ -85,34 +64,6 @@ export default function FlaggedContentPage() {
   const [page, setPage] = useState(1);
   const [detailsFlag, setDetailsFlag] = useState(null);
 
-<<<<<<< Updated upstream
-  // ── Fetch on mount ─────────────────────────────────────────────────────────
-  useEffect(() => {
-    let cancelled = false;
-    setIsLoading(true);
-    setError(null);
-
-    getFlags()
-      .then((data) => {
-        if (!cancelled) {
-          setFlags(data);
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err.message || 'Failed to load flagged content.');
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-=======
   // ── Fetch live data ─────────────────────────────────────────────────────────
   const loadFlags = useCallback(async () => {
     setLoading(true);
@@ -130,9 +81,6 @@ export default function FlaggedContentPage() {
   useEffect(() => {
     loadFlags();
   }, [loadFlags]);
-
-  // ── Computed Stats ──────────────────────────────────────────────────────────
->>>>>>> Stashed changes
   const stats = useMemo(() => {
     const count = (s) => flags.filter((f) => f.status === s).length;
     return {
@@ -179,26 +127,10 @@ export default function FlaggedContentPage() {
     }
   }
 
-<<<<<<< Updated upstream
-  /** Optimistically update local state, then persist to the API. */
-  function updateFlag(id, patch) {
-    setFlags((prev) => prev.map((f) => (f.id === id ? { ...f, ...patch } : f)));
-
-    // Sync status change to the backend when a status field is included
-    if (patch.status) {
-      const numericId = flags.find((f) => f.id === id)?._numericId;
-      if (numericId != null) {
-        updateFlagStatus(numericId, patch.status).catch((err) => {
-          console.error('Failed to sync status to API:', err);
-        });
-      }
-    }
-=======
   // ── Optimistic local update + API call ─────────────────────────────────────
   function applyFlagPatch(id, patch) {
     setFlags((prev) => prev.map((f) => (f.id === id ? { ...f, ...patch } : f)));
     if (detailsFlag?.id === id) setDetailsFlag((prev) => (prev ? { ...prev, ...patch } : prev));
->>>>>>> Stashed changes
   }
 
   const today = () => new Date().toISOString().slice(0, 10);
@@ -333,42 +265,22 @@ export default function FlaggedContentPage() {
               </tr>
             </thead>
             <tbody>
-<<<<<<< Updated upstream
-              {/* ── Loading skeleton ──────────────────────────────────────── */}
-              {isLoading && (
-                Array.from({ length: PAGE_SIZE }).map((_, i) => (
-                  <tr key={`skel-${i}`} className="border-b border-gray-50">
-                    {Array.from({ length: 7 }).map((__, j) => (
-                      <td key={j} className="px-4 py-3">
-                        <div
-                          className="h-3 animate-pulse rounded bg-gray-100"
-                          style={{ width: j === 0 ? '80%' : j === 6 ? '40%' : '60%' }}
-                        />
-                        {j === 0 && (
-                          <div className="mt-1.5 h-2 w-2/5 animate-pulse rounded bg-gray-100" />
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                ))
+              {loading && (
+                <tr>
+                  <td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-400">
+                    <RefreshCw size={20} className="mx-auto mb-2 animate-spin opacity-40" />
+                    Loading flagged content…
+                  </td>
+                </tr>
               )}
-
-              {/* ── Error state ───────────────────────────────────────────── */}
-              {!isLoading && error && (
+              {!loading && error && (
                 <tr>
                   <td colSpan={7} className="px-4 py-10 text-center">
                     <div className="inline-flex flex-col items-center gap-2 text-sm text-red-600">
                       <AlertTriangle size={20} />
                       <span>{error}</span>
                       <button
-                        onClick={() => {
-                          setIsLoading(true);
-                          setError(null);
-                          getFlags()
-                            .then(setFlags)
-                            .catch((err) => setError(err.message || 'Failed to load flagged content.'))
-                            .finally(() => setIsLoading(false));
-                        }}
+                        onClick={loadFlags}
                         className="mt-1 rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
                       >
                         Retry
@@ -377,20 +289,7 @@ export default function FlaggedContentPage() {
                   </td>
                 </tr>
               )}
-
-              {/* ── Empty state ───────────────────────────────────────────── */}
-              {!isLoading && !error && pageItems.length === 0 && (
-=======
-              {loading && (
->>>>>>> Stashed changes
-                <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-400">
-                    <RefreshCw size={20} className="mx-auto mb-2 animate-spin opacity-40" />
-                    Loading flagged content…
-                  </td>
-                </tr>
-              )}
-              {!loading && pageItems.length === 0 && (
+              {!loading && !error && pageItems.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-400">
                     {flags.length === 0 ? 'No reports have been submitted yet.' : 'No flagged content matches these filters.'}
