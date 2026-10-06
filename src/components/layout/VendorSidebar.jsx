@@ -6,6 +6,7 @@ import {
   Layers,
   LayoutDashboard,
   LogOut,
+  MessageSquare,
   Star,
   Store,
   X,
@@ -23,6 +24,7 @@ const iconMap = {
   Star,
   Layers,
   Flag,
+  MessageSquare,
 };
 
 function NavItem({ item, isActive, onNavigate, badgeCount = 0 }) {
