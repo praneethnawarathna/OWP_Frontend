@@ -27,7 +27,7 @@ export default function MetricCards() {
     const fetchMetrics = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:5131/api/admin/listing-reviews/metrics', {
+        const res = await fetch('http://https://owpbackend-production.up.railway.app/api/admin/listing-reviews/metrics', {
           headers: {
             'Authorization': `Bearer ${token}`
           }

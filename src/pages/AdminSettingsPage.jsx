@@ -39,7 +39,7 @@ import PinInput from '../components/common/PinInput';
 
 // ─── API ─────────────────────────────────────────────────────────────────────
 
-const API_BASE = 'http://localhost:5131/api';
+const API_BASE = 'http://https://owpbackend-production.up.railway.app/api';
 
 const getAuthHeaders = () => ({
   'Content-Type': 'application/json',
@@ -525,7 +525,7 @@ function ProfileSection({ user, onShowToast }) {
   const displayAvatarSrc = photoUrl
     ? (photoUrl.startsWith('http') || photoUrl.startsWith('data:') || photoUrl.startsWith('blob:')
         ? photoUrl
-        : `http://localhost:5131${photoUrl}`)
+        : `http://https://owpbackend-production.up.railway.app${photoUrl}`)
     : null;
 
   return (

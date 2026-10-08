@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:5131/api/flaggedcontent';
+const API_BASE = 'http://https://owpbackend-production.up.railway.app/api/flaggedcontent';
 
 /**
  * Generic fetch wrapper for the Flagged Content API.

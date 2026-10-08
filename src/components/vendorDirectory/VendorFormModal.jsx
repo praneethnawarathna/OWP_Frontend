@@ -85,7 +85,7 @@ export default function VendorFormModal({ vendor, onClose, onSave, onImageRemove
 
     setIsRemovingImage(true);
     try {
-      const res = await fetch(`http://localhost:5131/api/admin/vendors/${id}/image`, {
+      const res = await fetch(`http://https://owpbackend-production.up.railway.app/api/admin/vendors/${id}/image`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

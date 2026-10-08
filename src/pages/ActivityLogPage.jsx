@@ -28,7 +28,7 @@ import {
 // ============================================================
 // API Configuration
 // ============================================================
-const API_BASE = 'http://localhost:5131/api/admin/activity-log';
+const API_BASE = 'http://https://owpbackend-production.up.railway.app/api/admin/activity-log';
 
 const getAuthHeaders = () => ({
   'Content-Type': 'application/json',
@@ -60,7 +60,7 @@ export default function ActivityLogPage() {
       // Try /api/admin/activity-log
       let res = await fetch(API_BASE, { headers: getAuthHeaders() });
       if (!res.ok && res.status === 404) {
-          res = await fetch('http://localhost:5131/api/admin/activity-logs', { headers: getAuthHeaders() });
+          res = await fetch('http://https://owpbackend-production.up.railway.app/api/admin/activity-logs', { headers: getAuthHeaders() });
       }
 
       if (!res.ok) {

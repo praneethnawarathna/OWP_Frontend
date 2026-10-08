@@ -28,5 +28,5 @@ jobs:
       run: npm run build
       env:
         # Provide dummy env vars so Vite doesn't fail on missing build keys
-        VITE_API_URL: "http://localhost:5131"
+        VITE_API_URL: "http://https://owpbackend-production.up.railway.app"
         VITE_GOOGLE_MAPS_API_KEY: "dummy_key_for_ci_build"

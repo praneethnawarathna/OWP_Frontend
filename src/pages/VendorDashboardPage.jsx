@@ -51,7 +51,7 @@ export function resolveImageUrl(url) {
   if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) {
     return url;
   }
-  return `http://localhost:5131${url.startsWith('/') ? '' : '/'}${url}`;
+  return `http://https://owpbackend-production.up.railway.app${url.startsWith('/') ? '' : '/'}${url}`;
 }
 
 function categoryBadgeVariant(cat) {
@@ -968,14 +968,14 @@ export default function VendorDashboardPage({ onNavigate }) {
       };
 
       const dashUrl = (userId && Number.isFinite(userId))
-        ? `http://localhost:5131/api/vendor-dashboard?userId=${userId}`
-        : 'http://localhost:5131/api/vendor-dashboard';
+        ? `http://https://owpbackend-production.up.railway.app/api/vendor-dashboard?userId=${userId}`
+        : 'http://https://owpbackend-production.up.railway.app/api/vendor-dashboard';
 
       // Fetch metrics, real listings, and notifications concurrently
       const [dashRes, servicesRes, notifRes] = await Promise.allSettled([
         fetch(dashUrl, { headers }),
-        fetch('http://localhost:5131/api/vendor-content/services', { headers }),
-        fetch('http://localhost:5131/api/notifications', { headers }),
+        fetch('http://https://owpbackend-production.up.railway.app/api/vendor-content/services', { headers }),
+        fetch('http://https://owpbackend-production.up.railway.app/api/notifications', { headers }),
       ]);
 
       let loadedDash = null;

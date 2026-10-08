@@ -43,7 +43,7 @@ const resolveColor = (label, fallback) => {
 };
 
 // ── API base (dev backend) ────────────────────────────────────────────────────
-const API_BASE = 'http://localhost:5131';
+const API_BASE = 'http://https://owpbackend-production.up.railway.app';
 const POLL_MS  = 15_000; // 15 seconds
 
 // ── Tab configuration ─────────────────────────────────────────────────────────

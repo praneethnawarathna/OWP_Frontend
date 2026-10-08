@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:5131/api/notifications';
+const API_BASE = 'http://https://owpbackend-production.up.railway.app/api/notifications';
 
 /**
  * Fetch wrapper for vendor notifications API

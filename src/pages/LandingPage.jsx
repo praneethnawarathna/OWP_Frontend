@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 
-const API = 'http://localhost:5131';
+const API = 'http://https://owpbackend-production.up.railway.app';
 
 // 5 Category Slides for Hero Carousel (Hotels, Photography, Music, Decor, Catering)
 const HERO_SLIDES = [

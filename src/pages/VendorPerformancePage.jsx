@@ -4,7 +4,7 @@ import ActiveListingsSummary from '../components/vendor-performance/ActiveListin
 import TrafficChart from '../components/vendor-performance/TrafficChart';
 import AiSuggestionsList from '../components/vendor-performance/AiSuggestionsList';
 
-const API_BASE = 'http://localhost:5131/api/vendor-performance';
+const API_BASE = 'http://https://owpbackend-production.up.railway.app/api/vendor-performance';
 const getAuthHeaders = () => ({
   'Content-Type': 'application/json',
   Authorization: `Bearer ${localStorage.getItem('token') || ''}`,

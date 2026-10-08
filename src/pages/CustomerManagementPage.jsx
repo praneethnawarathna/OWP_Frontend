@@ -41,8 +41,8 @@ import {
 // ============================================================
 // API Configuration
 // ============================================================
-const API_BASE = 'http://localhost:5131/api/customers';
-const API_FALLBACK = 'http://localhost:5131/api/customer-management';
+const API_BASE = 'http://https://owpbackend-production.up.railway.app/api/customers';
+const API_FALLBACK = 'http://https://owpbackend-production.up.railway.app/api/customer-management';
 
 const getAuthHeaders = () => ({
   'Content-Type': 'application/json',

@@ -12,7 +12,7 @@ import {
   Loader2,
 } from 'lucide-react';
 
-const API_BASE = 'http://localhost:5131';
+const API_BASE = 'http://https://owpbackend-production.up.railway.app';
 
 export default function VendorDocumentsSection({ vendorId, initialDocs = [] }) {
   const [docs, setDocs] = useState(initialDocs);

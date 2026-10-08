@@ -8,7 +8,7 @@
  *   PATCH /api/flags/{id}/status   – Admin: update flag status
  */
 
-const API_BASE = 'http://localhost:5131/api/flags';
+const API_BASE = 'http://https://owpbackend-production.up.railway.app/api/flags';
 
 /** Generic authenticated fetch wrapper */
 async function flagsFetch(urlPath = '', options = {}) {

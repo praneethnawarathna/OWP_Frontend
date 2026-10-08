@@ -552,7 +552,7 @@ export default function VendorInquiriesPage() {
                               src={
                                 inq.customerAvatar.startsWith('http')
                                   ? inq.customerAvatar
-                                  : `http://localhost:5131${inq.customerAvatar}`
+                                  : `http://https://owpbackend-production.up.railway.app${inq.customerAvatar}`
                               }
                               alt={inq.customerName}
                               className="h-10 w-10 rounded-full object-cover border border-[#F1E5EC]"
@@ -582,7 +582,7 @@ export default function VendorInquiriesPage() {
                               src={
                                 inq.serviceImage.startsWith('http')
                                   ? inq.serviceImage
-                                  : `http://localhost:5131${inq.serviceImage}`
+                                  : `http://https://owpbackend-production.up.railway.app${inq.serviceImage}`
                               }
                               alt={inq.serviceName}
                               className="h-9 w-9 rounded-lg object-cover border border-[#F1E5EC] shrink-0"
@@ -730,7 +730,7 @@ export default function VendorInquiriesPage() {
                         src={
                           selectedInquiry.customerAvatar.startsWith('http')
                             ? selectedInquiry.customerAvatar
-                            : `http://localhost:5131${selectedInquiry.customerAvatar}`
+                            : `http://https://owpbackend-production.up.railway.app${selectedInquiry.customerAvatar}`
                         }
                         alt={selectedInquiry.customerName}
                         className="h-12 w-12 rounded-full object-cover border border-[#F1E5EC]"
@@ -846,7 +846,7 @@ export default function VendorInquiriesPage() {
                       href={
                         selectedInquiry.attachmentUrl.startsWith('http')
                           ? selectedInquiry.attachmentUrl
-                          : `http://localhost:5131${selectedInquiry.attachmentUrl}`
+                          : `http://https://owpbackend-production.up.railway.app${selectedInquiry.attachmentUrl}`
                       }
                       target="_blank"
                       rel="noopener noreferrer"

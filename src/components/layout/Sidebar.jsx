@@ -107,7 +107,7 @@ export default function Sidebar({
   const avatarUrl = storedUser.profilePictureUrl
     ? (storedUser.profilePictureUrl.startsWith('http') || storedUser.profilePictureUrl.startsWith('blob:') || storedUser.profilePictureUrl.startsWith('data:')
         ? storedUser.profilePictureUrl
-        : `http://localhost:5131${storedUser.profilePictureUrl}`)
+        : `http://https://owpbackend-production.up.railway.app${storedUser.profilePictureUrl}`)
     : null;
 
   return (

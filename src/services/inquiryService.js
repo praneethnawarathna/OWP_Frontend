@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:5131/api/inquiries';
+const API_BASE = 'http://https://owpbackend-production.up.railway.app/api/inquiries';
 
 function getAuthHeaders() {
   const token = localStorage.getItem('token');

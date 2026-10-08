@@ -3,7 +3,7 @@
  * Backend: ASP.NET Core Web API (VendorRegistrationController)
  */
 
-const API_BASE = 'http://localhost:5131/api';
+const API_BASE = 'http://https://owpbackend-production.up.railway.app/api';
 
 /**
  * Loads registration options (categories, districts, business types)
