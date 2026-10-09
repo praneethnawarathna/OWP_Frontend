@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { API_BASE_URL } from '../config/apiConfig';
 import {
   UserPlus,
   Shield,
@@ -38,7 +39,7 @@ import {
 //   8. Dynamic Stat Cards bound to /api/admin/metrics
 // ============================================================
 
-const API_BASE = 'http://https://owpbackend-production.up.railway.app/api/admin';
+const API_BASE = `${API_BASE_URL}/admin`;
 
 // Helper to get JWT token for authenticated requests
 const getAuthHeaders = () => ({

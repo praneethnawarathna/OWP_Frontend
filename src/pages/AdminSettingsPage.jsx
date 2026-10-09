@@ -36,10 +36,11 @@ import {
   CheckCheck,
 } from 'lucide-react';
 import PinInput from '../components/common/PinInput';
+import { API_BASE_URL, getAssetUrl } from '../config/apiConfig';
 
 // ─── API ─────────────────────────────────────────────────────────────────────
 
-const API_BASE = 'http://https://owpbackend-production.up.railway.app/api';
+const API_BASE = API_BASE_URL;
 
 const getAuthHeaders = () => ({
   'Content-Type': 'application/json',
@@ -523,9 +524,7 @@ function ProfileSection({ user, onShowToast }) {
 
   const initials = getUserInitials(fullName || user.fullName);
   const displayAvatarSrc = photoUrl
-    ? (photoUrl.startsWith('http') || photoUrl.startsWith('data:') || photoUrl.startsWith('blob:')
-        ? photoUrl
-        : `http://https://owpbackend-production.up.railway.app${photoUrl}`)
+    ? getAssetUrl(photoUrl)
     : null;
 
   return (

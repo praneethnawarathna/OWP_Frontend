@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Bell, CheckCheck, ImagePlus, Pencil, Plus, Save, Store, Trash2, Upload, X } from 'lucide-react';
 import VendorNotificationsPage from './VendorNotificationsPage';
+import { BACKEND_URL, API_BASE_URL } from '../config/apiConfig';
 
-const API_URL = 'http://https://owpbackend-production.up.railway.app/api/vendor-content';
-const FILE_URL = 'http://https://owpbackend-production.up.railway.app';
+const API_URL = `${API_BASE_URL}/vendor-content`;
+const FILE_URL = BACKEND_URL;
 const categories = ['Photography', 'Decorations', 'Catering', 'Music'];
 const emptyService = { serviceName: '', category: 'Photography', description: '', price: '' };
 const emptyPerformance = { title: '', category: 'Photography', description: '', customerName: '', customerFeedback: '', eventDate: '' };

@@ -11,8 +11,7 @@ import {
   FileCheck,
   Loader2,
 } from 'lucide-react';
-
-const API_BASE = 'http://https://owpbackend-production.up.railway.app';
+import { API_BASE_URL, getAssetUrl } from '../../config/apiConfig';
 
 export default function VendorDocumentsSection({ vendorId, initialDocs = [] }) {
   const [docs, setDocs] = useState(initialDocs);
@@ -34,7 +33,7 @@ export default function VendorDocumentsSection({ vendorId, initialDocs = [] }) {
       setError('');
       try {
         const token = localStorage.getItem('token') || '';
-        const res = await fetch(`${API_BASE}/api/admin/vendors/${numericId}/documents`, {
+        const res = await fetch(`${API_BASE_URL}/admin/vendors/${numericId}/documents`, {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
@@ -68,9 +67,7 @@ export default function VendorDocumentsSection({ vendorId, initialDocs = [] }) {
   }, [numericId]);
 
   function getFullUrl(url) {
-    if (!url) return '';
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    return `${API_BASE}${url.startsWith('/') ? '' : '/'}${url}`;
+    return getAssetUrl(url);
   }
 
   function getDocTypeBadge(type) {

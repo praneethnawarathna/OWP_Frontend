@@ -4,6 +4,11 @@ export default function GoogleSignInButton({ onCredential, disabled }) {
   const containerRef = useRef(null);
   const [isReady, setIsReady] = useState(false);
 
+  const onCredentialRef = useRef(onCredential);
+  useEffect(() => {
+    onCredentialRef.current = onCredential;
+  }, [onCredential]);
+
   useEffect(() => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     
@@ -17,7 +22,7 @@ export default function GoogleSignInButton({ onCredential, disabled }) {
         client_id: clientId,
         callback: (response) => {
           if (response.credential) {
-            onCredential(response.credential);
+            onCredentialRef.current?.(response.credential);
           }
         },
       });
@@ -49,7 +54,7 @@ export default function GoogleSignInButton({ onCredential, disabled }) {
         }
       };
     }
-  }, [onCredential]);
+  }, []);
 
   if (!import.meta.env.VITE_GOOGLE_CLIENT_ID) {
     return (

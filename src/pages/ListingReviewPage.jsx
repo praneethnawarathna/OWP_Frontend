@@ -20,8 +20,9 @@ import {
   AdminTablePagination,
   AdminIconButton,
 } from "../components/common/AdminTableComponents";
+import { BACKEND_URL } from "../config/apiConfig";
 
-const API_BASE = "http://https://owpbackend-production.up.railway.app";
+const API_BASE = BACKEND_URL;
 const PAGE_SIZE = 7;
 
 const AVATAR_COLORS = ["#8E406F","#4A7C6B","#3B6EA5","#7C5CBF","#C8612F","#2E7D8C","#A05C3C"];

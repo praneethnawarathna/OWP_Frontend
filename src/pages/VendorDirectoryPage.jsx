@@ -56,7 +56,9 @@ const VENDOR_CATEGORIES = ['Photography', 'Decorations', 'Hotels', 'Music', 'Cat
 const STATUS_TABS = ['All', 'Pending', 'Approved', 'Suspended', 'Banned', 'Rejected'];
 const PAGE_SIZE = 6;
 
-const API_BASE = 'http://https://owpbackend-production.up.railway.app/api/admin/vendors';
+import { API_BASE_URL } from '../config/apiConfig';
+
+const API_BASE = `${API_BASE_URL}/admin/vendors`;
 
 const getAuthHeaders = () => ({
   'Content-Type': 'application/json',

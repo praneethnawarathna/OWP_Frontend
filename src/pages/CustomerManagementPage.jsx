@@ -37,12 +37,13 @@ import {
   AdminTablePagination,
   AdminIconButton,
 } from '../components/common/AdminTableComponents';
+import { API_BASE_URL } from '../config/apiConfig';
 
 // ============================================================
 // API Configuration
 // ============================================================
-const API_BASE = 'http://https://owpbackend-production.up.railway.app/api/customers';
-const API_FALLBACK = 'http://https://owpbackend-production.up.railway.app/api/customer-management';
+const API_BASE = `${API_BASE_URL}/customers`;
+const API_FALLBACK = `${API_BASE_URL}/customer-management`;
 
 const getAuthHeaders = () => ({
   'Content-Type': 'application/json',

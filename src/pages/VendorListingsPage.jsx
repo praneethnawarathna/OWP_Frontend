@@ -38,7 +38,9 @@ export const LISTING_CATEGORIES = [
 
 export const LISTING_STATUSES = ['Active', 'Draft'];
 
-const API_BASE = 'http://https://owpbackend-production.up.railway.app/api/vendor-content';
+import { API_BASE_URL, getAssetUrl } from '../config/apiConfig';
+
+const API_BASE = `${API_BASE_URL}/vendor-content`;
 
 // ─── helpers ────────────────────────────────────────────────
 
@@ -48,11 +50,7 @@ function formatPrice(price) {
 }
 
 export function resolveImageUrl(url) {
-  if (!url) return null;
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) {
-    return url;
-  }
-  return `http://https://owpbackend-production.up.railway.app${url.startsWith('/') ? '' : '/'}${url}`;
+  return getAssetUrl(url);
 }
 
 /** Map category name → Badge variant (falls back to 'default') */

@@ -3,8 +3,9 @@ import { BarChart3, AlertCircle } from 'lucide-react';
 import ActiveListingsSummary from '../components/vendor-performance/ActiveListingsSummary';
 import TrafficChart from '../components/vendor-performance/TrafficChart';
 import AiSuggestionsList from '../components/vendor-performance/AiSuggestionsList';
+import { API_BASE_URL } from '../config/apiConfig';
 
-const API_BASE = 'http://https://owpbackend-production.up.railway.app/api/vendor-performance';
+const API_BASE = `${API_BASE_URL}/vendor-performance`;
 const getAuthHeaders = () => ({
   'Content-Type': 'application/json',
   Authorization: `Bearer ${localStorage.getItem('token') || ''}`,

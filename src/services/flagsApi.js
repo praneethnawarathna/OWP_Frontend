@@ -7,8 +7,9 @@
  *   GET  /api/flags/vendor/{id}    – Vendor dashboard: flags for a specific vendor
  *   PATCH /api/flags/{id}/status   – Admin: update flag status
  */
+import { API_BASE_URL } from '../config/apiConfig';
 
-const API_BASE = 'http://https://owpbackend-production.up.railway.app/api/flags';
+const API_BASE = `${API_BASE_URL}/flags`;
 
 /** Generic authenticated fetch wrapper */
 async function flagsFetch(urlPath = '', options = {}) {

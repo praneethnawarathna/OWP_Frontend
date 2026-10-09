@@ -6,7 +6,8 @@ import { Link } from 'react-router-dom';
 import VendorRegisterPage from './VendorRegisterPage';
 import GoogleSignInButton from '../components/auth/GoogleSignInButton';
 import { signInWithGoogleApi } from '../components/auth/googleAuthApi';
-import { saveSession } from '../components/auth/saveSession';// ============================================================
+import { saveSession } from '../components/auth/saveSession';
+import { API_BASE_URL } from '../config/apiConfig';
 // LoginPage.jsx — Oleena Wedding Planner
 // Design System: Ethereal Union (from Stitch)
 // Colors:
@@ -173,7 +174,7 @@ export default function LoginPage({ onLoginSuccess }) {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://https://owpbackend-production.up.railway.app/api/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../../config/apiConfig';
 
 // Mini bar chart for Total Inquiries card
 function MiniBarChart() {
@@ -27,7 +28,7 @@ export default function MetricCards() {
     const fetchMetrics = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://https://owpbackend-production.up.railway.app/api/admin/listing-reviews/metrics', {
+        const res = await fetch(`${API_BASE_URL}/admin/listing-reviews/metrics`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

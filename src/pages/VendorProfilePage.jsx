@@ -35,9 +35,10 @@ import {
   User,
   X,
 } from 'lucide-react';
+import { BACKEND_URL, API_BASE_URL } from '../config/apiConfig';
 
-const API_BASE = 'http://https://owpbackend-production.up.railway.app/api/vendor-profile';
-const FILE_HOST = 'http://https://owpbackend-production.up.railway.app';
+const API_BASE = `${API_BASE_URL}/vendor-profile`;
+const FILE_HOST = BACKEND_URL;
 
 const CATEGORIES = [
   'Decorations',

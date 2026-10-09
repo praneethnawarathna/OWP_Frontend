@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { getAssetUrl } from '../config/apiConfig';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   MessageSquare,
@@ -549,11 +550,7 @@ export default function VendorInquiriesPage() {
                         <div className="flex items-center gap-3">
                           {inq.customerAvatar ? (
                             <img
-                              src={
-                                inq.customerAvatar.startsWith('http')
-                                  ? inq.customerAvatar
-                                  : `http://https://owpbackend-production.up.railway.app${inq.customerAvatar}`
-                              }
+                              src={getAssetUrl(inq.customerAvatar)}
                               alt={inq.customerName}
                               className="h-10 w-10 rounded-full object-cover border border-[#F1E5EC]"
                             />
@@ -579,11 +576,7 @@ export default function VendorInquiriesPage() {
                         <div className="flex items-center gap-2.5">
                           {inq.serviceImage && (
                             <img
-                              src={
-                                inq.serviceImage.startsWith('http')
-                                  ? inq.serviceImage
-                                  : `http://https://owpbackend-production.up.railway.app${inq.serviceImage}`
-                              }
+                              src={getAssetUrl(inq.serviceImage)}
                               alt={inq.serviceName}
                               className="h-9 w-9 rounded-lg object-cover border border-[#F1E5EC] shrink-0"
                             />
@@ -727,11 +720,7 @@ export default function VendorInquiriesPage() {
                   <div className="flex items-center gap-3">
                     {selectedInquiry.customerAvatar ? (
                       <img
-                        src={
-                          selectedInquiry.customerAvatar.startsWith('http')
-                            ? selectedInquiry.customerAvatar
-                            : `http://https://owpbackend-production.up.railway.app${selectedInquiry.customerAvatar}`
-                        }
+                        src={getAssetUrl(selectedInquiry.customerAvatar)}
                         alt={selectedInquiry.customerName}
                         className="h-12 w-12 rounded-full object-cover border border-[#F1E5EC]"
                       />
@@ -843,11 +832,7 @@ export default function VendorInquiriesPage() {
                       Inquiry Attachment
                     </h4>
                     <a
-                      href={
-                        selectedInquiry.attachmentUrl.startsWith('http')
-                          ? selectedInquiry.attachmentUrl
-                          : `http://https://owpbackend-production.up.railway.app${selectedInquiry.attachmentUrl}`
-                      }
+                      href={getAssetUrl(selectedInquiry.attachmentUrl)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#F1E5EC] bg-[#F8FAFC] text-xs font-semibold text-[#8E406F] hover:bg-[#FDF0F4] transition"

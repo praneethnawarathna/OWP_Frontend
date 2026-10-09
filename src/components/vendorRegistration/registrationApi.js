@@ -2,8 +2,9 @@
  * registrationApi.js — API client for Vendor Registration
  * Backend: ASP.NET Core Web API (VendorRegistrationController)
  */
+import { API_BASE_URL } from '../../config/apiConfig';
 
-const API_BASE = 'http://https://owpbackend-production.up.railway.app/api';
+const API_BASE = API_BASE_URL;
 
 /**
  * Loads registration options (categories, districts, business types)

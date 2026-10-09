@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Fragment, useState, useEffect } from 'react';
+import { getAssetUrl } from '../../config/apiConfig';
 import {
   Activity,
   BarChart3,
@@ -105,9 +106,7 @@ export default function Sidebar({
     .substring(0, 2)
     .toUpperCase() || 'SA';
   const avatarUrl = storedUser.profilePictureUrl
-    ? (storedUser.profilePictureUrl.startsWith('http') || storedUser.profilePictureUrl.startsWith('blob:') || storedUser.profilePictureUrl.startsWith('data:')
-        ? storedUser.profilePictureUrl
-        : `http://https://owpbackend-production.up.railway.app${storedUser.profilePictureUrl}`)
+    ? getAssetUrl(storedUser.profilePictureUrl)
     : null;
 
   return (

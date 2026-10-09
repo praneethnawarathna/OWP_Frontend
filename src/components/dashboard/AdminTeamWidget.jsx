@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { ShieldCheck, RefreshCw } from 'lucide-react';
+import { API_BASE_URL } from '../../config/apiConfig';
 
-const API_BASE = 'http://https://owpbackend-production.up.railway.app/api/admin-management';
+const API_BASE = `${API_BASE_URL}/admin-management`;
 
 const getAuthHeaders = () => ({
   'Content-Type': 'application/json',

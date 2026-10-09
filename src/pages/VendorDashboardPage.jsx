@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { API_BASE_URL, getAssetUrl } from '../config/apiConfig';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -47,11 +48,7 @@ function formatPrice(price) {
 }
 
 export function resolveImageUrl(url) {
-  if (!url) return null;
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) {
-    return url;
-  }
-  return `http://https://owpbackend-production.up.railway.app${url.startsWith('/') ? '' : '/'}${url}`;
+  return getAssetUrl(url);
 }
 
 function categoryBadgeVariant(cat) {
@@ -968,14 +965,14 @@ export default function VendorDashboardPage({ onNavigate }) {
       };
 
       const dashUrl = (userId && Number.isFinite(userId))
-        ? `http://https://owpbackend-production.up.railway.app/api/vendor-dashboard?userId=${userId}`
-        : 'http://https://owpbackend-production.up.railway.app/api/vendor-dashboard';
+        ? `${API_BASE_URL}/vendor-dashboard?userId=${userId}`
+        : `${API_BASE_URL}/vendor-dashboard`;
 
       // Fetch metrics, real listings, and notifications concurrently
       const [dashRes, servicesRes, notifRes] = await Promise.allSettled([
         fetch(dashUrl, { headers }),
-        fetch('http://https://owpbackend-production.up.railway.app/api/vendor-content/services', { headers }),
-        fetch('http://https://owpbackend-production.up.railway.app/api/notifications', { headers }),
+        fetch(`${API_BASE_URL}/vendor-content/services`, { headers }),
+        fetch(`${API_BASE_URL}/notifications`, { headers }),
       ]);
 
       let loadedDash = null;

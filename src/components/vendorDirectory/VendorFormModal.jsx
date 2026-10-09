@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, Image, Trash2, AlertCircle } from 'lucide-react';
 import { VENDOR_CATEGORIES } from '../../mock/vendorDirectoryData';
 import VendorDocumentsSection from './VendorDocumentsSection';
+import { API_BASE_URL } from '../../config/apiConfig';
 
 const MAX_DESCRIPTION = 600;
 
@@ -85,7 +86,7 @@ export default function VendorFormModal({ vendor, onClose, onSave, onImageRemove
 
     setIsRemovingImage(true);
     try {
-      const res = await fetch(`http://https://owpbackend-production.up.railway.app/api/admin/vendors/${id}/image`, {
+      const res = await fetch(`${API_BASE_URL}/admin/vendors/${id}/image`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

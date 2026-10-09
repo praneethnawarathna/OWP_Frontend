@@ -6,6 +6,7 @@
 // ============================================================
 
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { BACKEND_URL, API_BASE_URL, getAssetUrl } from '../config/apiConfig';
 import {
   ArrowLeft,
   Check,
@@ -50,7 +51,7 @@ export const LISTING_CATEGORIES = [
   'Music',
 ];
 
-const API_BASE = 'http://https://owpbackend-production.up.railway.app/api/vendor-content';
+const API_BASE = `${API_BASE_URL}/vendor-content`;
 
 const STEPS = [
   { id: 1, label: 'Basic Info & Category', desc: 'Title, category, starting rate' },
@@ -132,14 +133,14 @@ function buildInitialFormData(existingListing = null) {
           id: img.imageId ? `img-${img.imageId}` : `img-existing-${idx}`,
           imageId: img.imageId,
           name: img.imageUrl ? img.imageUrl.split('/').pop() : `Photo ${idx + 1}`,
-          url: img.imageUrl?.startsWith('/') ? `http://https://owpbackend-production.up.railway.app${img.imageUrl}` : (img.imageUrl || img.url),
+          url: getAssetUrl(img.imageUrl) || img.url,
           isCover: Boolean(img.isCover || (existingListing.coverImageUrl && existingListing.coverImageUrl === img.imageUrl)),
         }))
       : (existingListing?.coverImageUrl
           ? [{
               id: 'img-cover',
               name: existingListing.coverImageUrl.split('/').pop() || 'Cover photo',
-              url: existingListing.coverImageUrl.startsWith('/') ? `http://https://owpbackend-production.up.railway.app${existingListing.coverImageUrl}` : existingListing.coverImageUrl,
+              url: getAssetUrl(existingListing.coverImageUrl),
               isCover: true,
             }]
           : []),
@@ -617,7 +618,7 @@ export default function CreateListingPage({ onNavigate }) {
         if (res.ok) {
           const uploaded = await res.json();
           img.imageId = uploaded.imageId;
-          img.url = uploaded.imageUrl.startsWith('http') ? uploaded.imageUrl : `http://https://owpbackend-production.up.railway.app${uploaded.imageUrl}`;
+          img.url = getAssetUrl(uploaded.imageUrl);
           delete img.file;
         }
       } catch (uploadErr) {
@@ -643,9 +644,13 @@ export default function CreateListingPage({ onNavigate }) {
     }));
 
     const chosenCover = (formData.images || []).find((img) => img.isCover);
-    const coverImageUrl = chosenCover?.url?.startsWith('http://https://owpbackend-production.up.railway.app')
-      ? chosenCover.url.replace('http://https://owpbackend-production.up.railway.app', '')
-      : (chosenCover && !chosenCover.file && !chosenCover.url?.startsWith('blob:') ? chosenCover.url : null);
+    const normalizeCover = (u) => {
+      if (!u) return null;
+      if (u.startsWith(BACKEND_URL)) return u.replace(BACKEND_URL, '');
+      if (u.startsWith('http://localhost:5131')) return u.replace('http://localhost:5131', '');
+      return (chosenCover && !chosenCover.file && !u.startsWith('blob:')) ? u : null;
+    };
+    const coverImageUrl = normalizeCover(chosenCover?.url);
 
     const payload = {
       title: formData.title.trim() || 'Untitled Listing (Draft)',
@@ -734,9 +739,13 @@ export default function CreateListingPage({ onNavigate }) {
       }));
 
       const chosenCover = (formData.images || []).find((img) => img.isCover);
-      const coverImageUrl = chosenCover?.url?.startsWith('http://https://owpbackend-production.up.railway.app')
-        ? chosenCover.url.replace('http://https://owpbackend-production.up.railway.app', '')
-        : (chosenCover && !chosenCover.file && !chosenCover.url?.startsWith('blob:') ? chosenCover.url : null);
+      const normalizeCover = (u) => {
+        if (!u) return null;
+        if (u.startsWith(BACKEND_URL)) return u.replace(BACKEND_URL, '');
+        if (u.startsWith('http://localhost:5131')) return u.replace('http://localhost:5131', '');
+        return (chosenCover && !chosenCover.file && !u.startsWith('blob:')) ? u : null;
+      };
+      const coverImageUrl = normalizeCover(chosenCover?.url);
 
       const payload = {
         title: formData.title.trim(),

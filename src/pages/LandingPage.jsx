@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
+import { BACKEND_URL } from '../config/apiConfig';
 
-const API = 'http://https://owpbackend-production.up.railway.app';
+const API = BACKEND_URL;
 
 // 5 Category Slides for Hero Carousel (Hotels, Photography, Music, Decor, Catering)
 const HERO_SLIDES = [

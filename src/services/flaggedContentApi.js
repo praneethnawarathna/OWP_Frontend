@@ -1,4 +1,6 @@
-const API_BASE = 'http://https://owpbackend-production.up.railway.app/api/flaggedcontent';
+import { API_BASE_URL } from '../config/apiConfig';
+
+const API_BASE = `${API_BASE_URL}/flaggedcontent`;
 
 /**
  * Generic fetch wrapper for the Flagged Content API.

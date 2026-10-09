@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { BACKEND_URL } from '../config/apiConfig';
 import {
   Download,
   Users,
@@ -43,7 +44,7 @@ const resolveColor = (label, fallback) => {
 };
 
 // ── API base (dev backend) ────────────────────────────────────────────────────
-const API_BASE = 'http://https://owpbackend-production.up.railway.app';
+const API_BASE = BACKEND_URL;
 const POLL_MS  = 15_000; // 15 seconds
 
 // ── Tab configuration ─────────────────────────────────────────────────────────

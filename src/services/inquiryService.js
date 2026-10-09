@@ -1,4 +1,6 @@
-const API_BASE = 'http://https://owpbackend-production.up.railway.app/api/inquiries';
+import { API_BASE_URL } from '../config/apiConfig';
+
+const API_BASE = `${API_BASE_URL}/inquiries`;
 
 function getAuthHeaders() {
   const token = localStorage.getItem('token');

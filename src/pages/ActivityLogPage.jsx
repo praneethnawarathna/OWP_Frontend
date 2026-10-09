@@ -24,11 +24,12 @@ import {
   AdminTableCell,
   AdminTablePagination,
 } from '../components/common/AdminTableComponents';
+import { API_BASE_URL } from '../config/apiConfig';
 
 // ============================================================
 // API Configuration
 // ============================================================
-const API_BASE = 'http://https://owpbackend-production.up.railway.app/api/admin/activity-log';
+const API_BASE = `${API_BASE_URL}/admin/activity-log`;
 
 const getAuthHeaders = () => ({
   'Content-Type': 'application/json',
@@ -60,7 +61,7 @@ export default function ActivityLogPage() {
       // Try /api/admin/activity-log
       let res = await fetch(API_BASE, { headers: getAuthHeaders() });
       if (!res.ok && res.status === 404) {
-          res = await fetch('http://https://owpbackend-production.up.railway.app/api/admin/activity-logs', { headers: getAuthHeaders() });
+          res = await fetch(`${API_BASE_URL}/admin/activity-logs`, { headers: getAuthHeaders() });
       }
 
       if (!res.ok) {

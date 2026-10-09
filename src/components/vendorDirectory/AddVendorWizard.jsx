@@ -269,7 +269,7 @@ export default function AddVendorWizard({ onClose, onSuccess }) {
             <p className="font-semibold">Could not load options</p>
             <p className="text-xs mt-1">{optionsError}</p>
             <p className="text-xs mt-1 text-rose-500">
-              Ensure the backend is running at http://https://owpbackend-production.up.railway.app
+              Ensure the backend is running and reachable.
             </p>
           </div>
         ) : (

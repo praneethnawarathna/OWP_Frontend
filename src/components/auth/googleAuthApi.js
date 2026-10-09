@@ -1,5 +1,7 @@
+import { API_BASE_URL } from '../../config/apiConfig';
+ 
 export async function signInWithGoogleApi(idToken) {
-  const response = await fetch('http://https://owpbackend-production.up.railway.app/api/GoogleAuth/sign-in', {
+  const response = await fetch(`${API_BASE_URL}/GoogleAuth/sign-in`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ idToken })
